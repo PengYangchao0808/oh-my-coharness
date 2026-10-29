@@ -43,7 +43,7 @@ npm publish --access public
 提 PR 时，在合适的分类下加一行（分类建议 **Tools & Capabilities** 或 **Workflow & Automation**）：
 
 ```markdown
-- [<owner>/oh-my-coharness](https://github.com/<owner>/oh-my-coharness) - Finds the AI coding CLIs already installed on the machine (including inside WSL), registers each as a real DSH subagent provider, and dispatches self-contained tasks to them with honest timeouts, capacity limits and diagnostics.
+- [PengYangchao0808/oh-my-coharness](https://github.com/PengYangchao0808/oh-my-coharness) - Finds the AI coding CLIs already installed on the machine (including inside WSL), registers each as a real DSH subagent provider, and dispatches self-contained tasks to them with honest timeouts, capacity limits and diagnostics.
 ```
 
 评审会做的事（所以描述必须可核对）：能 `dsh plugin add` 装上、描述与实际行为一致、
