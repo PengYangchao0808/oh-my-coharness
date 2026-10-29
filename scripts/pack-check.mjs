@@ -10,6 +10,7 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { SKILLS } from '../src/skills.js'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
@@ -109,8 +110,7 @@ const required = [
   'src/skills.js',
   'src/config.js',
   'src/ids.js',
-  'skills/coharness/SKILL.md',
-  'skills/coharness-setup/SKILL.md',
+  ...SKILLS.map(({ dir }) => `skills/${dir}/SKILL.md`),
 ]
 for (const file of required) {
   if (!collected.has(file)) problems.push(`required runtime file not shipped: ${file}`)

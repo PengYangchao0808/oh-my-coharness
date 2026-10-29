@@ -29,9 +29,23 @@
 
 > 在实现 v0.2/v0.3 时若确实复制超过约 20 行代码，必须在此文件新增一节，写明来源文件、版权行与许可证全文位置。
 
+## v0.2 设计参考（2026-10-29）
+
+v0.2 的薄编排方案只借用**事实与设计**，不复制实现：
+
+| 来源 | 借用的东西 | 没有借用 |
+|---|---|---|
+| `oh-my-dsh-slim@0.8.5` | 角色名与分工（oracle / designer / fixer / explorer / librarian）、background-first 纪律、`maxDepth: 1`、council「三席 + synthesizer」的存在与成本警告、Companion 的「内部角色 / 外部 Harness」分工 | preset 结构、角色实现、persona 文本、配置卡、MCP 作用域、角色管理代码 |
+| `oh-my-opencode-slim` | orchestrator 的「派发—等待—收集—整合」纪律、council 显式触发、deepwork 的阶段与验证、报告不是结算 | persona、marketplace、hook 注入、multiplexer |
+| DSH `dsh-workflow` / `dsh-tool-workflow` / `dsh-workflow-ptc` | 一次 run 只有一个 `subagentProvider`、`agent()` 只接受 label/phase/schema/provider/model、并发与总量上限的默认值 | 不 import、不依赖；0.2.0 只在决策上使用它（DSH 原生 / 同 provider 任务），不写 Workflow Engine |
+| DSH `dsh-experimental-worktree` | `create(agent)` 会通过 `workingDirectory.set` 进入新 checkout；linked worktree 的 gitdir 是 Windows 绝对路径 | 0.2.0 不调用；Worktree 留到 0.2.1+ 评估 |
+| `orchestmux` | 「子 Agent 没真正完成就不许宣布成功」 | 任何代码、coordinator 进程 |
+
 ## 事实核查来源（2026-10-29）
 
-- 本机安装：`DeepSeek Harness/resources/app.asar/dsh/package.json`（`0.2.1-rc.3`）、profile `desktop`。
-- 宿主契约：`@deepseek-ai/dsh-subagent`、`dsh-tools`、`dsh-commands`、`dsh-skill`、`dsh-subprocess`、`dsh-worktrees` 的 README 与类型声明。
+- 本机安装：`DeepSeek Harness/resources/app.asar` 内的 `dsh/package.json`（`@deepseek-ai/dsh-desktop-runtime@0.2.1-rc.3`）、profile `desktop`。
+- 宿主契约：`@deepseek-ai/dsh-subagent`、`dsh-tools`、`dsh-commands`、`dsh-skill`、`dsh-subprocess`、`dsh-worktrees`、`dsh-workflow`、`dsh-workflow-ptc` 的 README 与源码。
+- 运行中的 Host Service 目录：`cordis_inspect_query` 的 `Service` provider（`workflowEngine`、`worktrees`、`subagents`、`jobs`、`agentTeams`）。
+- 宿主 ASAR 的只读读取（本地诊断脚本，未入库、不进 npm 包）。
 - npm registry：`oh-my-dsh-slim@0.8.5`、`dsh-wsl-tool@2.2.3` 的 manifest；`oh-my-coharness` 返回 404（名字可用）。
 - 市场机制：`@deepseek-ai/dsh-plugin-market` README（"There is no official market"）、`dsh-experimental-plugin-market-bundle` README、`awesome-dsh-plugin` README（format-1 索引 `https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json`）。

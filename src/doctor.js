@@ -61,13 +61,34 @@ async function probeAuth(ctx, def, plan, signal) {
   return result.exitCode === def.authProbe.okExit ? 'ok' : 'signed-out'
 }
 
-/** Same-class plugins we must not duplicate (PLAN §4.6). */
+/**
+ * Role tools oh-my-dsh-slim registers when it is the orchestrator. We only ever
+ * *detect* them: OMC does not register, wrap or reimplement any of them.
+ */
+const COMPANION_ROLE_TOOLS = [
+  'subagent_oracle',
+  'subagent_designer',
+  'subagent_fixer',
+  'subagent_explorer',
+  'subagent_librarian',
+  'subagent_council',
+  'subagent_councillor_alpha',
+]
+
+/** Same-class plugins we must not duplicate (PLAN §4.6), plus the slim companion. */
 export function probePlugins(ctx) {
-  const tool = (name) => Boolean(ctx.get('tools')?.get?.(name))
+  const tools = ctx.get('tools')
+  const tool = (name) => Boolean(tools?.get?.(name))
+  const companionRoles = COMPANION_ROLE_TOOLS.filter((name) => tool(name))
   return {
     conductor: tool('conductor_dispatch'),
     wsl: tool('wsl'),
     providerNames: ctx.get('subagents')?.list?.() ?? [],
+    // Best effort: role tools may be agent-scoped, so an empty list is "not seen
+    // from here", never "slim is not installed" (V0.2-PLAN §6.3).
+    companionRoles,
+    companionRolesChecked: COMPANION_ROLE_TOOLS.length,
+    coharnessRegistered: tool('coharness'),
   }
 }
 
@@ -170,8 +191,38 @@ function shortVersion(text) {
   return (match ? match[1] : text).slice(0, 20)
 }
 
+/** Render the "is oh-my-dsh-slim here, and what does that change" block. */
+function renderCompanion(plugins) {
+  const roles = plugins?.companionRoles ?? []
+  const lines = []
+
+  if (roles.length) {
+    const short = roles.map((name) => name.replace(/^subagent_/, '')).join(', ')
+    lines.push(`companion: oh-my-dsh-slim detected (${short})`)
+  } else {
+    lines.push('companion: not detected (may be scoped)')
+  }
+
+  // A registered tool proves registration, not that slim's preset exposes it to the
+  // model; the report must not upgrade that to "compatible".
+  lines.push(
+    `coharness: ${plugins?.coharnessRegistered ? 'registered (preset visibility unverified)' : 'not visible from here (may be scoped)'}`,
+  )
+
+  if (roles.length) {
+    lines.push('integration: validation required — 检查 preset 的工具过滤；见 coharness Skill 的 Companion 段')
+    lines.push('recommended:')
+    lines.push('  DSH internal roles → 现有 subagent_* 工具')
+    lines.push('  External CLI work  → coharness')
+  } else {
+    lines.push('recommended: Standalone 路径仍可用；若已装 Slim，检查 preset 的工具列表')
+  }
+
+  return lines
+}
+
 /** Render the copy-pasteable report. Text only: no JSON, no markup. */
-export function renderReport(report, cfg) {
+export function renderReport(report, cfg, state = {}) {
   const { host, rows, wsl, plugins, subagents } = report
   const ready = rows.filter((row) => row.auth !== 'missing')
   const missing = rows.filter((row) => row.auth === 'missing')
@@ -180,6 +231,16 @@ export function renderReport(report, cfg) {
   lines.push(`Oh My CoHarness doctor — ${report.at}`)
   lines.push(`host: DSH ${host.dsh} · ${host.profile} profile · ${host.platform} · node ${host.node}`)
   lines.push(`subagents: ${subagents.length ? subagents.join(', ') : '(service unavailable)'}`)
+  // The live provider list alone cannot tell "registered" from "registered by us";
+  // this line is what makes a missing provider surface diagnosable.
+  if (Array.isArray(state.registered)) {
+    lines.push(
+      state.registered.length
+        ? `providers: ${state.registered.map((id) => `omc:${id}`).join(', ')}`
+        : 'providers: none registered — dispatch falls back to surface: direct (no childId, no host capacity)',
+    )
+    if (state.issues?.length) lines.push(`provider issues: ${state.issues.join(' · ')}`)
+  }
   lines.push(`capacity: omc maxParallel=${cfg.dispatch.maxParallel}`)
   lines.push('')
   lines.push(`${pad('harness', 12)}${pad('exec', 18)}${pad('version', 18)}${pad('auth', 12)}state`)
@@ -206,6 +267,8 @@ export function renderReport(report, cfg) {
   if (plugins.conductor) conflicts.push('conductor_dispatch')
   if (plugins.wsl) conflicts.push('wsl (dsh-wsl)')
   lines.push(`plugins: ${conflicts.length ? `${conflicts.join(' · ')} present — see PLAN §4.6` : 'no same-class plugin detected'}`)
+
+  lines.push(...renderCompanion(plugins))
   lines.push('')
 
   if (!ready.length) {

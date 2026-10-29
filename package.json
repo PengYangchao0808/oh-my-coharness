@@ -1,6 +1,6 @@
 {
   "name": "oh-my-coharness",
-  "version": "0.1.10",
+  "version": "0.3.0",
   "description": "Install once and let the AI coding CLIs you already use work together inside DeepSeek Harness. 装一次，让你装好的 AI 编程 CLI 在 DSH 里协同工作。",
   "type": "module",
   "license": "MIT",
@@ -46,7 +46,8 @@
   ],
   "scripts": {
     "check": "node scripts/check.mjs",
-    "test": "node test/smoke.test.mjs"
+    "test": "node test/smoke.test.mjs",
+    "live-check": "node scripts/live-check.mjs"
   },
   "repository": {
     "type": "git",

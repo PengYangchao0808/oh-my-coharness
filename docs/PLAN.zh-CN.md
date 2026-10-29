@@ -456,9 +456,18 @@ coharness({
 
 **目标**：在 slim 的角色之上加一个「Harness」维度，并把两个工作流做稳。
 
+> **细化方案（2026-10-29 修订）**：v0.2 已按复审建议收窄为 **Skill-first 薄桥接**，详见 [`V0.2-PLAN.zh-CN.md`](./V0.2-PLAN.zh-CN.md)。与下表的关系：
+>
+> - 2.1 / 2.2 角色路由与自动路由：0.2.0 不写独立 Router；角色由 Skill 契约 + `coharness` 的 `harness` 选择实现；0.2.1 视需要。
+> - 2.3 / 2.4 ulw 与 council：0.2.0 用 Skill + 现有 `tasks[]` 实现，不新增工具 action。
+> - 2.5 worktree：0.2.0 不启用；写只走显式 `in-place`；0.2.1+ 再评估。
+> - 2.8 配置卡：0.2.0 不做；Companion 优先用 Slim 的设置卡。
+>
+> 下表保留为历史范围摘要，不再作为实现依据。
+
 | # | 工作包 | 说明 |
 |---|---|---|
-| 2.1 | Harness 维度进角色 | 角色 → `harness: auto | <id>`；默认 auto，由能力表选 |
+| 2.1 | Harness 维度进角色 | 角色 → `harness: auto` 或 `<id>`；默认 auto，由能力表选 |
 | 2.2 | 自动路由 | 依据：`mode`（读写）、语言/仓库类型、可用性、上次成功率；不做「模型自己挑」 |
 | 2.3 | `ulw` 工作流 | 拆分 → 并行实现 → 独立审查 → 修复 → 测试确认，每步都落 `DispatchResult` |
 | 2.4 | `council` 工作流 | N 个 Harness 独立给方案 → 交叉审查 → 合成；N 默认 2（成本） |
@@ -467,7 +476,9 @@ coharness({
 | 2.7 | 并发护栏 | `ACTIVATION_LIMIT_REACHED` 的翻译与退避（一次，不重试风暴） |
 | 2.8 | 配置卡（可选） | 复用 `configForms` + `settings.section`，不重写 UI 框架 |
 
-**v0.2 固定验收任务**（v2.0 已定，保留）：Codex 实现一个 Rust 小功能 → Gemini 独立审查 → 按审查修复 → 测试工具确认。要求：每一步都能追溯到「哪个真实 Harness、哪个 childId、哪条命令」。
+**v0.2 固定验收任务（历史记录，已被 V0.2-PLAN §7 取代）**：Codex 实现一个 Rust 小功能 → Gemini 独立审查 → 按审查修复 → 测试工具确认。要求：每一步都能追溯到「哪个真实 Harness、哪个 childId、哪条命令」。
+
+> V0.2 的实际验收以 [`V0.2-PLAN.zh-CN.md`](./V0.2-PLAN.zh-CN.md) §7 的 A–H 为准。Gemini 个人免费层不可用，Council 的第二个 Harness 用 `glm` / `codex` 等可用项；原 Rust / Gemini 固定任务不再适用。
 
 **纪律**：不为了演示多 Agent 而默认起 5 个。并行只在任务可切分时触发，默认单 Agent。
 

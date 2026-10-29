@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtemp, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -17,12 +17,21 @@ import {
   toWslPath,
   withTimeout,
 } from '../src/transport.js'
-import { parseFrontmatter } from '../src/skills.js'
+import { parseFrontmatter, SKILLS } from '../src/skills.js'
 import { dispatchTasks } from '../src/dispatch.js'
-import { renderReport } from '../src/doctor.js'
+import { probePlugins, renderReport } from '../src/doctor.js'
+import { apply } from '../src/index.js'
 
 /** A ctx shim: only the seams OMC actually touches. */
-function fakeCtx({ stdout = 'ok\n', stderr = '', exitCode = 0, missing = [] } = {}) {
+function fakeCtx({
+  stdout = 'ok\n',
+  stderr = '',
+  exitCode = 0,
+  missing = [],
+  toolNames = [],
+  delayMs = 0,
+  subagents = null,
+} = {}) {
   const specs = []
   const subprocess = {
     async resolveExecutable(bin) {
@@ -38,9 +47,10 @@ function fakeCtx({ stdout = 'ok\n', stderr = '', exitCode = 0, missing = [] } = 
     spawn(spec) {
       specs.push(spec)
       const read = (text) => ({ readFrom: () => ({ text, nextOffset: Buffer.byteLength(text), lossy: false }) })
+      const outcome = { exitCode, signal: null }
       return {
         collected: { stdout: read(stdout), stderr: read(stderr) },
-        done: Promise.resolve({ exitCode, signal: null }),
+        done: delayMs ? new Promise((resolve) => setTimeout(() => resolve(outcome), delayMs)) : Promise.resolve(outcome),
         terminate() {},
         async waitForExit() {
           return true
@@ -48,15 +58,42 @@ function fakeCtx({ stdout = 'ok\n', stderr = '', exitCode = 0, missing = [] } = 
       }
     },
   }
-  const tools = { get: () => undefined }
+  const registeredTools = []
+  const injections = []
+  const subagentsRef = { current: subagents }
+  const tools = {
+    get: (name) => (toolNames.includes(name) ? { name } : undefined),
+    register: (tool) => {
+      registeredTools.push(tool)
+      return () => {}
+    },
+  }
   return {
     specs,
+    registeredTools,
+    injections,
+    setSubagents(value) {
+      subagentsRef.current = value
+    },
     ctx: {
       // A real Cordis context exposes both shapes once `inject` is declared:
       // `ctx.subprocess` for the hard dependency and `ctx.get()` for optional planes.
       subprocess,
       tools,
-      get: (name) => (name === 'subprocess' ? subprocess : name === 'tools' ? tools : undefined),
+      get: (name) =>
+        name === 'subprocess'
+          ? subprocess
+          : name === 'tools'
+            ? tools
+            : name === 'subagents'
+              ? subagentsRef.current
+              : undefined,
+      // Optional-service injection: Cordis runs the callback now and when the
+      // service appears. The shim records it so a test can fire it later.
+      inject: (deps, callback) => {
+        injections.push({ deps, callback })
+        if (subagentsRef.current) callback()
+      },
       effect: (callback) => callback(),
     },
   }
@@ -131,6 +168,8 @@ test('dispatch runs direct when no provider surface exists', async () => {
   assert.equal(payload.delivery, 'await')
   assert.equal(payload.results.length, 1)
   assert.equal(payload.results[0].status, 'completed')
+  assert.equal(payload.results[0].surface, 'direct')
+  assert.match(payload.results[0].downgradeReason, /surface is configured as direct/)
   assert.equal(payload.results[0].output, 'README summarised')
   assert.equal(specs.length, 1)
   assert.deepEqual(specs[0].argv.slice(1), ['exec', '--skip-git-repo-check', '-s', 'read-only', 'read README'])
@@ -175,16 +214,360 @@ test('dispatch reports a missing CLI instead of pretending', async () => {
   assert.match(payload.results[0].diagnostics?.[0] ?? '', /OMC\/CLI-MISSING/)
 })
 
-test('dispatch refuses to run more tasks than maxParallel', async () => {
+test('an over-limit batch fails loudly instead of dropping tasks', async () => {
   const { ctx } = fakeCtx()
-  const rt = { ctx, cfg: resolveConfig({ surface: 'direct', dispatch: { maxParallel: 2 } }), registered: new Set(), async detect() { return { rows: [{ id: 'codex', auth: 'ok' }] } } }
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', dispatch: { maxParallel: 4 } }),
+    registered: new Set(),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'ok' }] }
+    },
+  }
+  const tasks = Array.from({ length: 5 }, (_, index) => ({ harness: 'codex', prompt: `task ${index}` }))
+
+  await assert.rejects(
+    dispatchTasks(rt, { tasks }, { agent: { id: 's' }, signal: new AbortController().signal }),
+    (error) => {
+      assert.equal(error.code, 'OMC/TOO-MANY-TASKS')
+      assert.match(error.message, /maxParallel=4/)
+      assert.match(error.message, /split them into 2 calls/)
+      return true
+    },
+  )
+})
+
+test('auto prefers an authenticated harness and never auto-selects a signed-out one', async () => {
+  const { ctx } = fakeCtx()
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    async detect() {
+      return {
+        rows: [
+          { id: 'gemini', auth: 'unknown', verified: true },
+          { id: 'codex', auth: 'signed-out', verified: true },
+          { id: 'opencode', auth: 'ok', verified: true },
+          { id: 'kimi', auth: 'missing' },
+        ],
+      }
+    },
+  }
+
   const payload = await dispatchTasks(
     rt,
-    { tasks: [{ harness: 'codex', prompt: 'a' }, { harness: 'codex', prompt: 'b' }, { harness: 'codex', prompt: 'c' }] },
+    { prompt: 'read README' },
     { agent: { id: 's' }, signal: new AbortController().signal },
   )
+
+  assert.equal(payload.results[0].harnessId, 'opencode')
+  assert.equal(payload.results[0].status, 'completed')
+})
+
+test('auto falls back to verified before unverified when auth is equal', async () => {
+  const { ctx } = fakeCtx()
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    async detect() {
+      return {
+        rows: [
+          { id: 'qwen', auth: 'unknown', verified: false },
+          { id: 'gemini', auth: 'unknown', verified: true },
+        ],
+      }
+    },
+  }
+
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'auto', prompt: 'go' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+  assert.equal(payload.results[0].harnessId, 'gemini')
+})
+
+test('auto with nothing usable explains every row', async () => {
+  const { ctx } = fakeCtx()
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    async detect() {
+      return {
+        rows: [
+          { id: 'codex', auth: 'missing' },
+          { id: 'kimi', auth: 'signed-out' },
+        ],
+      }
+    },
+  }
+
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'auto', prompt: 'go' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+
+  assert.equal(payload.results[0].status, 'failed')
+  const diagnostic = payload.results[0].diagnostics.join(' ')
+  assert.match(diagnostic, /OMC\/CLI-MISSING/)
+  assert.match(diagnostic, /codex: missing \(not installed\)/)
+  assert.match(diagnostic, /kimi: signed-out/)
+})
+
+test('one bad task does not reject the whole batch', async () => {
+  const { ctx } = fakeCtx({ stdout: 'second result' })
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'ok' }] }
+    },
+  }
+
+  const payload = await dispatchTasks(
+    rt,
+    { tasks: [{ harness: 'nope', prompt: 'a' }, { harness: 'codex', prompt: 'b' }] },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+
   assert.equal(payload.results.length, 2)
-  assert.equal(payload.omitted, 1)
+  assert.equal(payload.results[0].status, 'failed')
+  assert.match(payload.results[0].diagnostics[0], /OMC\/UNKNOWN-HARNESS/)
+  assert.equal(payload.results[1].status, 'completed')
+  assert.equal(payload.results[1].output, 'second result')
+})
+
+test('a write mode leaves the provider surface and says why', async () => {
+  const { ctx } = fakeCtx({
+    stdout: 'file written',
+    subagents: {
+      list: () => ['omc:codex'],
+      async startActivation() {
+        throw new Error('a per-call mode must not travel through the provider')
+      },
+    },
+  })
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ transport: 'native' }),
+    registered: new Set(['codex']),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'ok' }] }
+    },
+  }
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'codex', prompt: 'change it', mode: 'in-place' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+
+  assert.equal(payload.results[0].status, 'completed')
+  assert.equal(payload.results[0].surface, 'direct')
+  assert.match(payload.results[0].downgradeReason, /mode in-place differs from the provider default read-only/)
+})
+
+test('an explicit signed-out harness still runs, but only when a report was seen', async () => {
+  const { ctx } = fakeCtx({ stdout: 'ran anyway' })
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    peekReport: () => ({ rows: [{ id: 'codex', auth: 'signed-out' }] }),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'signed-out' }] }
+    },
+  }
+
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'codex', prompt: 'go' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+  assert.equal(payload.results[0].status, 'completed')
+  assert.match(payload.results[0].diagnostics.join(' '), /OMC\/AUTH-SIGNED-OUT/)
+})
+
+test('in-place is single-writer: two write tasks in one call are refused', async () => {
+  const { ctx, specs } = fakeCtx()
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'ok' }] }
+    },
+  }
+
+  await assert.rejects(
+    dispatchTasks(
+      rt,
+      { mode: 'in-place', tasks: [{ harness: 'codex', prompt: 'a' }, { harness: 'codex', prompt: 'b' }] },
+      { agent: { id: 's' }, signal: new AbortController().signal },
+    ),
+    (error) => {
+      assert.equal(error.code, 'OMC/PARALLEL-WRITE')
+      assert.match(error.message, /single-writer/)
+      return true
+    },
+  )
+  assert.equal(specs.length, 0, 'nothing may be spawned for a refused write batch')
+})
+
+test('background on the direct surface is refused instead of silently awaited', async () => {  const { ctx, specs } = fakeCtx()
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'ok' }] }
+    },
+  }
+
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'codex', prompt: 'go', delivery: 'background' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+
+  assert.equal(payload.results[0].status, 'failed')
+  assert.match(payload.results[0].diagnostics[0], /OMC\/BACKGROUND-UNSUPPORTED/)
+  assert.match(payload.results[0].diagnostics[0], /delivery "await"/)
+  assert.equal(specs.length, 0, 'nothing may be spawned for an unsupported delivery')
+})
+
+test('a provider result carries its surface and child id', async () => {
+  const { ctx } = fakeCtx()
+  const subagents = {
+    list: () => ['omc:codex'],
+    async startActivation() {
+      return {
+        childId: 'child-7',
+        result: Promise.resolve({ output: [{ type: 'text', text: 'from codex' }], stopReason: 'completed' }),
+        async dispose() {},
+      }
+    },
+  }
+  const scoped = { ...ctx, get: (name) => (name === 'subagents' ? subagents : ctx.get(name)) }
+  const rt = {
+    ctx: scoped,
+    cfg: resolveConfig({}),
+    registered: new Set(['codex']),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'ok' }] }
+    },
+  }
+
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'codex', prompt: 'go' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+
+  assert.equal(payload.results[0].status, 'completed')
+  assert.equal(payload.results[0].surface, 'provider')
+  assert.equal(payload.results[0].childId, 'child-7')
+  assert.equal(payload.results[0].output, 'from codex')
+  assert.equal(payload.results[0].downgradeReason, undefined)
+})
+
+test('two read-only tasks really overlap', async () => {
+  const { ctx } = fakeCtx({ stdout: 'ok', delayMs: 120 })
+  const rt = {
+    ctx,
+    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    registered: new Set(),
+    async detect() {
+      return { rows: [{ id: 'codex', auth: 'ok' }] }
+    },
+  }
+
+  const startedAt = Date.now()
+  const payload = await dispatchTasks(
+    rt,
+    { tasks: [{ harness: 'codex', prompt: 'a' }, { harness: 'codex', prompt: 'b' }] },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+  const elapsed = Date.now() - startedAt
+
+  assert.equal(payload.results.length, 2)
+  assert.ok(payload.results.every((result) => result.status === 'completed'))
+  assert.ok(elapsed < 220, `expected ~max(120,120), got ${elapsed}ms`)
+})
+
+test('the bundle ships a preset that binds specialist tools to external harnesses', async () => {
+  const raw = await readFile(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
+
+  assert.match(raw, /preset-omc-harness/)
+  assert.match(raw, /name: '@deepseek-ai\/dsh-agent-preset'/)
+  assert.match(raw, /^\s+id: omc-harness$/m)
+
+  const roles = [
+    ['codex', 'subagent_codex'],
+    ['antigravity', 'subagent_antigravity'],
+    ['opencode', 'subagent_opencode'],
+    ['kimi', 'subagent_kimi'],
+  ]
+  for (const [harness, toolName] of roles) {
+    assert.match(raw, new RegExp(`provider: 'omc:${harness}'`), `missing provider binding for ${harness}`)
+    assert.match(raw, new RegExp(`toolName: ${toolName}`), `missing toolName ${toolName}`)
+    assert.match(raw, new RegExp(`\`${toolName}\``), `persona must mention ${toolName}`)
+  }
+  // External providers declare neither depthLimit nor agentOptions.
+  assert.equal((raw.match(/maxDepth: provider-managed/g) ?? []).length, roles.length)
+  assert.doesNotMatch(raw.split('tool-subagent-codex')[1]?.split('tool-subagent-kimi')[0] ?? '', /agentOptions/)
+})
+
+test('the bundle ships five parseable skills', async () => {
+  assert.equal(SKILLS.length, 5)
+  for (const { dir } of SKILLS) {
+    const raw = await readFile(new URL(`../skills/${dir}/SKILL.md`, import.meta.url), 'utf8')
+    const { data, body } = parseFrontmatter(raw)
+    assert.equal(data.name, dir, `${dir} frontmatter name must match its directory`)
+    assert.ok(data.description, `${dir} needs a description`)
+    assert.ok(data.whenToUse, `${dir} needs whenToUse`)
+    assert.ok(body.length > 200, `${dir} body looks too short`)
+  }
+})
+
+test('doctor reports a detected companion without claiming compatibility', () => {
+  const { ctx } = fakeCtx({ toolNames: ['subagent_oracle', 'subagent_designer', 'subagent_fixer', 'coharness'] })
+  const plugins = probePlugins(ctx)
+  assert.deepEqual(plugins.companionRoles, ['subagent_oracle', 'subagent_designer', 'subagent_fixer'])
+  assert.equal(plugins.coharnessRegistered, true)
+
+  const report = {
+    at: '2026-10-29T00:00:00.000Z',
+    host: { dsh: '0.2.1-rc.3', node: 'v24.21.0', platform: 'win32 x64', profile: 'desktop' },
+    rows: [{ id: 'codex', label: 'Codex', transport: 'native', via: 'path', auth: 'ok', verified: true }],
+    wsl: { ok: true, distros: ['Ubuntu'], detail: '' },
+    subagents: ['omc:codex'],
+    plugins,
+  }
+  const text = renderReport(report, resolveConfig({}))
+  assert.match(text, /companion: oh-my-dsh-slim detected \(oracle, designer, fixer\)/)
+  assert.match(text, /coharness: registered \(preset visibility unverified\)/)
+  assert.match(text, /DSH internal roles → 现有 subagent_\* 工具/)
+  assert.doesNotMatch(text, /compatible/i)
+})
+
+test('doctor says "not detected (may be scoped)" and keeps standalone usable', () => {
+  const { ctx } = fakeCtx()
+  const report = {
+    at: '2026-10-29T00:00:00.000Z',
+    host: { dsh: '0.2.1-rc.3', node: 'v24.21.0', platform: 'win32 x64', profile: 'desktop' },
+    rows: [{ id: 'codex', label: 'Codex', transport: 'native', via: 'path', auth: 'ok', verified: true }],
+    wsl: { ok: true, distros: ['Ubuntu'], detail: '' },
+    subagents: ['omc:codex'],
+    plugins: probePlugins(ctx),
+  }
+  const text = renderReport(report, resolveConfig({}))
+  assert.match(text, /companion: not detected \(may be scoped\)/)
+  assert.match(text, /Standalone/)
 })
 
 test('an explicit per-harness command beats PATH discovery', async () => {
@@ -273,6 +656,85 @@ test('a harness is binary × endpoint × model, not a vendor', async () => {
 test('env expansion leaves an unknown variable literal instead of blanking it', () => {
   assert.equal(expandEnv('${OMC_SURELY_MISSING_VAR}'), '${OMC_SURELY_MISSING_VAR}')
   assert.equal(expandEnv('plain'), 'plain')
+})
+
+test('the rendered tool text names the surface and the degradation', async () => {
+  const { ctx, registeredTools } = fakeCtx({ stdout: 'done' })
+  apply(ctx, { surface: 'direct', transport: 'native' })
+  const tool = registeredTools.find((entry) => entry.name === 'coharness')
+  assert.ok(tool, 'apply() must register the coharness tool')
+
+  const value = await tool.execute(
+    { action: 'dispatch', harness: 'codex', prompt: 'go' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+
+  assert.match(value.text, /surface: direct/)
+  assert.match(value.text, /degraded: surface is configured as direct/)
+  assert.match(value.text, /surface: direct` has no childId/)
+})
+
+test('worktree mode is refused by the tool in 0.2.0', async () => {
+  const { ctx, registeredTools } = fakeCtx()
+  apply(ctx, { surface: 'direct' })
+  const tool = registeredTools.find((entry) => entry.name === 'coharness')
+  const value = await tool.execute(
+    { action: 'dispatch', mode: 'worktree', prompt: 'go', harness: 'codex' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+  assert.match(value.text, /not implemented in 0\.2\.0/)
+})
+
+test('provider registration survives being loaded before the subagents service', async () => {
+  const { ctx, registeredTools, setSubagents } = fakeCtx()
+  const names = []
+  apply(ctx, { surface: 'auto', transport: 'native' })
+  assert.equal(names.length, 0, 'nothing can be registered before the service exists')
+
+  setSubagents({
+    list: () => [...names],
+    registerProvider(provider) {
+      names.push(provider.name)
+      return () => {}
+    },
+  })
+
+  const tool = registeredTools.find((entry) => entry.name === 'coharness')
+  await tool.execute({ action: 'list' }, { agent: { id: 's' }, signal: new AbortController().signal })
+
+  assert.ok(names.includes('omc:codex'), 'the first tool call must register the providers')
+  assert.ok(names.includes('omc:opencode'))
+})
+
+test('the inject hook registers providers when the service appears', () => {
+  const { ctx, injections, setSubagents } = fakeCtx()
+  const names = []
+  apply(ctx, { surface: 'auto' })
+  assert.equal(injections.length, 1)
+  assert.deepEqual(injections[0].deps, ['subagents'])
+
+  setSubagents({ list: () => names, registerProvider: (provider) => (names.push(provider.name), () => {}) })
+  injections[0].callback()
+
+  assert.ok(names.includes('omc:codex'), 'the injection callback must register without a tool call')
+})
+
+test('doctor surfaces a provider registration failure instead of hiding it', async () => {
+  const { ctx, registeredTools } = fakeCtx({
+    subagents: {
+      list: () => [],
+      registerProvider() {
+        throw new Error('UNSUPPORTED_CAPABILITY')
+      },
+    },
+  })
+  apply(ctx, { surface: 'auto', transport: 'native' })
+  const tool = registeredTools.find((entry) => entry.name === 'coharness')
+
+  const value = await tool.execute({ action: 'doctor' }, { agent: { id: 's' }, signal: new AbortController().signal })
+
+  assert.match(value.text, /providers: none registered/)
+  assert.match(value.text, /provider issues: .*codex: UNSUPPORTED_CAPABILITY/)
 })
 
 test('the report says what is missing and admits its redaction', () => {

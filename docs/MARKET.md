@@ -1,6 +1,6 @@
 # 发布与收录清单
 
-v0.1 的发布物只有**一个 npm 包**。市场收录是另外两步，不能靠 `npm publish` 自动发生
+v0.3 的发布物仍然只有**一个 npm 包**（零依赖、Host bundle、五个 Skill、一个 agent preset）。市场收录是另外两步，不能靠 `npm publish` 自动发生
 （DSH 没有官方索引，Discover 只读用户自己加的索引源）。
 
 ---
@@ -16,9 +16,10 @@ npm publish --access public
 
 | 检查 | 命令 | 通过标准 |
 |---|---|---|
-| 包自检 | `node scripts/check.mjs` | `check ok: oh-my-coharness@x.y.z` |
+| 包自检 | `node scripts/check.mjs` | `check ok: oh-my-coharness@x.y.z … 5 skills` |
 | 打包内容 | `node scripts/pack-check.mjs` | 文件清单符合预期，无多余无缺失 |
-| 单测 | `node test/smoke.test.mjs` | `pass 16` 及以上 |
+| 单测 | `node test/smoke.test.mjs` | `pass 36` 及以上 |
+| 真实冒烟 | `node scripts/live-check.mjs` | `live check ok`（两个不同 Harness、只读、工作区不变） |
 | 版本号 | 手工 | `package.json` 与 CHANGELOG 顶部一致 |
 | 仓库地址 | 手工 | `repository.url` 换成真实地址，不要留 `<owner>` |
 
@@ -33,7 +34,18 @@ npm publish --access public
 - `dsh.bundle.patch` 是「能装」的唯一开关；没有它，包只是普通依赖。
 - `engines.dsh` 写**测过的下界**，不写 `*`。升级宿主后先在 CI 跑，再放宽。
 - `dsh-plugin` 这个 keyword 必须保留（部分索引用它检索）。
-- **不要加 `dsh.client`**：v0.1 是 Host-only，多一个客户端半会把 Web UI 卷进来。
+- **不要加 `dsh.client`**：本包是 Host-only，多一个客户端半会把 Web UI 卷进来。
+
+### 发布说明要点（0.3.0）
+
+发布说明必须写清这几句，否则用户会把边界当成能力：
+
+1. **不新增工具 action**：仍是 `dispatch / list / doctor`，Schema 不变；council / ULW / verify 是 Skill。
+2. **新增的是 preset，不是第二个插件**：`omc-harness` 与内置 `standard` 并列，**新建会话**时在 Agent Presets 里选。
+3. **角色子 Agent 只读且一次性**：外部 CLI 没有 mode 参数、不能追问；写文件必须走 `coharness({mode:'in-place'})`。
+4. **写路径是显式 `in-place`**，走 `surface: direct`——没有 `childId`、没有宿主容量、没有子会话面板。
+5. **并行写入未开放**：一次调用里多个 `in-place` 任务会被 `OMC/PARALLEL-WRITE` 拒绝。
+6. **Companion 是 `detected` 不是 `verified`**：检测到工具不等于 Slim 的 preset 放行了 `coharness`。
 
 ## 2. awesome-dsh-plugin（英文主索引）
 

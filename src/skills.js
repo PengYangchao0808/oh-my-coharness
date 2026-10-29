@@ -9,9 +9,17 @@
 
 import { readFileSync } from 'node:fs'
 
-const SKILLS = [
+/**
+ * The bundle's skill set. `scripts/check.mjs` and `scripts/pack-check.mjs` read this
+ * list instead of hard-coding directory names, so adding a skill is one edit here
+ * plus one directory (V0.2-PLAN §4.3).
+ */
+export const SKILLS = [
   { dir: 'coharness', modelInvocable: true, userInvocable: true },
   { dir: 'coharness-setup', modelInvocable: true, userInvocable: true },
+  { dir: 'coharness-council', modelInvocable: true, userInvocable: true },
+  { dir: 'coharness-ulw', modelInvocable: true, userInvocable: true },
+  { dir: 'coharness-verify', modelInvocable: true, userInvocable: true },
 ]
 
 /** Minimal `---` frontmatter: flat `key: value` pairs, which is all we author. */

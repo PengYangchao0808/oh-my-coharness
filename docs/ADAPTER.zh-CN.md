@@ -501,7 +501,9 @@ Get-Process codex,gemini,kimi -ErrorAction SilentlyContinue
 
 ---
 
-## 12. OpenCode 作为参考实现（v0.2 的 server transport）
+## 12. OpenCode 作为参考实现（后续版本的 server transport）
+
+> **2026-10-29 修订**：0.2.0 不实现 server transport；本节保留为后续版本的设计参考，标题里的 `v0.2` 读作「后续版本」。
 
 ### 12.1 手上有什么
 

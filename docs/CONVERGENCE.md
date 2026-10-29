@@ -21,11 +21,13 @@
 
 ## 2. 明确不在 v0.1 范围内
 
-- 角色路由 / 自动选 Harness（v0.2）
-- worktree 隔离、`ulw`、`council` 工作流（v0.2）
-- opencode 的 HTTP server transport（v0.2）
+> **2026-10-29 修订**：v0.2 已按复审收窄为 Skill-first 薄桥接（见 [`V0.2-PLAN.zh-CN.md`](./V0.2-PLAN.zh-CN.md)）。角色路由、worktree、配置卡移出 0.2.0（0.2.1+ 视需要）；council / ULW 以 Skill + 现有 `tasks[]` 实现；opencode server transport 延后。
+
+- 角色路由 / 自动选 Harness（0.2.1+ 视需要；0.2.0 用 Skill 约束）
+- worktree 隔离（0.2.1+）、`ulw` / `council` 工作流（0.2.0 用 Skill + `tasks[]`）
+- opencode 的 HTTP server transport（后续版本）
 - 原生会话续接、跨 Harness Handoff（v0.3）
-- 配置卡 UI、客户端半（v0.2 起，且只在需要时）
+- 配置卡 UI、客户端半（0.2.x，且只在需要时）
 - 统一会话数据库 —— 永久不做
 
 ## 3. 验收门槛逐项状态
@@ -177,8 +179,8 @@ Add-Content -Path "$env:USERPROFILE\.dsh\coharness.env" -Value "GEMINI_API_KEY=�
 |---|---|---|
 | 第三方 Anthropic 端点不是官方支持 | `--output-format text` 可能被忽略、输出带 ANSI | 头部/尾部裁剪兜住体积；`glm` 保持 `verified: false` 直到跑通 |
 | 超时后返回晚约 3 秒 | 用户感知为「慢」 | 已在 README 写明语义：deadline 是任务截止，返回还要加退出时间 |
-| `mode` 只对有沙箱开关的 CLI 生效 | codex/gemini 已映射；opencode/claude/kimi 用各自默认 | 工具输出固定说明这一条；v0.2 用 worktree 统一 |
-| WSL 侧进程退出成本 | 取消/超时延迟 | v0.2 的 server transport 用 `/interrupt` 消除 |
+| `mode` 只对有沙箱开关的 CLI 生效 | codex/gemini 已映射；opencode/claude/kimi 用各自默认 | 工具输出固定说明；0.2.0 在 Skill 里声明限制，worktree 0.2.1+ 再评估 |
+| WSL 侧进程退出成本 | 取消/超时延迟 | 后续版本的 server transport 用 `/interrupt` 消除 |
 | 四个 CLI 未登录 | 派发会以 401 / exit 41 / exit 1 失败（信息清晰） | 各自跑一次登录；`docs/CONVERGENCE.md` §7 给了命令 |
 
 ## 6. 环境基线（2026-10-29，`0.1.7`）
