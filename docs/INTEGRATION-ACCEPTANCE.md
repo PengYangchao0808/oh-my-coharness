@@ -65,7 +65,17 @@ dsh --profile omc-test --no-open --port 0
    - 再次 `session/create` 成功 —— 说明 external stock config 通过了官方
      `@deepseek-ai/dsh-tool-subagent` 的能力检查（无 `agentOptions`、`maxDepth: provider-managed`、provider 已注册）。
 
-上述 6 项是本次最关键的“单 Bundle + 外部角色可装载”证据。
+7. **未迁移的 desktop profile 也能被解析**：把真实 `desktop` profile 的
+   `package.json` / `cordis.patch.yml` 复制到隔离 `DSH_HOME`，同时挂
+   `oh-my-dsh-slim` 0.8.6 与本仓库 v0.4，`--dump-config` 输出同时包含：
+   - OMD 的 `preset-oh-my-dsh-slim` / `oh-my-dsh-slim-profiles` / `oh-my-dsh-slim`
+   - 本包的 `oh-my-coharness` / `preset-oh-my-coharness` / `oh-my-coharness-profiles`
+   - `agent-preset-registry` 默认 `oh-my-coharness`
+
+   没有 schema/解析错误。这证明升级不会在装载阶段直接破坏未迁移环境；但两套设置页与 Preset
+   仍然并存，**迁移后必须卸载 OMD**。
+
+上述 7 项是本次最关键的“单 Bundle + 外部角色可装载”证据。
 
 ## 3. 用户 16 项验收清单
 
