@@ -8,6 +8,7 @@
  */
 
 import { HARNESSES } from '../src/harnesses.js'
+import { resolveConfig } from '../src/config.js'
 import { describeExecution, EXTERNAL_ROLE_IDS } from './compatibility.js'
 import { harnessReadOnlyClass, resolveExecution } from './execution.js'
 
@@ -36,9 +37,12 @@ export function liveProviders(ctx) {
 /**
  * One row per role, plus harness availability.
  * @param ctx - any context that can reach `subagents` and the settings service.
+ * @param rowConfig - the Host row config, so default-disabled harnesses report
+ *   their real enabled state instead of "available".
  * @returns a JSON-serializable status object.
  */
-export async function buildExecutionStatus(ctx) {
+export async function buildExecutionStatus(ctx, rowConfig = {}) {
+  const cfg = resolveConfig(rowConfig)
   const providers = liveProviders(ctx)
   const loaded = await readRoleConfiguration(ctx)
   const roles = []
@@ -87,7 +91,7 @@ export async function buildExecutionStatus(ctx) {
       id: def.id,
       label: def.label,
       bin: def.bin,
-      enabled: true,
+      enabled: cfg.harnesses[def.id]?.enabled !== false,
       readOnly: harnessReadOnlyClass(def.id),
       provider: `omc:${def.id}`,
       providerAvailable: providers.includes(`omc:${def.id}`),

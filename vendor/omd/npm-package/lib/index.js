@@ -81,7 +81,10 @@ export function apply(ctx, config) {
         const method = methods[endpoint];
         if (!method) throw Object.assign(new Error('unknown ' + CONFIG_RPC_PATH + ' endpoint: ' + endpoint), { code: 'UNKNOWN_ENDPOINT' });
         if (method === 'executionStatus') {
-          const [execution, legacy] = await Promise.all([buildExecutionStatus(child), detectLegacyCompanion(child)]);
+          const [execution, legacy] = await Promise.all([
+            buildExecutionStatus(child, config),
+            detectLegacyCompanion(child),
+          ]);
           return { ok: true, value: { execution, legacy } };
         }
         return { ok: true, value: await endpoints[method](payload ?? {}) };

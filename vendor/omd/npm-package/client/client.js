@@ -330,6 +330,7 @@ window.__ModuleLoader__.load({
       executionReadOnlyEnforced: '只读（沙箱强制）',
       executionReadOnlyAdvisory: '只读（仅提示）',
       executionReadOnlyUnsupported: '该 CLI 没有经过验证的只读调用方式，只读角色不能使用它。',
+      executionHarnessDisabled: '未启用',
       executionAdvisoryBlocked: '该 CLI 只能提供 advisory 只读（仍可能写文件）。默认拒绝；如接受风险，请显式勾选右侧选项。',
       executionAllowAdvisory: '接受 advisory 只读风险',
       executionAdvisoryAccepted: 'advisory 只读：CLI 仍可能写入，已由你显式接受。',
@@ -449,6 +450,7 @@ window.__ModuleLoader__.load({
       executionReadOnlyEnforced: 'read-only (enforced)',
       executionReadOnlyAdvisory: 'read-only (advisory)',
       executionReadOnlyUnsupported: 'This CLI has no verified read-only invocation; read-only roles cannot use it.',
+      executionHarnessDisabled: 'disabled',
       executionAdvisoryBlocked: 'This CLI only offers advisory read-only (it may still write). Refused by default; explicitly accept the risk on the right.',
       executionAllowAdvisory: 'Accept advisory read-only risk',
       executionAdvisoryAccepted: 'Advisory read-only: the CLI may still write; you explicitly accepted that.',
@@ -1214,7 +1216,9 @@ window.__ModuleLoader__.load({
         : row.readOnly === 'advisory'
           ? t('executionReadOnlyAdvisory')
           : t('executionReadOnlyUnsupported');
-      return `${row.label ?? row.id} · ${readOnly}${row.providerAvailable === false ? ` · ${t('executionProviderMissing')}` : ''}`;
+      return `${row.label ?? row.id} · ${readOnly}`
+        + (row.enabled === false ? ` · ${t('executionHarnessDisabled')}` : '')
+        + (row.providerAvailable === false ? ` · ${t('executionProviderMissing')}` : '');
     }
 
     function RoleRow({ roleId, draft, groups, modelsStatus, advOpen, onAdvancedToggle, onChange, t, showSwitch = true, statusText, executionStatus, onRefreshExecution }) {
@@ -1327,7 +1331,7 @@ window.__ModuleLoader__.load({
             onChange: (e) => onChange(roleId, { execution: { ...execution, harness: e.target.value } }),
             style: { ...controlStyle, width: 300, flex: 'none' },
           },
-            harnessRows.filter((row) => row.readOnly !== 'unsupported' || row.id === harness).map((row) =>
+            harnessRows.filter((row) => (row.enabled !== false || row.id === harness) && (row.readOnly !== 'unsupported' || row.id === harness)).map((row) =>
               React.createElement('option', { key: row.id, value: row.id }, harnessLabel(row, t))),
           ) : null,
           external ? React.createElement('select', {

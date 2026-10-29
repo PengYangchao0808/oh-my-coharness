@@ -177,7 +177,7 @@ export async function detect(ctx, cfg, { signal } = {}) {
   const wsl = await listWslDistros(ctx, signal)
   const plugins = probePlugins(ctx)
   const [execution, legacy] = await Promise.all([
-    buildExecutionStatus(ctx),
+    buildExecutionStatus(ctx, cfg),
     detectLegacyCompanion(ctx),
   ])
 
