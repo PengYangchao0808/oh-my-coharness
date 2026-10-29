@@ -14,9 +14,10 @@ import { hostImport } from '../preset/bridge.js';
  * @param options - { path, importHost }, or the legacy importHost function.
  */
 export async function registerProfileTransport(child, handler, options = {}) {
-  const { path = '/coharness', importHost = hostImport } = typeof options === 'function'
+  const normalized = typeof options === 'function'
     ? { importHost: options }
-    : options;
+    : (typeof options === 'string' ? { path: options } : options);
+  const { path = '/coharness', importHost = hostImport } = normalized;
   let active = true;
   child.effect(() => () => { active = false; }, 'oh-my-coharness: transport import lifetime');
   const { HostConnectionService } = await importHost(child, '@deepseek-ai/dsh-client-connection');

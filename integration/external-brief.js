@@ -35,6 +35,12 @@ export function adaptPersonaForExternal(persona, { harness, readOnly } = {}) {
     .map((part) => part.trim())
     .filter((part) => part.length > 0)
     .filter((part) => !DSH_TOOL_SECTIONS.some((pattern) => pattern.test(part)))
+    // Council personas spell out the DSH tools by name. External seats use
+    // their CLI's own tools; keep the capability, replace the tool list.
+    .map((part) => part.replace(
+      /You have read-only access to the codebase: read, glob, grep\./g,
+      'You have read-only access to the workspace through your own CLI tools.',
+    ))
 
   const readOnlyLine = readOnly === 'enforced'
     ? 'Read-only is enforced by this CLI\'s own sandbox/approval flag. Do not modify files, create commits, or run mutating commands.'
