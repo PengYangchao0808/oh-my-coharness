@@ -1,0 +1,23 @@
+# Oh My CoHarness — bundle layer.
+# One Host row. No client half, so the Web UI is untouched in v0.1.
+# Everything below `config` is the user-editable surface; see docs/PLAN.zh-CN.md §3.5.
+- insert:
+    - id: oh-my-coharness
+      name: oh-my-coharness
+      config:
+        surface: auto
+        dispatch:
+          maxParallel: 4
+          defaultMode: read-only
+          timeoutMs: 600000
+          maxOutputBytes: 20000
+        wsl:
+          distro: ""
+        # Enable a harness that needs an endpoint or a key by pointing it at a
+        # 0600 env file outside the profile. Secrets never go in this patch.
+        # harnesses:
+        #   glm:
+        #     enabled: true
+        #     envFile: "C:/Users/<you>/.dsh/coharness.env"
+        privacy:
+          reportBinaryPaths: false
