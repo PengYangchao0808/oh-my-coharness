@@ -1,51 +1,55 @@
-# 借鉴来源与署名
+# 上游来源、固定基线与署名
 
-本包不复制上述项目的源代码。以下记录的是**事实与设计**的来源，以及若将来复用代码必须遵守的许可证。
+v0.4 把 OMD 的成熟角色/编排层**源码导入**本仓库（`vendor/omd/`），不再是“仅参考设计”。许可证义务见根目录 [`LICENSE`](../LICENSE) 与 [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)。
 
-## 依赖（运行时）
+## 固定基线
 
-无。v0.1 不声明任何 `dependencies` 或 `peerDependencies`，只声明 `engines.dsh`。
+| 项目 | 版本 | 固定 commit | 说明 |
+|---|---|---|---|
+| oh-my-coharness（本仓库） | 0.3.0 → 0.4.0-alpha.1 | `b2f0d3906f9d`（合并前 tag `omc-pre-omd-merge`） | Host / Provider / Transport / Doctor |
+| oh-my-dsh-slim（OMD） | 0.8.6 | `537d4c7f5dc316c449de4ccfff8ab15d15901fa6` | 导入 `vendor/omd/`，不再追踪上游 main |
+| DeepSeek Harness | 0.2.1-rc.3 | 本机 Desktop 安装 | 宿主契约以运行中 Host Service 为准 |
 
-## 直接依赖的宿主能力（DSH 官方，随宿主发布）
+来源记录：[`vendor/omd/UPSTREAM.json`](../vendor/omd/UPSTREAM.json)。改动清单：[`vendor/omd/PATCHES.md`](../vendor/omd/PATCHES.md)。
+
+## 运行时依赖
+
+本包仍**没有** `dependencies`。它通过宿主 Loader 使用 DSH 官方模块；`peerDependencies` 只表达能力期望，且全部 optional。
 
 | 能力 | 包 | 用途 |
 |---|---|---|
-| 子 Agent 接缝 | `@deepseek-ai/dsh-subagent` | `SubagentProvider` / `SubagentRun` / `startActivation` |
-| 进程 | `@deepseek-ai/dsh-subprocess` | `resolveExecutable` / `spawn` / 收集模式 / 终止 |
-| 工具 | `@deepseek-ai/dsh-tools` | `ToolDefinition` |
-| 命令 | `@deepseek-ai/dsh-commands` | `/coharness` |
-| Skill | `@deepseek-ai/dsh-skill` | `ctx.skills.register` |
+| 子 Agent 注册与激活 | `@deepseek-ai/dsh-subagent` | `SubagentProvider` / `startActivation` / catalog |
+| 角色工具 | `@deepseek-ai/dsh-tool-subagent` | 官方 `apply()`；角色行只包裹描述与 Persona |
+| 工具注册 | `@deepseek-ai/dsh-tools` | `ToolDefinition` / `defineTool` |
+| Agent Preset | `@deepseek-ai/dsh-agent-preset` / `-registry` | 声明式 Preset |
+| 设置 | `@deepseek-ai/dsh-settings` / `schemastery` | 设置卡 schema 与 revision |
+| 子进程 | `@deepseek-ai/dsh-subprocess` | CLI 启动、收集、终止 |
+| Web/客户端 | `@deepseek-ai/dsh-client-*` / `dsh-api-remotes` | 设置页 Slot、locale、RPC |
+| 命令 / Skill | `dsh-commands` / `dsh-skill` | `/coharness` 与五个 Skill |
 
-## 参考项目
+## 参考项目与借用范围
 
-| 项目 | 许可证 | 借用了什么 | 没有借用 |
+| 项目 | 许可证 | 借用了什么 | 处理 |
 |---|---|---|---|
-| [dsh-agent-conductor](https://github.com/MJorgin/dsh-agent-conductor) | MIT | 11 个 CLI 的 headless argv 形态、10 分钟超时 + 整树终止、head/tail 裁剪思路、doctor 的产品形态 | 代码、`conductor_dispatch` 工具名、Python 脚本 |
-| [dsh-wsl](https://github.com/XINY11451/dsh-wsl) | MIT | WSL 执行的事实：`wsl.exe -e bash -lc`、路径转换的边界情况、`DSH_WSL_DISTRO` 约定、「wsl 在 sandbox 之下」这一结论 | 10 个工具、面板、bootstrap、terminal |
-| [oh-my-dsh-slim](https://github.com/ninipa/oh-my-dsh-slim) | MIT | 角色语义、background-first 委派纪律、配置卡的形态 | preset 结构、角色实现、persona |
-| [oh-my-opencode-slim](https://github.com/alvinunreal/oh-my-opencode-slim) | MIT | ulw / council 的流程设计（v0.2） | persona 文本（若复用须保留 `MIT © 2025 alvinunreal`） |
-| [orchestmux](https://github.com/layl-labs/orchestmux) | — | 「派发 / 等待 / 收集 / 升级」四段式，以及「子 Agent 未真正完成不得宣布成功」 | 任何代码、coordinator 进程 |
-| [multiagents](https://github.com/) | — | 跨 Agent 消息与 Handoff 的概念（v0.3） | Orchestrator、Dashboard |
+| [oh-my-dsh-slim](https://github.com/ninipa/oh-my-dsh-slim) | MIT © 2026 contributors | 角色体系、Orchestrator / Council prompt、角色工具包装、配置卡、Profile registry | **源码导入** `vendor/omd/`，保留 LICENSE，改动记录在 PATCHES.md |
+| [oh-my-opencode-slim](https://github.com/alvinunreal/oh-my-opencode-slim) | MIT © 2025 alvinunreal | OMD 角色 Persona 与 Council prompt 的上游文本；ulw / council 流程设计 | 通过 OMD 携带；署名保留在 LICENSE 与 THIRD_PARTY_NOTICES.md |
+| [dsh-agent-conductor](https://github.com/MJorgin/dsh-agent-conductor) | MIT | 多个 CLI 的 headless argv 形态、超时 + 整树终止、head/tail 裁剪、Doctor 产品形态 | 只借鉴事实与设计，未复制代码 |
+| [dsh-wsl](https://github.com/XINY11451/dsh-wsl) | MIT | `wsl.exe -e bash -lc`、路径转换边界、`DSH_WSL_DISTRO` 约定、“WSL 在 sandbox 之下”的结论 | 只借鉴事实与设计 |
+| [orchestmux](https://github.com/layl-labs/orchestmux) | — | “派发 / 等待 / 收集 / 升级”与“子 Agent 未真正完成不得宣布成功” | 只借鉴流程概念 |
 
-> 在实现 v0.2/v0.3 时若确实复制超过约 20 行代码，必须在此文件新增一节，写明来源文件、版权行与许可证全文位置。
+## 事实核查（2026-10-29 / 2026-10-30）
 
-## v0.2 设计参考（2026-10-29）
+- 运行中的 Host Service：`subagents`、`agentPresets`、`settings`、`commands`、`tools`、`webServer`、`connection` 的精确签名（`cordis_inspect_query`）。
+- `@deepseek-ai/dsh-tool-subagent` 0.2.1 源码：`Config` 只接受 `provider` / `toolName` / `modelSelectionSettings` / `agentOptions` / `agentPreset` / `allowedAgentPresets` / `maxDepth`；`persona` / `toolFilter` 已移除；外部 provider 无 `prepareContinuable` 时走 `startExternal`。
+- `@deepseek-ai/dsh-subagent` 0.2.1 源码：`SubagentCapabilities` 四项、`provider-managed` maxDepth、external run 的 `id`/`result`/`dispose` 契约。
+- `@deepseek-ai/dsh-client-modules` 源码：客户端 bundle 从 package `exports["./client"]` 解析，module id 取包名。
+- 本机 CLI 实测：opencode 2.1.4、codex 0.165.0、kimi 2.4.0、antigravity 1.4.10、claude/GLM 2.1.312；argv 与认证状态见 README 支持矩阵。
 
-v0.2 的薄编排方案只借用**事实与设计**，不复制实现：
+## 代码复用门槛
 
-| 来源 | 借用的东西 | 没有借用 |
-|---|---|---|
-| `oh-my-dsh-slim@0.8.5` | 角色名与分工（oracle / designer / fixer / explorer / librarian）、background-first 纪律、`maxDepth: 1`、council「三席 + synthesizer」的存在与成本警告、Companion 的「内部角色 / 外部 Harness」分工 | preset 结构、角色实现、persona 文本、配置卡、MCP 作用域、角色管理代码 |
-| `oh-my-opencode-slim` | orchestrator 的「派发—等待—收集—整合」纪律、council 显式触发、deepwork 的阶段与验证、报告不是结算 | persona、marketplace、hook 注入、multiplexer |
-| DSH `dsh-workflow` / `dsh-tool-workflow` / `dsh-workflow-ptc` | 一次 run 只有一个 `subagentProvider`、`agent()` 只接受 label/phase/schema/provider/model、并发与总量上限的默认值 | 不 import、不依赖；0.2.0 只在决策上使用它（DSH 原生 / 同 provider 任务），不写 Workflow Engine |
-| DSH `dsh-experimental-worktree` | `create(agent)` 会通过 `workingDirectory.set` 进入新 checkout；linked worktree 的 gitdir 是 Windows 绝对路径 | 0.2.0 不调用；Worktree 留到 0.2.1+ 评估 |
-| `orchestmux` | 「子 Agent 没真正完成就不许宣布成功」 | 任何代码、coordinator 进程 |
+若未来再次复制超过约 20 行第三方代码，必须：
 
-## 事实核查来源（2026-10-29）
-
-- 本机安装：`DeepSeek Harness/resources/app.asar` 内的 `dsh/package.json`（`@deepseek-ai/dsh-desktop-runtime@0.2.1-rc.3`）、profile `desktop`。
-- 宿主契约：`@deepseek-ai/dsh-subagent`、`dsh-tools`、`dsh-commands`、`dsh-skill`、`dsh-subprocess`、`dsh-worktrees`、`dsh-workflow`、`dsh-workflow-ptc` 的 README 与源码。
-- 运行中的 Host Service 目录：`cordis_inspect_query` 的 `Service` provider（`workflowEngine`、`worktrees`、`subagents`、`jobs`、`agentTeams`）。
-- 宿主 ASAR 的只读读取（本地诊断脚本，未入库、不进 npm 包）。
-- npm registry：`oh-my-dsh-slim@0.8.5`、`dsh-wsl-tool@2.2.3` 的 manifest；`oh-my-coharness` 返回 404（名字可用）。
-- 市场机制：`@deepseek-ai/dsh-plugin-market` README（"There is no official market"）、`dsh-experimental-plugin-market-bundle` README、`awesome-dsh-plugin` README（format-1 索引 `https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json`）。
+1. 在 `THIRD_PARTY_NOTICES.md` 增加来源、版权行、许可证；
+2. 在源文件头部保留原版权声明；
+3. 在 `vendor/` 中保留原始 LICENSE；
+4. 不把第三方代码混入本仓库 MIT 声明而不加区分。

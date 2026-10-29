@@ -16,6 +16,7 @@
  *   versionArgs: string[],
  *   authProbe: { argv: string[], okExit: number } | null,
  *   capabilities: { write: boolean, model: boolean, resume: boolean, json: boolean, stdin: boolean },
+ *   readOnly: 'enforced' | 'advisory' | 'unsupported',
  *   install: string, verified: boolean, notes?: string,
  *   defaultEnv?: Record<string, string>,
  * }} HarnessDef */
@@ -33,6 +34,9 @@ export const HARNESSES = [
     versionArgs: ['--version'],
     authProbe: { argv: ['auth', 'list'], okExit: 0 },
     capabilities: { write: true, model: true, resume: false, json: true, stdin: false },
+    // No read-only switch exists in `opencode run`; the prompt can ask, but the
+    // CLI keeps its default permission model.
+    readOnly: 'advisory',
     install: 'curl -fsSL https://opencode.ai/install | bash   (inside WSL/Linux)',
     verified: true, // real read-only dispatch on this machine (2.1.4, 2026-10-29)
     notes: 'Model ids are "provider/model". Prefers a non-PATH install under WSL.',
@@ -57,6 +61,7 @@ export const HARNESSES = [
     // `codex login status` exits 0 when signed in, 1 with "Not logged in".
     authProbe: { argv: ['login', 'status'], okExit: 0 },
     capabilities: { write: true, model: true, resume: true, json: true, stdin: true },
+    readOnly: 'enforced', // `-s read-only` is Codex's own sandbox
     install: 'npm i -g @openai/codex   (Node >=16)',
     verified: true,
     notes: 'Needs a trusted git repository as cwd. `codex exec resume` exists for v0.3.',
@@ -71,6 +76,8 @@ export const HARNESSES = [
     // `claude auth status` prints JSON and exits 1 when logged out.
     authProbe: { argv: ['auth', 'status'], okExit: 0 },
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
+    // Headless `-p` has no verified sandbox/approval flag in the recorded argv.
+    readOnly: 'advisory',
     install: 'npm i -g @anthropic-ai/claude-code   (Node >=22)',
     verified: true,
     notes: 'No Anthropic account? Point it at another Anthropic-compatible endpoint (see `glm`).',
@@ -93,6 +100,7 @@ export const HARNESSES = [
     // `agy models` exits 1 with "Please sign in" when there are no cached credentials.
     authProbe: { argv: ['models'], okExit: 0 },
     capabilities: { write: true, model: true, resume: true, json: true, stdin: true },
+    readOnly: 'enforced', // `--sandbox` is the documented restriction switch
     install: 'curl -fsSL https://antigravity.google/cli/install.sh | bash   (binary: ~/.local/bin/agy)',
     verified: true, // 2026-10-29: AGY-LIVE 10.9s, and a sandboxed README read 13.2s on 1.4.10
     notes:
@@ -110,6 +118,7 @@ export const HARNESSES = [
     versionArgs: ['--version'],
     authProbe: null, // the remote endpoint answers; there is no local status command
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
+    readOnly: 'advisory', // same claude binary; the endpoint does not add a sandbox
     install: 'install Claude Code, then put ANTHROPIC_AUTH_TOKEN in the env file',
     verified: true, // 2026-10-29: GLM-LIVE in 3.9 s through Z.ai's Anthropic endpoint
     // Z.ai serves GLM over the Anthropic Messages protocol, so any Anthropic client
@@ -138,6 +147,7 @@ export const HARNESSES = [
     versionArgs: ['--version'],
     authProbe: null, // no status command; auth comes from env/config or first-run OAuth
     capabilities: { write: true, model: true, resume: false, json: true, stdin: true },
+    readOnly: 'enforced', // `--approval-mode plan` + `--skip-trust`
     install: 'npm i -g @google/gemini-cli   (Node >=20)',
     verified: true,
     notes: 'Auth is GEMINI_API_KEY or an interactive Google login; doctor therefore reports `unknown`.',
@@ -151,6 +161,7 @@ export const HARNESSES = [
     versionArgs: ['--version'],
     authProbe: null, // `kimi login` is a device-code flow with no status subcommand
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
+    readOnly: 'advisory', // no verified sandbox flag in the recorded argv
     install: 'npm i -g @moonshot-ai/kimi-code   (Node >=22.19)',
     verified: true,
     notes: '`kimi-cli` on npm is an unrelated placeholder. `-S` resumes a session.',
@@ -163,6 +174,7 @@ export const HARNESSES = [
     versionArgs: ['--version'],
     authProbe: null,
     capabilities: { write: true, model: false, resume: false, json: false, stdin: false },
+    readOnly: 'unsupported', // argv shape never verified
     install: 'npm i -g @qwen-code/qwen-code',
     verified: false,
   },

@@ -1,169 +1,173 @@
-# OMC / OMD / DSH 拓扑结构（v0.3.0）
+# Oh My CoHarness 架构（v0.4.0-alpha.1）
 
-> 这份图回答三个问题：**谁在哪个进程里、谁能调用谁、为什么有些工具只在某些会话里出现。**
-> 相关：[`ROLE-ROUTING.zh-CN.md`](./ROLE-ROUTING.zh-CN.md) · [`ACCEPTANCE-V0.2.md`](./ACCEPTANCE-V0.2.md)
+> 基线：OMC v0.3.0（`b2f0d39`）+ OMD v0.8.6（`537d4c7`），目标运行时 DSH 0.2.1。
+> 本文描述合并后的实际结构；不是未来设想。
 
-## 1. 一页总览
+## 1. 目标
 
-一个 DSH Desktop = **一个 Host 进程**。所有插件都装在这个进程里；agent preset 决定「一个会话能看见什么工具」。
-外部 CLI 是**另起的进程**，由 provider 拉起来。
+一个独立安装、完整可用的多 Harness Agent 工作流插件：
 
-```text
-+---------------------------------------------------------------------------------------------+
-| DSH Desktop — ONE Host process (Cordis loader)                                              |
-|                                                                                             |
-| profile "desktop" = [dsh-base] + [dsh-web-app] + [oh-my-dsh-slim@0.8.6]                     |
-|                                                   + [oh-my-coharness@0.3.0]  (link)         |
-|                                                                                             |
-| HOST SERVICES   tools | subagents | systemPrompt | skills | commands | subprocess | ...      |
-|                                                                                             |
-|   OMC host plugin  (oh-my-coharness)                                                        |
-|     tool        coharness            dispatch / list / doctor                               |
-|     command     /coharness doctor                                                           |
-|     skills      coharness, -setup, -council, -ulw, -verify      (global, every session)      |
-|     providers   omc:codex  omc:opencode  omc:kimi  omc:antigravity  omc:glm  omc:gemini     |
-|                                                                                             |
-|   SLIM host plugin  (oh-my-dsh-slim)                                                        |
-|     preset      "Roles & Council"   (shown as 极简角色委派)                                  |
-|     settings card, profile registry                                                         |
-+---------------------------------------------------------------------------------------------+
-        |                                |                                    |
-        v                                v                                    v
-  Session A (preset standard)   Session B (preset omc-harness)        Session C (preset slim)
-  tools: read/write/bash/...    same coding surface +                 subagent_oracle/designer/
-  delegation: subagent(spawn)   subagent_codex / _antigravity /       fixer/explorer/librarian,
-            subagent_fork       _opencode / _kimi                     council
-  provider: spawn/fork          provider: omc:<id>                   provider: spawn (hard-coded)
+- **OMD 提供编排产品面**：Orchestrator、六个专业角色、Council、角色模型/强度/工具配置、Profile 管理、设置卡。
+- **OMC 提供执行内核**：CLI 发现、`omc:<id>` Provider、Windows/WSL Transport、`coharness` 工具、Doctor。
+- **DSH 提供运行时**：官方 Subagent、Session、工作区、权限、插件市场与桌面 UI。
+
+不合并两套角色系统，不新造运行时，不开发消息总线。
+
+## 2. 分层
+
+```
+DSH Host（模型 / Session / 工作区 / 权限 / 插件 / 子 Agent 注册表）
+│
+├── oh-my-coharness（唯一的 Bundle）
+│   ├── Host row  `oh-my-coharness`
+│   │   ├── OMD companion：settings schema、Profile RPC、启动报告
+│   │   └── OMC Host：omc:* Provider、coharness 工具、/coharness 命令、skills
+│   ├── Preset row `preset-oh-my-coharness`
+│   │   ├── Orchestrator persona
+│   │   ├── role rows：subagent_oracle / explorer / fixer / designer / librarian
+│   │   ├── Council rows：3 seats + synthesizer
+│   │   └── role-composition / subagent-roles / council-mode / role-mcp …
+│   └── Profile row `oh-my-coharness-profiles`
+│       └── 用户命名的角色配置（ConfigEditor 持久化）
+│
+└── 外部 CLI（Codex / Gemini / Antigravity / opencode / Kimi / Claude …）
 ```
 
-三句话记住：
+关键点：**Host row 只有一条**。设置 schema、Provider 注册和 Profile RPC 都挂在这条 row 上，因此：
 
-1. **Host 层是共享的**：`coharness` 工具、`omc:*` provider、五个 Skill 在所有会话里都存在。
-2. **preset 层是会话私有的**：`subagent_*`（slim）和 `subagent_<harness>`（OMC preset）只在选了这个 preset 的会话里出现。
-3. **外部 CLI 是进程**：无论从哪个前门进来，最后都是 provider 在 WSL 里起一个 CLI 进程。
+- 一个 settings namespace（`oh-my-coharness`）；
+- 一个 profile patch 覆盖点（`- id: oh-my-coharness`）；
+- 一个客户端 bundle（`client/client.js`）；
+- 用户不需要同时装两个包。
 
-## 2. 两条委派通路
+## 3. 配置契约
 
-```text
-model-facing call
-       |
-       +---------------------------+---------------------------+
-       |                                                       |
-coharness({action:'dispatch'})                       subagent_<harness>({prompt})
-(any preset, host tool)                              (only in the omc-harness preset)
-       |                                                       |
-src/dispatch.js                                      host stock tool-subagent
-       |                                                       |
-       +---------------------------+---------------------------+
-                                   |
-                     ctx.subagents.startActivation({ provider })
-                                   |
-              +--------------------+--------------------+
-              |                                         |
-        omc:<id> provider                        spawn / fork provider
-        (src/provider.js)                        (DSH built-in, in-process)
-              |
-     wsl.exe -e bash -lc "codex exec ..."
-              |
-     external CLI process  (WSL Ubuntu)
+### 3.1 角色执行块
+
+```json
+{
+  "roles": {
+    "oracle": {
+      "execution": {
+        "backend": "omc",
+        "harness": "codex",
+        "fallback": "fail",
+        "allowAdvisory": false
+      }
+    }
+  }
+}
 ```
 
-同一张图换个角度：
+- `backend`: `native | omc`。缺省 = native。
+- `harness`: OMC 的 CLI id。
+- `fallback`: `fail | native`。缺省 `fail`；`native` 只用于 Provider 缺失或环境拒绝时显式回退。
+- `allowAdvisory`: 只有 `true` 才接受 advisory 只读。
 
-| 通路 | 前门 | provider | 子 Agent 在哪 | 能续接 | 写入 |
-|---|---|---|---|---|---|
-| 外部（显式） | `coharness` | `omc:<id>` | 独立 CLI 进程 | 否 | 只有显式 `mode:'in-place'` |
-| 外部（角色） | `subagent_<harness>` | `omc:<id>` | 独立 CLI 进程 | 否 | **永远不能**（provider 固定只读） |
-| 内部 | `subagent` / `subagent_fork` | `spawn` / `fork` | 本进程 | 是 | 受 DSH sandbox/approval |
-| slim 角色 | `subagent_oracle…` | `spawn`（写死） | 本进程 | 是 | 角色策略限制 |
+`execution` 与 `provider`/`model` **不是同一个轴**：
 
-## 3. 谁能调用谁
+- `provider`/`model` 是 DSH LLM 路由，只服务 native 路径；
+- `execution` 是“谁来执行”，外部路径使用 CLI 自己的模型配置；
+- 配置里不会把 `provider` 改写成 `omc:<id>`。
 
-| 调用方 | 被调用方 | 允许？ | 说明 |
-|---|---|---|---|
-| 主 Agent | `coharness` | ✅ | 宿主工具，任何 preset 可见（除非 preset 限制） |
-| 主 Agent | `subagent_<harness>` | ✅ | 仅 `omc-harness` preset |
-| 主 Agent | `subagent_oracle…` | ✅ | 仅 slim preset |
-| 主 Agent | `subagent` / `subagent_fork` | ✅ | standard / omc-harness 都有 |
-| slim 角色子 Agent | `coharness` | ❌ | 子角色工具白名单里没有它；外部 CLI 也无法回调 DSH |
-| 外部 CLI | DSH / 其它 CLI | ❌ | one-shot，没有回传通道，也没有点对点网络 |
-| SLIM 插件 | OMC provider | ❌ | 它把 `provider: 'spawn'` 写死在角色行里 |
-| OMC 插件 | slim 角色 | ❌ | 不注册、不包装、不调用，避免两个编排者 |
+### 3.2 一份设置文档
 
-## 4. 三个 preset 给什么
+Host row 的 Config schema 同时声明：
 
-| | `standard`（内置） | `omc-harness`（OMC 0.3.0） | `极简角色委派`（slim） |
-|---|---|---|---|
-| 编码工具面 | 全套 | 与 standard 相同 | 全套 + 角色化 |
-| 委派工具 | `subagent`、`subagent_fork` | 同左 **+** `subagent_codex / _antigravity / _opencode / _kimi` | `subagent_oracle / _designer / _fixer / _explorer / _librarian` |
-| 子 Agent 后端 | `spawn` / `fork` | 外部 CLI（`omc:<id>`） | `spawn`（写死） |
-| 角色人格 | 无 | 写在 persona 里的工具说明 | 每个角色一套 persona + 工具白名单 |
-| 能否追问 | 能 | **不能** | 能（background-first、`send_message`） |
-| 会话里能看到 `coharness` | ✅ | ✅ | ✅（宿主工具） |
+- OMD 字段：`preset`、`presets`、`roles`、`mcpServers`、`advanced`、`orchestrator`；
+- OMC 字段：`surface`、`transport`、`harnesses`、`wsl`、`dispatch`、`privacy`；
+- 新增 `execution`。
 
-> 选择规则：想「让 Codex 当 oracle」→ 用 `omc-harness`；想「同一模型分角色、能追问」→ 用 slim preset。
-> 两个 preset 的角色工具**不会同时出现**，这是宿主的会话作用域，不是 bug。
+二者共用同一个 profile patch 文档。用户原有的 OMC harness 配置不需要搬家；OMD 的 `defaults.json` 仍是角色默认层。
 
-## 5. 东西都在哪
+### 3.3 Profile
 
-| 东西 | 归属 | 作用域 |
-|---|---|---|
-| `coharness` 工具、`/coharness doctor` | OMC Host 插件 | 全局（所有会话） |
-| 5 个 Skill | OMC Host 插件（`ctx.skills`） | 全局 |
-| `omc:<id>` provider | OMC Host 插件（`ctx.subagents.registerProvider`） | 全局 |
-| `subagent_<harness>` 工具 | OMC bundle patch 里的 preset 声明 | 仅 `omc-harness` 会话 |
-| `subagent_oracle…` | slim 的 preset | 仅 slim 会话 |
-| `subagent` / `subagent_fork` | 内置 preset 声明 | standard / omc-harness |
-| CLI 探测与 argv | `src/transport.js` + `src/harnesses.js` | 进程内 |
-| 配置（surface / dispatch / harnesses） | profile 的 `cordis.patch.yml` | profile |
-| preset 声明 | 本仓库 `cordis.patch.yml` | bundle |
+`oh-my-coharness-profiles` 保存用户命名的角色配置。每个 Profile 仍是一个完整的原生 agent preset（id `profile-*`），通过 ConfigEditor 持久化，保留 revision 冲突保护。删除 Profile 不删除旧记录之外的任何数据。
 
-## 6. 一次运行的真实走向
+## 4. 执行解析
 
-**Council（两个外部 CLI 独立评审）**
+`integration/execution.js` 是纯函数：
 
-```text
-主 Agent → coharness({tasks:[codex, glm], mode:'read-only'})
-        → dispatch.js 为每个 task 解析 harness
-        → ctx.subagents.startActivation(provider:'omc:codex')   ─┐ 两个 child session
-        → ctx.subagents.startActivation(provider:'omc:glm')     ─┘ 并行、各计容量
-        → provider.start() 在 WSL 起两个 CLI 进程
-        → 结果回到主 Agent，主控合成共识/分歧
+```js
+resolveExecution(roleId, roleConfig, availableProviders)
 ```
 
-**角色委派（`omc-harness` preset）**
+- `availableProviders` 必须来自 `ctx.subagents.list()` 的实时结果，不能来自静态注册表。
+- 返回 native 或 external 的 stock 参数；external 额外返回 harness、readOnly、provider。
+- 环境性失败（Provider 未注册、advisory 只读、只读不可验证）返回 `blocked`，不抛异常；结构性错误（未知 backend、写角色配外部、Council 合成器配外部）抛错。
+- `blocked` 的角色仍注册同名工具，但调用即失败，原因写入工具描述与错误。**不会静默改成 native。**
 
-```text
-主 Agent → subagent_codex({prompt:'You are the oracle: …'})
-        → 宿主 stock tool-subagent（不经过 coharness）
-        → ctx.subagents.startActivation(provider:'omc:codex')
-        → provider.start() 以只读模式起 codex exec
-        → 结果作为该 child 的最终消息回到主 Agent
-```
+`integration/compatibility.js` 是唯一角色能力表：
 
-**唯一的写入路径**
+- 可外部：oracle、explorer、councillor-alpha/beta/gamma；
+- 必须原生：fixer、designer、librarian、observer、council。
 
-```text
-主 Agent → coharness({mode:'in-place', cwd, prompt})
-        → provider 不可用（默认 mode 是 read-only）→ surface: direct
-        → src/transport.js 直接 spawn CLI
-        → 没有 childId / 容量 / 子会话面板；单写者（OMC/PARALLEL-WRITE）
-```
+## 5. Native 路径
 
-## 7. 五个常见混淆
+与 OMD 0.8.6 完全一致：
 
-1. **「装了 slim，为什么 doctor 说 not detected？」**
-   `subagent_*` 是 agent/preset 作用域的工具，host 作用域的 `ctx.tools.get()` 看不到。检测不到 ≠ 未安装，
-   所以 doctor 永远只写 `not detected (may be scoped)`。
+- 角色行把手上的 stock config 交给 DSH 官方 `@deepseek-ai/dsh-tool-subagent`；
+- `role-composition.js` 在 `agent/created` 注入 Persona 并 `tools.restrict()`；
+- `subagent-roles.js` 在 `agent/request` 处理模型继承、effort、温度、输出上限；
+- `role-mcp.js` 只给 continuable 的原生角色挂 MCP；
+- 角色工具仍可续接，`send_message` 继续可用。
 
-2. **「为什么 `coharness` 写文件时没有子会话？」**
-   provider 的默认 mode 是 read-only，per-call 的 `in-place` 走不了 provider，只能 direct（`surface: direct`）。
+合并没有重写这条路径；Native 回归是发布门槛。
 
-3. **「为什么角色工具不能写文件？」**
-   `subagent_<harness>` 没有 mode 参数，provider 固定用 `dispatch.defaultMode`。这是设计，不是遗漏。
+## 6. External 路径
 
-4. **「为什么切了 preset 就看不到另一套角色工具？」**
-   preset 决定会话的工具面；两套角色工具属于两套互斥的声明。
+外部 CLI 不是 DSH 子 Agent，因此：
 
-5. **「OMC 和 slim 会互相调用吗？」**
-   不会。它们唯一的汇合点是主 Agent；外部 Agent 之间没有点对点通道。
+1. **Persona 不经过 `agent/created`**。`roles.js` 在既有工具 `execute()` 包装点把任务改写成自包含 Brief：
+   - 角色 Persona（裁掉 DSH 工具专属段落）；
+   - 任务；
+   - 只读等级与约束；
+   - 工作目录；
+   - 固定返回格式（Summary / Evidence / Files / Verification / Uncertainty）。
+2. **Provider 配置必须是 external-safe 的**：
+   - `provider: omc:<harness>`；
+   - `maxDepth: 'provider-managed'`（OMC provider 没有 depthLimit）；
+   - **完全省略 `agentOptions`**（官方工具用 `!== undefined` 判定，空对象也会被拒绝）；
+   - 不传 `agentPreset`、`modelSelectionSettings`。
+3. **只读是 Provider 属性**：`omc:*` Provider 始终以 `read-only` 启动，不受全局 `dispatch.defaultMode` 影响。
+4. **一次性**：外部 Provider 没有 `prepareContinuable`，因此没有后续 `send_message`；结果通过完成通知返回。
+5. **失败可见**：Provider 未注册 → blocked；CLI 退出非 0 / 超时 / 取消 → `SubagentResult.stopReason` 与诊断进入主控，Council 如实汇总。
+
+## 7. Council
+
+保留 OMD 的编排：最多三席、同一条消息并行派发、全部结算后调用原生 synthesizer。
+
+合并只改变席位执行后端：
+
+- `council-mode.js` 输出每个席位的实际后端；
+- 明确说明不同席位工具集不同，外部席位不能假设有 DSH 的 `read/glob/grep`；
+- 合成器永远 native，且无工具；
+- 失败席位写入 `Per-Councillor Details`，不包装成共识。
+
+## 8. 前端
+
+保留 OMD 的设置卡，只增加执行后端控件：
+
+- `role.execution` 的读、校验、保存、重新加载都走原有 `configForms` / revision 流程；
+- Harness 状态通过 Host RPC `/coharness` 的 `execution-status` 获取；
+- 浏览器端不实现 CLI Doctor；
+- Native 仍是缺省值，未改动的角色不会因为打开设置卡而写入 `execution` 字段。
+
+## 9. 迁移与兼容
+
+- 配置读取顺序：`OH_MY_COHARNESS_CONFIG` → profile snapshot → `$DSH_HOME/oh-my-coharness.json` → 旧 `oh-my-dsh-slim.json` → defaults。
+- `/coharness migrate` 预览、备份、写入、可回滚；只迁移配置引用，不复制凭据。
+- 旧会话绑定的 `oh-my-dsh-slim` / `omc-harness` preset 无法解析；迁移只报告数量，不改写会话。
+- 自定义 Profile 从旧 registry row 复制到新 row，旧 row 不删除。
+- 旧 OMD 角色标记 `oh-my-dsh-slim-role:` 仍可读，保证冷恢复的旧子会话还能被识别。
+
+## 10. 明确不做
+
+- 外部 CLI 原生 Session Resume；
+- Agent 间点对点通信 / 消息总线 / 任务数据库；
+- 外部 Fixer / Designer 默认可写；
+- 自研 worktree 调度器；
+- 自动模型能力评分；
+- 第二套 Dashboard 或第二套角色注册表。
+
+这些不是永久拒绝，而是 v0.4 不引入未经联合验证的新运行时。

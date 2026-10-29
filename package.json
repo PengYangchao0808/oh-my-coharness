@@ -1,18 +1,28 @@
 {
   "name": "oh-my-coharness",
-  "version": "0.3.0",
-  "description": "Install once and let the AI coding CLIs you already use work together inside DeepSeek Harness. 装一次，让你装好的 AI 编程 CLI 在 DSH 里协同工作。",
+  "version": "0.4.0-alpha.1",
+  "description": "Oh My CoHarness: one agent preset with specialist roles that run natively in DeepSeek Harness or on the AI coding CLIs you already installed. 一个 Preset，角色可原生或交给外部 CLI。",
   "type": "module",
   "license": "MIT",
-  "main": "./src/index.js",
+  "main": "./src/entry.js",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./src/entry.js",
+    "./host": "./src/index.js",
+    "./preset": "./vendor/omd/npm-package/preset/preset.js",
+    "./orchestrator": "./vendor/omd/npm-package/lib/index.js",
+    "./profile-registry": "./vendor/omd/npm-package/lib/profile-registry.js",
+    "./client": "./vendor/omd/npm-package/client/client.js",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
   "files": [
     "src",
+    "integration",
+    "vendor/omd/npm-package",
+    "vendor/omd/LICENSE",
+    "vendor/omd/UPSTREAM.json",
+    "vendor/omd/PATCHES.md",
     "skills",
     "locale",
     "docs",
@@ -20,11 +30,22 @@
     "icon.svg",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
     }
   },
   "engines": {
@@ -37,6 +58,9 @@
     "deepseek-harness",
     "coharness",
     "multi-harness",
+    "agent-preset",
+    "orchestrator",
+    "council",
     "codex",
     "claude-code",
     "gemini-cli",
@@ -46,8 +70,28 @@
   ],
   "scripts": {
     "check": "node scripts/check.mjs",
-    "test": "node test/smoke.test.mjs",
+    "test": "node test/smoke.test.mjs && node test/integration/contracts.test.mjs && node test/integration/preset.test.mjs && node test/integration/client.test.mjs && node test/integration/migration.test.mjs",
     "live-check": "node scripts/live-check.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-agent-preset": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-agent-preset-registry": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-app-boot": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-sandbox": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-session": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-tool-subagent": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-agent-preset": { "optional": true },
+    "@deepseek-ai/dsh-agent-preset-registry": { "optional": true },
+    "@deepseek-ai/dsh-app-boot": { "optional": true },
+    "@deepseek-ai/dsh-llm": { "optional": true },
+    "@deepseek-ai/dsh-sandbox": { "optional": true },
+    "@deepseek-ai/dsh-session": { "optional": true },
+    "@deepseek-ai/dsh-tool-subagent": { "optional": true },
+    "@deepseek-ai/dsh-tools": { "optional": true }
   },
   "repository": {
     "type": "git",

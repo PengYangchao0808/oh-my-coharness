@@ -1,0 +1,156 @@
+/**
+ * Execution status snapshot for `coharness doctor`, `/coharness status`, the
+ * settings-card RPC and the acceptance tests.
+ *
+ * Read-only by construction: it reads the merged role configuration, the live
+ * provider list and the static harness table. It never probes a CLI, never
+ * starts a run and never returns secrets.
+ */
+
+import { HARNESSES } from '../src/harnesses.js'
+import { describeExecution, EXTERNAL_ROLE_IDS } from './compatibility.js'
+import { harnessReadOnlyClass, resolveExecution } from './execution.js'
+
+/** The single public preset id of the merged bundle. */
+export const PRESET_ID = 'oh-my-coharness'
+
+/** Resolve the bundled role configuration without throwing at the caller. */
+export async function readRoleConfiguration(ctx) {
+  try {
+    const { loadConfig } = await import('../vendor/omd/npm-package/preset/config.js')
+    return { ok: true, config: loadConfig(ctx) }
+  } catch (error) {
+    return { ok: false, error: String(error?.message ?? error) }
+  }
+}
+
+/** The live provider names, or an empty list when the service is unavailable. */
+export function liveProviders(ctx) {
+  try {
+    return ctx.get?.('subagents')?.list?.() ?? []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * One row per role, plus harness availability.
+ * @param ctx - any context that can reach `subagents` and the settings service.
+ * @returns a JSON-serializable status object.
+ */
+export async function buildExecutionStatus(ctx) {
+  const providers = liveProviders(ctx)
+  const loaded = await readRoleConfiguration(ctx)
+  const roles = []
+  if (loaded.ok) {
+    for (const [roleId, roleConfig] of Object.entries(loaded.config.roles)) {
+      let resolved
+      try {
+        resolved = resolveExecution(roleId, roleConfig, providers)
+      } catch (error) {
+        roles.push({
+          roleId,
+          enabled: roleConfig.enabled !== false,
+          execution: describeExecution(roleConfig),
+          backend: roleConfig?.execution?.backend ?? 'native',
+          blocked: true,
+          code: error?.code ?? 'OMC/EXECUTION-INVALID',
+          reason: String(error?.message ?? error),
+        })
+        continue
+      }
+      roles.push({
+        roleId,
+        enabled: roleConfig.enabled !== false,
+        execution: describeExecution(roleConfig),
+        backend: resolved.backend,
+        harness: resolved.harness,
+        provider: resolved.provider,
+        providerAvailable: resolved.external ? providers.includes(resolved.provider) : true,
+        readOnly: resolved.readOnly,
+        blocked: resolved.blocked === true,
+        code: resolved.code,
+        reason: resolved.reason,
+        fallbackReason: resolved.fallbackReason,
+        externalCapable: EXTERNAL_ROLE_IDS.includes(roleId),
+      })
+    }
+  }
+
+  return {
+    presetId: PRESET_ID,
+    source: loaded.ok ? loaded.config.source : undefined,
+    configError: loaded.ok ? undefined : loaded.error,
+    providers,
+    roles,
+    harnesses: HARNESSES.map((def) => ({
+      id: def.id,
+      label: def.label,
+      bin: def.bin,
+      enabled: true,
+      readOnly: harnessReadOnlyClass(def.id),
+      provider: `omc:${def.id}`,
+      providerAvailable: providers.includes(`omc:${def.id}`),
+      verified: def.verified === true,
+    })),
+  }
+}
+
+/**
+ * Report the previous OMD preset / plugin when it is still mounted.
+ * Best effort: an empty answer means "not visible from this context", never a
+ * claim that uninstalling is safe.
+ */
+export async function detectLegacyCompanion(ctx) {
+  const presets = ctx.get?.('agentPresets')
+  let presetIds = []
+  try {
+    presetIds = ((await presets?.list?.()) ?? []).map((row) => row.id)
+  } catch {
+    presetIds = []
+  }
+  const tools = ctx.get?.('tools')
+  const tool = (name) => Boolean(tools?.get?.(name))
+  return {
+    presetIds,
+    legacyPreset: presetIds.includes('oh-my-dsh-slim'),
+    ourPreset: presetIds.includes('oh-my-coharness'),
+    legacyRoleTools: ['subagent_oracle', 'subagent_fixer', 'subagent_councillor_alpha'].filter(tool),
+  }
+}
+
+/** Render the role/execution block used by the doctor report. */
+export function renderExecutionStatus(status, { legacy } = {}) {
+  const lines = []
+  lines.push(`preset: ${status.presetId ?? '(not mounted)'}${status.source ? ` · source: ${status.source}` : ''}`)
+  lines.push(`role execution (providers: ${status.providers.length ? status.providers.join(', ') : 'none'}):`)
+  for (const row of status.roles) {
+    const flags = []
+    if (row.blocked) flags.push(`${row.code}: ${row.reason}`)
+    if (row.fallbackReason) flags.push(row.fallbackReason)
+    if (row.readOnly) flags.push(`read-only ${row.readOnly}`)
+    if (row.external && row.providerAvailable === false) flags.push('provider unavailable')
+    lines.push(
+      `  ${row.roleId.padEnd(18)}${String(row.enabled === false ? 'off' : 'on').padEnd(4)}` +
+        `${(row.backend ?? 'native').padEnd(7)}${(row.execution ?? 'native').padEnd(20)}` +
+        (flags.length ? ` (${flags.join('; ')})` : ''),
+    )
+  }
+  if (status.configError) lines.push(`  configuration error: ${status.configError}`)
+  lines.push('harness read-only class:')
+  for (const row of status.harnesses) {
+    lines.push(
+      `  ${row.id.padEnd(12)}${(row.enabled ? 'on' : 'off').padEnd(4)}${row.readOnly.padEnd(12)}` +
+        `${row.providerAvailable ? 'provider registered' : 'provider missing'}${row.verified ? '' : ' · argv unverified'}`,
+    )
+  }
+  if (legacy) {
+    lines.push(
+      `legacy companion: preset ${legacy.legacyPreset ? 'mounted — uninstall oh-my-dsh-slim before v0.4' : 'not mounted'}` +
+        `${legacy.legacyRoleTools.length ? ` · role tools visible: ${legacy.legacyRoleTools.join(', ')}` : ''}`,
+    )
+  }
+  return lines
+}
+
+export { describeExecution }

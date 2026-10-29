@@ -4,7 +4,7 @@
  *   & 'C:\Users\<you>\AppData\Local\Programs\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe' scripts/check.mjs
  *
  * No dependencies, no build step, no network. It answers one question:
- * would this directory survive being installed as a bundle?
+ * would this directory survive being installed as a single bundle?
  */
 
 import { readFile, stat } from 'node:fs/promises'
@@ -27,42 +27,33 @@ async function readJson(relative) {
 // ── manifest ─────────────────────────────────────────────────────────────────
 const pkg = await readJson('package.json')
 ok(pkg.name === 'oh-my-coharness', 'package.json name must be oh-my-coharness')
+ok(pkg.version === '0.4.0-alpha.1', `package.json version must be 0.4.0-alpha.1 (got ${pkg.version})`)
 ok(pkg.type === 'module', 'package.json must declare "type": "module"')
 ok(Boolean(pkg.dsh?.bundle?.patch), 'package.json must declare dsh.bundle.patch')
 ok(Boolean(pkg.engines?.dsh), 'package.json must declare engines.dsh')
 ok(pkg.keywords?.includes('dsh-plugin'), 'keywords must include dsh-plugin')
-ok(!pkg.dependencies || Object.keys(pkg.dependencies).length === 0, 'v0.1 must stay dependency-free')
-ok(!pkg.dsh?.client, 'v0.1 is Host-only: dsh.client must stay absent')
+ok(!pkg.dependencies || Object.keys(pkg.dependencies).length === 0, 'the package must stay dependency-free')
+ok(pkg.dsh?.client?.platform === 'web', 'the merged package ships one web settings card')
+ok(pkg.dsh?.client?.inject?.includes('@deepseek-ai/dsh-client-ui-settings'), 'the client must inject ui-settings')
+for (const entry of ['.', './preset', './client', './orchestrator', './profile-registry']) {
+  ok(typeof pkg.exports?.[entry] === 'string', `package.json exports must declare ${entry}`)
+}
+ok(pkg.exports?.['./client'] === './vendor/omd/npm-package/client/client.js', 'the client export must point at the vendored card')
 
 const patchPath = pkg.dsh?.bundle?.patch
 if (patchPath) {
   const patch = await readFile(join(root, patchPath), 'utf8')
-  ok(patch.includes('oh-my-coharness'), 'cordis.patch.yml must insert the oh-my-coharness row')
-
-  // ── the harness-roles preset ───────────────────────────────────────────────
-  // Structural text checks: a malformed preset row only fails when a user opens
-  // a session with it, so catch the shape here instead.
-  ok(patch.includes('preset-omc-harness'), 'cordis.patch.yml must insert the preset-omc-harness row')
-  ok(patch.includes("name: '@deepseek-ai/dsh-agent-preset'"), 'the preset row must mount @deepseek-ai/dsh-agent-preset')
-  ok(/^\s+id: omc-harness$/m.test(patch), 'the preset declaration needs id: omc-harness')
-
-  const HARNESS_ROLES = [
-    ['codex', 'subagent_codex'],
-    ['antigravity', 'subagent_antigravity'],
-    ['opencode', 'subagent_opencode'],
-    ['kimi', 'subagent_kimi'],
-  ]
-  for (const [harness, toolName] of HARNESS_ROLES) {
-    ok(patch.includes(`provider: 'omc:${harness}'`), `the preset must bind a tool to omc:${harness}`)
-    ok(patch.includes(`toolName: ${toolName}`), `the preset must name the omc:${harness} tool ${toolName}`)
-    ok(patch.includes(`\`${toolName}\``), `the preset persona must describe ${toolName}`)
-  }
-  const bound = (patch.match(/maxDepth: provider-managed/g) ?? []).length
-  ok(bound === HARNESS_ROLES.length, `each external role tool needs maxDepth: provider-managed (found ${bound})`)
+  ok(patch.includes('id: oh-my-coharness'), 'cordis.patch.yml must insert the oh-my-coharness Host row')
+  ok(patch.includes('preset-oh-my-coharness'), 'cordis.patch.yml must insert the single preset row')
+  ok(patch.includes("name: 'oh-my-coharness/preset'"), 'the preset row must mount oh-my-coharness/preset')
+  ok(patch.includes('oh-my-coharness/profile-registry'), 'cordis.patch.yml must mount the profile registry')
+  ok(!patch.includes('preset-omc-harness'), 'the old omc-harness role preset must be gone')
+  ok(!patch.includes("preset-oh-my-dsh-slim"), 'the old OMD preset must not be mounted')
+  ok(/^\s+default: oh-my-coharness$/m.test(patch), 'the bundle must make Oh My CoHarness the new-session default')
 }
 
 const files = pkg.files ?? []
-for (const required of ['src', 'skills', 'cordis.patch.yml', 'README.md']) {
+for (const required of ['src', 'integration', 'vendor/omd/npm-package', 'skills', 'cordis.patch.yml', 'README.md', 'THIRD_PARTY_NOTICES.md']) {
   ok(files.includes(required), `package.json files must include ${required}`)
 }
 
@@ -84,7 +75,7 @@ try {
 }
 
 // ── modules load ─────────────────────────────────────────────────────────────
-const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'index']
+const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry']
 for (const name of modules) {
   try {
     await import(pathToFileURL(join(root, 'src', `${name}.js`)).href)
@@ -92,14 +83,63 @@ for (const name of modules) {
     failures.push(`src/${name}.js failed to load: ${error.message}`)
   }
 }
+for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status']) {
+  try {
+    await import(pathToFileURL(join(root, 'integration', `${name}.js`)).href)
+  } catch (error) {
+    failures.push(`integration/${name}.js failed to load: ${error.message}`)
+  }
+}
+for (const relative of [
+  'vendor/omd/npm-package/preset/preset.js',
+  'vendor/omd/npm-package/preset/roles.js',
+  'vendor/omd/npm-package/lib/index.js',
+  'vendor/omd/npm-package/lib/profile-registry.js',
+]) {
+  try {
+    await import(pathToFileURL(join(root, relative)).href)
+  } catch (error) {
+    failures.push(`${relative} failed to load: ${error.message}`)
+  }
+}
 
 const entry = await import(pathToFileURL(join(root, 'src', 'index.js')).href)
 ok(typeof entry.apply === 'function', 'src/index.js must export apply()')
 ok(Array.isArray(entry.inject) && entry.inject.includes('tools'), 'src/index.js must inject tools')
 
+const merged = await import(pathToFileURL(join(root, 'src', 'entry.js')).href)
+ok(typeof merged.apply === 'function', 'src/entry.js must export apply()')
+
+// The preset identity and role contract are product surface, not internals.
+const preset = await import(pathToFileURL(join(root, 'vendor/omd/npm-package/preset/preset.js')).href)
+ok(preset.PRESET_ID === 'oh-my-coharness', 'the preset id must be oh-my-coharness')
+ok(preset.definition.name === 'Oh My CoHarness', 'the preset display name must be Oh My CoHarness')
+const flattenRows = (rows, collected = []) => {
+  for (const row of rows) {
+    collected.push(row)
+    if (Array.isArray(row.config)) flattenRows(row.config, collected)
+  }
+  return collected
+}
+const presetRows = flattenRows(preset.definition.plugins)
+ok(presetRows.some((row) => row.id === 'tool-subagent-oracle'), 'the preset must keep the oracle role row')
+ok(presetRows.some((row) => row.id === 'council-mode'), 'the preset must keep the Council')
+ok(presetRows.some((row) => row.id === 'role-composition'), 'the preset must keep the native role composition')
+ok(presetRows.some((row) => row.id === 'tool-subagent-councillor-alpha'), 'the preset must keep the alpha council seat')
+
+const { EXTERNAL_ROLE_IDS, validateExecution } = await import(pathToFileURL(join(root, 'integration', 'compatibility.js')).href)
+ok(EXTERNAL_ROLE_IDS.includes('oracle') && EXTERNAL_ROLE_IDS.includes('councillor-alpha'), 'oracle and council seats must allow external backends')
+for (const nativeOnly of ['fixer', 'designer', 'librarian', 'observer', 'council']) {
+  let threw = false
+  try {
+    validateExecution(nativeOnly, { execution: { backend: 'omc', harness: 'codex' } })
+  } catch {
+    threw = true
+  }
+  ok(threw, `${nativeOnly} must stay native-only in this release`)
+}
+
 // ── skills ───────────────────────────────────────────────────────────────────
-// The directory list comes from src/skills.js, so a new skill is one registry entry
-// plus one directory — this script never needs a hard-coded name.
 for (const { dir } of SKILLS) {
   try {
     const { data, body } = parseFrontmatter(await readFile(join(root, 'skills', dir, 'SKILL.md'), 'utf8'))
@@ -112,7 +152,7 @@ for (const { dir } of SKILLS) {
     failures.push(`skills/${dir}/SKILL.md unreadable: ${error.message}`)
   }
 }
-ok(SKILLS.length === 5, `0.2.0 ships five skills (found ${SKILLS.length})`)
+ok(SKILLS.length === 5, `0.4.0 ships five skills (found ${SKILLS.length})`)
 
 // ── report ───────────────────────────────────────────────────────────────────
 if (failures.length) {

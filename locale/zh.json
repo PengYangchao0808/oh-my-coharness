@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Oh My CoHarness",
-    "description": "自动发现本机已安装的 AI 编程 CLI，让 DSH 把真实任务交给它们执行，每次运行都是一条可见的子会话。"
+    "description": "一个 Agent Preset：专业角色可在 DSH 原生或你已安装的 AI 编程 CLI 上执行，统一 Orchestrator、Council、只读外部角色与设置卡。"
   }
 }

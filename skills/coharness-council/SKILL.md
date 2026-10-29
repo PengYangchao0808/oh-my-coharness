@@ -4,9 +4,18 @@ description: Put the same question to two different external AI CLIs in one read
 whenToUse: The user explicitly asks for a council, consensus, "多模型看看", "独立意见", "不要只用一个模型", or a second opinion whose value is that it comes from a different model.
 ---
 
-# Council：一次调用，两个独立席位
+# Council：独立席位 + 主控合成
 
-Council 不是「多跑几个 agent 显得更认真」。它是**两个不同 Harness 各自独立回答同一个问题**，由主控做合成。
+Council 不是「多跑几个 agent 显得更认真」。它是**不同 Harness 各自独立回答同一个问题**，再合成共识、分歧与证据。
+
+Oh My CoHarness 有两条 Council 路径，先选一条：
+
+| 路径 | 什么时候用 | 怎么用 |
+|---|---|---|
+| **内置 Council**（OMD 原有） | 会话里能看到 `subagent_councillor_*` 与 `subagent_council`；用户要 2–3 席、可混合 Native / 外部 CLI | 按 Council Mode 的说明并行调用席位，全部结算后调用 `subagent_council` 合成。合成器永远原生。 |
+| **手动两席**（本 Skill） | 没有挂 Council，或用户只想临时让两个 CLI 独立评审 | `coharness({ action:'dispatch', tasks:[…])`，然后由主控按本 Skill 的格式合成。 |
+
+**同一个问题不要两条路径各跑一次。** 内置 Council 已经包含并行派发、等待结算、原生合成与失败状态，不需要再用 `coharness` 重造。
 
 ## 触发条件
 
@@ -16,6 +25,12 @@ Council 不是「多跑几个 agent 显得更认真」。它是**两个不同 Ha
 不要为普通问题触发。默认 2 席；3 席只在用户明确要求时，而且要说清成本。
 
 ## 第 0 步：先看有什么（免费）
+
+```
+coharness({ action: 'status' })
+```
+
+确认内置 Council 是否可用，以及每个席位的执行后端。没有内置 Council 时再用：
 
 ```
 coharness({ action: 'list' })

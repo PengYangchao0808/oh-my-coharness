@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs'
 import { HARNESSES, harnessDef } from './harnesses.js'
 import { isEnabled } from './config.js'
 import { buildArgv, listWslDistros, planTransport, withTimeout } from './transport.js'
+import { buildExecutionStatus, detectLegacyCompanion, renderExecutionStatus } from '../integration/status.js'
 
 const require_ = createRequire(import.meta.url)
 
@@ -62,8 +63,9 @@ async function probeAuth(ctx, def, plan, signal) {
 }
 
 /**
- * Role tools oh-my-dsh-slim registers when it is the orchestrator. We only ever
- * *detect* them: OMC does not register, wrap or reimplement any of them.
+ * Role tools this bundle registers when its preset is the orchestrator. We only
+ * ever *detect* them from the Host context: an agent-scoped tool may not be
+ * visible here, so an empty list means "not seen from this scope".
  */
 const COMPANION_ROLE_TOOLS = [
   'subagent_oracle',
@@ -71,8 +73,11 @@ const COMPANION_ROLE_TOOLS = [
   'subagent_fixer',
   'subagent_explorer',
   'subagent_librarian',
+  'subagent_observer',
   'subagent_council',
   'subagent_councillor_alpha',
+  'subagent_councillor_beta',
+  'subagent_councillor_gamma',
 ]
 
 /** Same-class plugins we must not duplicate (PLAN §4.6), plus the slim companion. */
@@ -146,6 +151,7 @@ export async function detect(ctx, cfg, { signal } = {}) {
         auth,
         distro: plan.distro,
         capabilities: def.capabilities,
+        readOnly: def.readOnly,
         source: plan.via,
         verified: def.verified,
       })
@@ -160,6 +166,7 @@ export async function detect(ctx, cfg, { signal } = {}) {
         version: undefined,
         auth: 'missing',
         capabilities: def.capabilities,
+        readOnly: def.readOnly,
         source: 'probe',
         verified: def.verified,
         detail: String(error?.code ?? error?.message ?? 'probe failed'),
@@ -169,6 +176,10 @@ export async function detect(ctx, cfg, { signal } = {}) {
 
   const wsl = await listWslDistros(ctx, signal)
   const plugins = probePlugins(ctx)
+  const [execution, legacy] = await Promise.all([
+    buildExecutionStatus(ctx),
+    detectLegacyCompanion(ctx),
+  ])
 
   return {
     at: new Date().toISOString(),
@@ -176,6 +187,8 @@ export async function detect(ctx, cfg, { signal } = {}) {
     rows,
     wsl,
     plugins,
+    execution,
+    legacy,
     subagents: plugins.providerNames,
   }
 }
@@ -191,39 +204,40 @@ function shortVersion(text) {
   return (match ? match[1] : text).slice(0, 20)
 }
 
-/** Render the "is oh-my-dsh-slim here, and what does that change" block. */
-function renderCompanion(plugins) {
+/** Render the merged-preset block: role tools, execution backends, legacy OMD. */
+function renderCompanion(plugins, execution, legacy) {
   const roles = plugins?.companionRoles ?? []
   const lines = []
 
   if (roles.length) {
     const short = roles.map((name) => name.replace(/^subagent_/, '')).join(', ')
-    lines.push(`companion: oh-my-dsh-slim detected (${short})`)
+    lines.push(`role tools: visible (${short})`)
   } else {
-    lines.push('companion: not detected (may be scoped)')
+    lines.push('role tools: not visible from this scope (agent-scoped tools may still be mounted)')
   }
-
-  // A registered tool proves registration, not that slim's preset exposes it to the
-  // model; the report must not upgrade that to "compatible".
   lines.push(
-    `coharness: ${plugins?.coharnessRegistered ? 'registered (preset visibility unverified)' : 'not visible from here (may be scoped)'}`,
+    `coharness tool: ${plugins?.coharnessRegistered ? 'registered' : 'not visible from here (may be scoped)'}`,
   )
-
-  if (roles.length) {
-    lines.push('integration: validation required — 检查 preset 的工具过滤；见 coharness Skill 的 Companion 段')
-    lines.push('recommended:')
-    lines.push('  DSH internal roles → 现有 subagent_* 工具')
-    lines.push('  External CLI work  → coharness')
-  } else {
-    lines.push('recommended: Standalone 路径仍可用；若已装 Slim，检查 preset 的工具列表')
+  if (legacy?.legacyPreset) {
+    lines.push('legacy preset: oh-my-dsh-slim is STILL mounted — uninstall it before v0.4 (two role rosters would conflict)')
   }
-
+  if (legacy?.ourPreset) {
+    lines.push('preset: oh-my-coharness registered')
+  } else if (execution?.presetId) {
+    lines.push(`preset: ${execution.presetId} configured`)
+  }
+  lines.push('execution: role → backend')
+  lines.push(...renderExecutionStatus(execution ?? { roles: [], harnesses: [], providers: [] }, { legacy }))
+  const blocked = (execution?.roles ?? []).filter((row) => row.blocked)
+  if (blocked.length > 0) {
+    lines.push(`blocked roles: ${blocked.map((row) => `${row.roleId} (${row.code})`).join(', ')} — the tool fails visibly; fix the backend or switch it to native`)
+  }
   return lines
 }
 
 /** Render the copy-pasteable report. Text only: no JSON, no markup. */
 export function renderReport(report, cfg, state = {}) {
-  const { host, rows, wsl, plugins, subagents } = report
+  const { host, rows, wsl, plugins, subagents, execution, legacy } = report
   const ready = rows.filter((row) => row.auth !== 'missing')
   const missing = rows.filter((row) => row.auth === 'missing')
 
@@ -236,14 +250,14 @@ export function renderReport(report, cfg, state = {}) {
   if (Array.isArray(state.registered)) {
     lines.push(
       state.registered.length
-        ? `providers: ${state.registered.map((id) => `omc:${id}`).join(', ')}`
-        : 'providers: none registered — dispatch falls back to surface: direct (no childId, no host capacity)',
+        ? `providers: ${state.registered.map((id) => `omc:${id}`).join(', ')} (fixed read-only surface)`
+        : 'providers: none registered — role execution cannot use omc backend (coharness dispatch falls back to surface: direct)',
     )
     if (state.issues?.length) lines.push(`provider issues: ${state.issues.join(' · ')}`)
   }
   lines.push(`capacity: omc maxParallel=${cfg.dispatch.maxParallel}`)
   lines.push('')
-  lines.push(`${pad('harness', 12)}${pad('exec', 18)}${pad('version', 18)}${pad('auth', 12)}state`)
+  lines.push(`${pad('harness', 12)}${pad('exec', 18)}${pad('version', 16)}${pad('auth', 12)}${pad('read-only', 12)}state`)
 
   for (const row of rows) {
     const exec = row.transport === 'wsl' ? `wsl:${row.distro ?? '*'}` : `native:${row.via}`
@@ -252,7 +266,7 @@ export function renderReport(report, cfg, state = {}) {
     if (row.detail) flags.push(row.detail)
     if (row.auth !== 'missing' && row.verified === false) flags.push('argv unverified')
     lines.push(
-      `${pad(row.id, 12)}${pad(exec, 18)}${pad(shortVersion(row.version), 18)}${pad(row.auth, 12)}${state}` +
+      `${pad(row.id, 12)}${pad(exec, 18)}${pad(shortVersion(row.version), 16)}${pad(row.auth, 12)}${pad(row.readOnly ?? 'unsupported', 12)}${state}` +
         (flags.length ? ` (${flags.join('; ')})` : ''),
     )
   }
@@ -268,7 +282,7 @@ export function renderReport(report, cfg, state = {}) {
   if (plugins.wsl) conflicts.push('wsl (dsh-wsl)')
   lines.push(`plugins: ${conflicts.length ? `${conflicts.join(' · ')} present — see PLAN §4.6` : 'no same-class plugin detected'}`)
 
-  lines.push(...renderCompanion(plugins))
+  lines.push(...renderCompanion(plugins, execution, legacy))
   lines.push('')
 
   if (!ready.length) {
@@ -280,6 +294,7 @@ export function renderReport(report, cfg, state = {}) {
   } else {
     const first = ready[0]
     lines.push(`next: 在任意会话里说「用 ${first.id} 读一下 README 并给三条建议」，或调用 coharness({action:'dispatch'})。`)
+    lines.push('role backends: 设置 → Oh My CoHarness → 每个角色选择 DSH 原生或外部 CLI（只读角色只接受 enforced 只读的 CLI）。')
   }
 
   lines.push('redaction: 未包含 token / env / prompt / 对话内容')

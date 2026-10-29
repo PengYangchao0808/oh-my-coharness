@@ -1,3 +1,8 @@
+> **历史文档（v0.2 / v0.3）**：v0.4.0-alpha.1 已将 OMD v0.8.6 源码合并进 Oh My CoHarness，
+> 文中“OMC 与 OMD 两个插件并存 / 两套角色入口”的前提不再成立。
+> 当前架构、角色后端与迁移方式见 [`ARCHITECTURE.zh-CN.md`](./ARCHITECTURE.zh-CN.md)、
+> [`MIGRATION.md`](./MIGRATION.md)。
+
 # Oh My CoHarness v0.2 验收记录
 
 > 对应 [`V0.2-PLAN.zh-CN.md`](./V0.2-PLAN.zh-CN.md) §7 的 A–H 矩阵 · 2026-10-29

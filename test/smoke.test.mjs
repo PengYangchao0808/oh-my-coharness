@@ -368,7 +368,7 @@ test('a write mode leaves the provider surface and says why', async () => {
 
   assert.equal(payload.results[0].status, 'completed')
   assert.equal(payload.results[0].surface, 'direct')
-  assert.match(payload.results[0].downgradeReason, /mode in-place differs from the provider default read-only/)
+  assert.match(payload.results[0].downgradeReason, /omc providers are fixed read-only/)
 })
 
 test('an explicit signed-out harness still runs, but only when a report was seen', async () => {
@@ -499,27 +499,19 @@ test('two read-only tasks really overlap', async () => {
   assert.ok(elapsed < 220, `expected ~max(120,120), got ${elapsed}ms`)
 })
 
-test('the bundle ships a preset that binds specialist tools to external harnesses', async () => {
+test('the bundle ships one preset and one Host row', async () => {
   const raw = await readFile(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
 
-  assert.match(raw, /preset-omc-harness/)
-  assert.match(raw, /name: '@deepseek-ai\/dsh-agent-preset'/)
-  assert.match(raw, /^\s+id: omc-harness$/m)
-
-  const roles = [
-    ['codex', 'subagent_codex'],
-    ['antigravity', 'subagent_antigravity'],
-    ['opencode', 'subagent_opencode'],
-    ['kimi', 'subagent_kimi'],
-  ]
-  for (const [harness, toolName] of roles) {
-    assert.match(raw, new RegExp(`provider: 'omc:${harness}'`), `missing provider binding for ${harness}`)
-    assert.match(raw, new RegExp(`toolName: ${toolName}`), `missing toolName ${toolName}`)
-    assert.match(raw, new RegExp(`\`${toolName}\``), `persona must mention ${toolName}`)
-  }
-  // External providers declare neither depthLimit nor agentOptions.
-  assert.equal((raw.match(/maxDepth: provider-managed/g) ?? []).length, roles.length)
-  assert.doesNotMatch(raw.split('tool-subagent-codex')[1]?.split('tool-subagent-kimi')[0] ?? '', /agentOptions/)
+  assert.match(raw, /^\s+- id: oh-my-coharness$/m)
+  assert.match(raw, /preset-oh-my-coharness/)
+  assert.match(raw, /name: 'oh-my-coharness\/preset'/)
+  assert.match(raw, /oh-my-coharness\/profile-registry/)
+  assert.match(raw, /^\s+default: oh-my-coharness$/m)
+  // The merged product must not mount the two old, mutually exclusive rosters.
+  assert.doesNotMatch(raw, /preset-omc-harness/)
+  assert.doesNotMatch(raw, /preset-oh-my-dsh-slim/)
+  // External execution is role configuration now, not a separate tool row per CLI.
+  assert.doesNotMatch(raw, /provider: 'omc:/)
 })
 
 test('the bundle ships five parseable skills', async () => {
@@ -534,7 +526,7 @@ test('the bundle ships five parseable skills', async () => {
   }
 })
 
-test('doctor reports a detected companion without claiming compatibility', () => {
+test('doctor reports the merged preset without claiming compatibility', () => {
   const { ctx } = fakeCtx({ toolNames: ['subagent_oracle', 'subagent_designer', 'subagent_fixer', 'coharness'] })
   const plugins = probePlugins(ctx)
   assert.deepEqual(plugins.companionRoles, ['subagent_oracle', 'subagent_designer', 'subagent_fixer'])
@@ -543,31 +535,41 @@ test('doctor reports a detected companion without claiming compatibility', () =>
   const report = {
     at: '2026-10-29T00:00:00.000Z',
     host: { dsh: '0.2.1-rc.3', node: 'v24.21.0', platform: 'win32 x64', profile: 'desktop' },
-    rows: [{ id: 'codex', label: 'Codex', transport: 'native', via: 'path', auth: 'ok', verified: true }],
+    rows: [{ id: 'codex', label: 'Codex', transport: 'native', via: 'path', auth: 'ok', verified: true, readOnly: 'enforced' }],
     wsl: { ok: true, distros: ['Ubuntu'], detail: '' },
     subagents: ['omc:codex'],
     plugins,
+    execution: {
+      presetId: 'oh-my-coharness',
+      providers: ['omc:codex'],
+      roles: [{ roleId: 'oracle', enabled: true, backend: 'omc', execution: 'omc:codex', readOnly: 'enforced', providerAvailable: true }],
+      harnesses: [{ id: 'codex', enabled: true, readOnly: 'enforced', providerAvailable: true }],
+    },
+    legacy: { legacyPreset: false, ourPreset: true, legacyRoleTools: [] },
   }
   const text = renderReport(report, resolveConfig({}))
-  assert.match(text, /companion: oh-my-dsh-slim detected \(oracle, designer, fixer\)/)
-  assert.match(text, /coharness: registered \(preset visibility unverified\)/)
-  assert.match(text, /DSH internal roles → 现有 subagent_\* 工具/)
+  assert.match(text, /role tools: visible \(oracle, designer, fixer\)/)
+  assert.match(text, /coharness tool: registered/)
+  assert.match(text, /preset: oh-my-coharness registered/)
+  assert.match(text, /oracle\s+on\s+omc\s+omc:codex/)
+  assert.match(text, /codex\s+on\s+enforced/)
   assert.doesNotMatch(text, /compatible/i)
 })
 
-test('doctor says "not detected (may be scoped)" and keeps standalone usable', () => {
+test('doctor reports a missing role surface instead of pretending it is mounted', () => {
   const { ctx } = fakeCtx()
   const report = {
     at: '2026-10-29T00:00:00.000Z',
     host: { dsh: '0.2.1-rc.3', node: 'v24.21.0', platform: 'win32 x64', profile: 'desktop' },
-    rows: [{ id: 'codex', label: 'Codex', transport: 'native', via: 'path', auth: 'ok', verified: true }],
+    rows: [{ id: 'codex', label: 'Codex', transport: 'native', via: 'path', auth: 'ok', verified: true, readOnly: 'enforced' }],
     wsl: { ok: true, distros: ['Ubuntu'], detail: '' },
     subagents: ['omc:codex'],
     plugins: probePlugins(ctx),
   }
   const text = renderReport(report, resolveConfig({}))
-  assert.match(text, /companion: not detected \(may be scoped\)/)
-  assert.match(text, /Standalone/)
+  assert.match(text, /role tools: not visible from this scope/)
+  assert.match(text, /coharness tool: not visible from here/)
+  assert.match(text, /execution: role → backend/)
 })
 
 test('an explicit per-harness command beats PATH discovery', async () => {
@@ -674,7 +676,7 @@ test('the rendered tool text names the surface and the degradation', async () =>
   assert.match(value.text, /surface: direct` has no childId/)
 })
 
-test('worktree mode is refused by the tool in 0.2.0', async () => {
+test('worktree mode is refused by the tool in this release', async () => {
   const { ctx, registeredTools } = fakeCtx()
   apply(ctx, { surface: 'direct' })
   const tool = registeredTools.find((entry) => entry.name === 'coharness')
@@ -682,7 +684,7 @@ test('worktree mode is refused by the tool in 0.2.0', async () => {
     { action: 'dispatch', mode: 'worktree', prompt: 'go', harness: 'codex' },
     { agent: { id: 's' }, signal: new AbortController().signal },
   )
-  assert.match(value.text, /not implemented in 0\.2\.0/)
+  assert.match(value.text, /not implemented in 0\.4\.0-alpha\.1/)
 })
 
 test('provider registration survives being loaded before the subagents service', async () => {

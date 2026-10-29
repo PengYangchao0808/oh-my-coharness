@@ -1,184 +1,140 @@
 # Oh My CoHarness
 
-> 装一次，让你已经装好的 AI 编程 CLI 在 DeepSeek Harness 里一起干活。
+> **v0.4.0-alpha.1** — OMD 的成熟 Agent 工作流 + OMC 的原生多 Harness 执行 + DSH 的官方运行时。
+> 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
 
-**v0.3 目标（Roles on different CLIs）**：编排交给 DSH 原生能力，OMC 提供外部 Harness 通路、工作流纪律，以及一个「角色就是不同 CLI」的 agent preset。
+Oh My CoHarness（OMC）把两件过去分开的事合成一个产品：
 
-- 一个 npm 包，零运行时依赖，零构建步骤（纯 ESM）
-- Host bundle：**不写客户端代码**（一个 bundle patch 同时声明 Host 行与一个 agent preset）
-- 对外只有一个工具 `coharness`、一个命令 `/coharness doctor`、五个 Skill
-  （`coharness` / `coharness-setup` / `coharness-council` / `coharness-ulw` / `coharness-verify`）
-- 新增 preset **`omc-harness`**：`subagent_codex` / `subagent_antigravity` / `subagent_opencode` / `subagent_kimi`
-- `coharness` 的工具 Schema 仍然不变
+- **谁来做**：Orchestrator + Oracle / Explorer / Fixer / Designer / Librarian / Council 的专业分工；
+- **在哪做**：同一个 `subagent_oracle` 可以执行成 DSH 原生子 Agent，也可以执行成 Codex、Gemini、Antigravity、opencode、Kimi、Claude Code 的一次性外部运行。
 
-> **状态：`0.3.0`，本机 Desktop 运行中（bundle 以 `link:` 指向本目录）。**
-> DSH 0.2.1-rc.3 · WSL Ubuntu 24.04 · Node 24.21（Desktop 自带）
-> 验收记录：[`docs/ACCEPTANCE-V0.2.md`](docs/ACCEPTANCE-V0.2.md) · 角色路由：[`docs/ROLE-ROUTING.zh-CN.md`](docs/ROLE-ROUTING.zh-CN.md) · 方案：[`docs/V0.2-PLAN.zh-CN.md`](docs/V0.2-PLAN.zh-CN.md)
-
-### 实测记录（v0.1，2026-10-29，本机）
-
-| 验收项 | 结果 | 证据 |
-|---|---|---|
-| Desktop 安装 / 卸载 / 重装 | ✅ | `application: applied`，卸载后 Skill 与工具立即消失 |
-| 发现 native + WSL | ✅ | `opencode wsl:Ubuntu 2.1.4 auth:ok`；4 个 Windows 侧 CLI 正确报 `missing` |
-| 真实只读委派 | ✅ | opencode 读 README 并给出三条要点，7.2s |
-| 一次调用并行两个任务 | ✅ | 两个 child id，按输入顺序返回，4.0s / 3.1s（并发而非串行） |
-| per-call 超时 | ✅ | `timeoutMs=1500` → `status: timeout` + `OMC/CLI-TIMEOUT`；部分输出保留。**返回比 deadline 晚约 3 秒**（进程退出与清理的真实成本，见下） |
-| 认证诚实 | ✅ | `auth: ok` 仅在有稳定状态子命令时给出；其余保持 `unknown` |
-| 缺 CLI 的指引 | ✅ | 每行附官方安装命令，不假装可用 |
-
-### v0.2 实测（2026-10-29，本机）
-
-运行中的 `0.2.0` 实例（不是 shim）。完整记录见 [`docs/ACCEPTANCE-V0.2.md`](docs/ACCEPTANCE-V0.2.md)。
-
-| 验收项 | 结果 | 证据 |
-|---|---|---|
-| 五个 Skill 全部注册且可解析 | ✅ | `check ok … 5 skills`；单测逐个校验 frontmatter 与目录名 |
-| Provider 面（`omc:<id>`） | ✅ | `doctor` 列出 6 个 `omc:*`；派发返回 `surface: provider` + 真实 `childId` |
-| 两个不同 Harness 一次调用 | ✅ | `codex + opencode`：12.1 s / 4.4 s，两个 child id，同一调用返回 |
-| 真并行（不是伪并行） | ✅ | 墙钟 ≈ 最慢席位，而非两席之和（12.1 s vs 16.5 s） |
-| 只读真的没写工作区 | ✅ | 运行前后 `git status --porcelain` 都是 22 项，一致 |
-| 显式 `in-place` 才写 | ✅ | codex 在临时目录写出 `OMC_LIVE_PROOF.txt`（内容 `OK`），`surface: direct` + 降级原因 |
-| 并行写被拒 | ✅ | 两个 `in-place` 任务 → `OMC/PARALLEL-WRITE` |
-| 部分失败隔离 | ✅ | 未知 harness `failed`，另一席照常 `completed` |
-| Council（两席独立 + 主控合成） | ✅ | `codex + antigravity`，两席各自给出两条风险；合成本文见验收记录 |
-| ULW 闭环 | ✅ | Build `STATUS: done` → Review `VERDICT: approve` → Verify `node test.mjs` exit 0 |
-| auto 选择 | ✅ | `ok` 优先于 `unknown`；`signed-out` 被排除；全部不可用时逐行给原因 |
-| 超限不丢任务 | ✅ | 5 任务 / `maxParallel=4` → `OMC/TOO-MANY-TASKS` + 拆分建议 |
-| 完整卸载 / 重装 | ✅ | 卸载后工具、5 个 Skill、6 个 provider 全部消失；重装（`link:`）后恢复且不重复，profile 的 glm/envFile 配置保留 |
-| Companion 检测 | ✅ | 装/不装 Slim 都报 `not detected (may be scoped)`：宿主作用域看不到 preset 作用域的角色工具，这正是不能断言「未安装」的原因 |
-| Slim 共存（安装侧） | ✅ | `oh-my-dsh-slim@0.8.6` 已装，bundle/settings/preset 行都在运行中的树里；调用级验证需一个使用其 preset 的会话 |
-
-> 未覆盖：Slim preset 会话里的调用级共存（需新建会话）、真实前后端双泳道、`npm publish`。见验收记录的「仍未覆盖」。
-
-### v0.3 实测（2026-10-29，本机）
-
-| 验收项 | 结果 | 证据 |
-|---|---|---|
-| preset 声明可解析 | ✅ | 用宿主自带的 `js-yaml`（含 `!!js` 标签）解析 `cordis.patch.yml`：2 个 patch、preset 20 个插件行 |
-| preset 行已挂载 | ✅ | `Config.listConfigs` 出现 `include:preset-omc-harness`，与 4 个内置 preset 同级 |
-| 四个角色绑定正确 | ✅ | 结构断言：`provider: 'omc:codex|antigravity|opencode|kimi'`、对应 `toolName`、`maxDepth: provider-managed` |
-| 能力位不越界 | ✅ | 未写 `agentOptions` / `agentPreset` / `modelSelectionSettings`（外部 provider 不支持） |
-| 新会话里调用 | ⏳ | 需要一个使用「OMC · 外部 Harness 角色」preset 的会话；本会话用的是默认 preset |
+它不再需要同时安装 `oh-my-dsh-slim` 和 `oh-my-coharness`。合并后的用户只安装 **`oh-my-coharness`** 一个包。
 
 ---
 
 ## 它做什么
 
 ```
-你说：用 codex 读一下 README，给三条改进建议
-  ↓
-coharness 工具 → ctx.subagents.startActivation({ provider: 'omc:codex' })
-  ↓
-真实进程：codex exec "…"（用 Codex 自己的模型、自己的登录、自己的配额）
-  ↓
-结果回到会话；子会话面板里有一条 external 记录；可中断、计容量、有完成通知
+DSH Desktop / Web / CLI
+        │
+        ▼
+Oh My CoHarness  ·  一个 Bundle · 一个 Preset
+┌──────────────────────────────────────────────────────────────┐
+│ Orchestrator（主控 Prompt / 规划 / 验收 / 汇总）              │
+│   ├─ 专业角色：oracle explorer fixer designer librarian       │
+│   ├─ Council：alpha / beta / gamma + 原生 synthesizer         │
+│   └─ 每个角色选择执行后端                                     │
+│          ├─ DSH Native：spawn / fork，可续接，受 DSH 权限约束 │
+│          └─ External：omc:<harness>，一次性，固定只读          │
+└──────────────────────────────────────────────────────────────┘
+        │
+        ├─ DSH 官方 Subagent / Session / 工作区 / 权限 / 插件管理
+        └─ OMC Provider：CLI discovery · Doctor · Windows/WSL
 ```
 
-三件事分开：
+**六条设计原则**
 
-| 层 | 负责 | 不负责 |
+1. DSH 负责 Runtime：子 Agent、会话、生命周期、工作区和插件市场都沿用官方实现。
+2. 只有一个 Orchestrator：保留 OMD 的主控 Prompt 与角色，不再维护第二套角色系统。
+3. 角色与 Harness 解耦：`oracle` 是任务角色，`codex` 是执行后端，两者通过 `role.execution` 关联。
+4. 无点对点通信：所有 Agent 的交接都经过 DSH 主控，没有消息总线。
+5. Native 默认不变：没有配置外部 CLI 时，角色行为与 OMD v0.8.6 一致。
+6. 前端只有一套：保留成熟的设置卡，只增加执行后端选择。
+
+---
+
+## 角色与执行后端
+
+| 角色 | 工具 | 默认 | 可切外部 CLI | 说明 |
+|---|---|---|---|---|
+| oracle | `subagent_oracle` | native | ✅ | 架构、难题、代码审查；只读 |
+| explorer | `subagent_explorer` | native | ✅ | 代码库侦察；只读 |
+| councillor-alpha/beta/gamma | `subagent_councillor_*` | native（默认关闭） | ✅ | Council 独立席位；只读 |
+| fixer | `subagent_fixer` | native | ❌ | 写入角色；本版必须留在 DSH 原生 |
+| designer | `subagent_designer` | native | ❌ | UI/UX 写入角色；本版必须留在 DSH 原生 |
+| librarian | `subagent_librarian` | native | ❌ | 依赖 context7 / gh_grep MCP；本版保持原生 |
+| observer | `subagent_observer` | 本版锁定 | ❌ | 需要视觉模型与附件转发 |
+| council | `subagent_council` | native | ❌ | 合成器永远原生，汇总不依赖另一套 CLI |
+
+角色配置示例（`~/.dsh/oh-my-coharness.json` 或设置卡）：
+
+```json
+{
+  "roles": {
+    "oracle": {
+      "execution": { "backend": "omc", "harness": "codex", "fallback": "fail" }
+    },
+    "explorer": {
+      "execution": { "backend": "native" }
+    },
+    "fixer": {
+      "execution": { "backend": "native" }
+    }
+  }
+}
+```
+
+- `backend` 只有 `native` 和 `omc`。
+- `harness` 是 OMC 的 CLI id（`codex`、`gemini`、`antigravity`、`opencode`、`kimi`、`claude`、`glm`）。
+- `fallback` 默认 `fail`：Provider 缺失时角色工具**显式失败**并给出原因，绝不静默改回 native。
+- `allowAdvisory: true` 才允许只有 advisory 只读的 CLI 承担只读角色（见下节）。
+
+### 只读不是一个词，而是三个等级
+
+| 等级 | 含义 | 可用于外部只读角色 |
 |---|---|---|
-| **Harness** | 认识哪个 CLI、怎么调它 | 调度 |
-| **Transport** | native / WSL 的执行与输出事实 | 任务语义 |
-| **Surface** | 把它变成 DSH 的 child session、工具、Skill | 进程管理 |
+| `enforced` | CLI 自己的沙箱/审批开关确实拒绝写入（codex `-s read-only`、gemini `--approval-mode plan`、antigravity `--sandbox`） | ✅ |
+| `advisory` | 只是 Prompt 要求不要写，CLI 仍可能按默认权限写入（opencode、kimi、claude、glm） | 默认拒绝；需显式 `allowAdvisory: true` |
+| `unsupported` | 调用形态未经验证 | ❌ |
 
-调度、容量、取消、完成判定都在宿主 `ctx.subagents` 里 —— OMC 不重写。
+**`omc:<id>` Provider 固定只读。** 无论全局 `dispatch.defaultMode` 是什么，角色 Provider 都不会升级成可写；`coharness` 工具需要写入时走 `surface: direct` 并在结果里明确标注降级。
 
-## 五个 Skill，一套派发语义
+---
 
-0.2.0 的全部「编排」都写进 Skill，而不是新代码。Skill 只在需要时才被模型加载：
-
-| Skill | 什么时候加载 |
-|---|---|
-| `coharness` | 任何一次外部派发的纪律：写自包含任务、读结果、报失败 |
-| `coharness-setup` | doctor 全是 `missing`，或用户问「怎么让它工作」 |
-| `coharness-council` | 要两个**不同**模型独立评审，再由主控合成共识/分歧 |
-| `coharness-ulw` | 多阶段：Plan → Explore → Build → Review → Verify，带门禁与单写者 |
-| `coharness-verify` | 决定需要什么证据、拿到真实退出码后再宣布完成 |
-
-Council 就是一次调用里的两个 task（不是两次串行调用，也不是同一个 CLI 跑两遍）：
-
-```js
-coharness({
-  action: 'dispatch', mode: 'read-only', delivery: 'await',
-  tasks: [
-    { harness: 'codex', prompt: 'Independently review this design… <design>…</design>' },
-    { harness: 'glm',   prompt: 'Independently review this design… <design>…</design>' },
-  ],
-})
-```
-
-主控不拼接两段输出，而是合成「共识 / 分歧 / 未验证 / 建议 / 置信度」，每条结论标来源。
-只有一席成功时，必须说「这次不是完整 council」。
-
-### 每个结果都说明自己从哪来
-
-| 字段 | 含义 |
-|---|---|
-| `surface: provider` | 走宿主 `ctx.subagents`：有 `childId`、容量、子会话、完成通知 |
-| `surface: direct` | 直接起进程的降级路径：**没有** `childId` / 容量 / 子会话 |
-| `downgradeReason` | 为什么降级，例如 `mode in-place differs from the provider default read-only` |
-
-### 0.2.0 明确的四个拒绝
-
-| 情形 | 结果 |
-|---|---|
-| `tasks[]` 超过 `maxParallel` | `OMC/TOO-MANY-TASKS`，给拆分建议，**不丢任务** |
-| 一次调用里多个 `in-place` 任务 | `OMC/PARALLEL-WRITE`，单写者，逐个调用 |
-| direct 路径 + `delivery: 'background'` | `OMC/BACKGROUND-UNSUPPORTED`，建议改 `await` |
-| `mode: 'worktree'` | 文本拒绝：0.2.0 未实现隔离工作区 |
-
-auto 选择也变了：优先 `auth: ok`，再看定义表里 argv 是否实测过，**排除 `signed-out`**；一个都不可用时逐行说明原因（不是一句「没装 CLI」）。
-
-### 原生 UI：不新增客户端半
-
-0.2.0 没有一行前端代码，能复用的都复用：
-
-| 状态 | 复用 |
-|---|---|
-| 子 Agent 执行与结果 | DSH 子会话面板（`surface: provider` 时） |
-| 阶段进度 | `todo_write` |
-| 原生 Workflow 阶段 | Workflow UI（走官方 `workflow` 时） |
-| 配置 | Companion 用 Slim 设置卡；Standalone 用 `cordis.patch.yml` |
-| 失败 / 取消 | 宿主工具结果与停止按钮 |
-
-`surface: direct` 是唯一没有原生 UI 可复用的路径：它没有 `childId`，结果只出现在工具卡片与对话里。这是已知边界，不假装它有子会话。
-
-## 角色就是不同 CLI（0.3.0 preset）
-
-0.2.0 之前，「角色」和「外部 harness」是两条平行线：slim 的 `subagent_oracle` 永远跑在进程内子 Agent 上
-（它的角色行把 `provider` 写死为 `spawn`），`coharness` 才是外部 CLI。0.3.0 用一个 preset 把两者接上：
+## Council：同一套编排，混合执行后端
 
 ```
-Settings → Agent Presets → 「OMC · 外部 Harness 角色」
-   ├─ subagent_codex        → omc:codex        架构 / 硬调试 / 实现评审
-   ├─ subagent_antigravity  → omc:antigravity  UI / 视觉 / 前端
-   ├─ subagent_opencode     → omc:opencode     代码库侦察
-   ├─ subagent_kimi         → omc:kimi         长上下文阅读
-   ├─ subagent / subagent_fork                 本地、可续接（需要追问时用）
-   └─ coharness                                显式 mode / council / 未挂载的 harness
+Orchestrator
+  ├─ alpha  → DSH Native
+  ├─ beta   → omc:codex（只读 enforced）
+  └─ gamma  → omc:kimi（需要 allowAdvisory）
+        ↓
+原生 synthesizer（无工具，只读各席位结果）
 ```
 
-每个都是宿主原生的委派工具：真子会话、有 `childId`、计容量、有完成通知。硬约束：
+Council 保留 OMD 的原有编排逻辑：最多三个独立席位、同一条消息并行派发、全部结算后再合成。合并后只改变席位的执行后端：
 
-- **只读**：工具没有 mode 参数，provider 固定用配置里的 `dispatch.defaultMode`（默认 read-only）。
-  要写文件必须走 `coharness({ mode: 'in-place' })`。
-- **一次性**：外部 CLI 不能追问、不能续接；要拿同一上下文继续，用 `subagent`。
-- **缺 CLI 就不挂载**：工具在等 `subagent/provider-added`，不会给你一个必然失败的入口。
-- **与 slim 并列**：选了这个 preset 就没有 slim 的 `subagent_*`；选了 slim 的就没有这四个工具。
+- Council Mode 的 Prompt 会列出每个席位实际使用的后端；
+- 明确告诉主控：不同席位的工具集不同，外部席位不能假设自己有 DSH 的 `read/glob/grep`；
+- 合成器始终是 DSH 原生，失败席位如实进入报告。
 
-细节与「为什么不能直接改 slim」见 [`docs/ROLE-ROUTING.zh-CN.md`](docs/ROLE-ROUTING.zh-CN.md)。
+---
 
-## 安装（三种方式）
+## 设置卡
+
+`设置 → Oh My CoHarness`：
+
+- 每个角色一行：启用、模型、思考强度、执行后端；
+- 选择「外部 CLI」后出现 Harness 下拉、Provider 缺失回退策略、只读等级与风险确认；
+- 外部运行时 DSH 模型/强度控件自动禁用，因为模型由该 CLI 自己的配置决定；
+- Harness 状态由 Host 的 `/coharness` RPC 提供，**不在浏览器里重跑 CLI Doctor**；
+- 保存仍走 OMD 原有的 revision 冲突保护与 profile 保存流程。
+
+---
+
+## 安装
 
 | 场景 | 做法 |
 |---|---|
-| Desktop | Plugins 界面安装包名 `oh-my-coharness`（或用本目录做本地安装） |
-| 有 dsh CLI | `dsh plugin --profile <profile> add oh-my-coharness@0.3.0` |
+| Desktop | Plugins 界面安装 `oh-my-coharness`，或本地安装本目录 |
+| 有 dsh CLI | `dsh plugin --profile <profile> add oh-my-coharness@0.4.0-alpha.1` |
 | 本地开发 | 用 `plugin_manager` 的 `install_bundle`，`target` = 本目录绝对路径 |
 
 装完**必须重启 DSH**：插件代码每个宿主进程只加载一次。
+
+**升级前先卸载旧 OMD。** 两个包同时挂载会出现两套角色入口；v0.4 的 Doctor 会明确报告 `legacy preset: oh-my-dsh-slim is STILL mounted`。
+
+---
 
 ## 第一次使用
 
@@ -186,69 +142,45 @@ Settings → Agent Presets → 「OMC · 外部 Harness 角色」
 /coharness doctor
 ```
 
-它不联网、不调模型、不花配额。本机真实输出（2026-10-29，`0.2.0`）：
+不联网、不调模型、不花配额。它会给出：CLI 发现结果、Provider 注册状态、每个角色的执行后端、只读等级，以及是否还挂着旧 OMD。
 
 ```
-Oh My CoHarness doctor — 2026-10-29T13:25:55.612Z
-host: DSH 0.2.1-rc.3 · active profile · win32 x64 · node v24.21.0
-subagents: spawn, fork, omc:opencode, omc:codex, omc:antigravity, omc:glm, omc:gemini, omc:kimi
-providers: omc:opencode, omc:codex, omc:antigravity, omc:glm, omc:gemini, omc:kimi
-capacity: omc maxParallel=4
-
-harness     exec              version           auth        state
-opencode    wsl:Ubuntu        2.1.4             ok          usable
-codex       wsl:Ubuntu        0.165.0           ok          usable
-antigravity wsl:Ubuntu        1.4.10            ok          usable
-glm         wsl:Ubuntu        2.1.312           unknown     usable
-gemini      wsl:Ubuntu        0.66.0            unknown     usable
-kimi        wsl:Ubuntu        2.4.0             unknown     usable
-
-wsl: ok · Ubuntu
-plugins: no same-class plugin detected
-companion: not detected (may be scoped)
-coharness: registered (preset visibility unverified)
-recommended: Standalone 路径仍可用；若已装 Slim，检查 preset 的工具列表
-
-next: 在任意会话里说「用 opencode 读一下 README 并给三条建议」，或调用 coharness({action:'dispatch'})。
-redaction: 未包含 token / env / prompt / 对话内容
+/coharness status
 ```
 
-`auth: unknown` 是**正常**的：大多数 CLI 没有稳定的状态子命令。OMC 不会因为文件存在就断言「已登录」。
-opencode 是例外 —— `opencode auth list` 便宜、稳定、离线，所以它能给出确定的 `ok`。
+只看角色 → 后端映射与 Provider 注册，不探测 CLI。
 
-### Harness 支持矩阵（2026-10-29 实测）
+```
+/coharness migrate
+```
 
-适配层的风险不在「支持多少个品牌」，而在**argv 形态 + 环境前置 + 认证**。五个 CLI 已全部装进 WSL 并逐个核对过 `--help`：
+预览旧配置迁移（详见 [`docs/MIGRATION.md`](docs/MIGRATION.md)）。
 
-| Harness | 形态 | 版本 | doctor 状态 | 缺什么才能真跑 |
+### Harness 支持矩阵（2026-10-29 本机实测）
+
+| Harness | 形态 | 版本 | 只读等级 | 备注 |
 |---|---|---|---|---|
-| **opencode** | `run "<task>"` | 2.1.4 | `auth: ok` | — 已真实委派 |
-| **codex** | `exec --skip-git-repo-check -s <sandbox> "<task>"` | 0.165.0 | `auth: ok` | — 已真实委派（16.6 s） |
-| **kimi** | `-p "<task>" [-m model]` | 2.4.0 | `auth: unknown`（已登录） | — 已真实委派（7.8 s） |
-| **antigravity** | `-p "<task>" [--model slug] [--sandbox]`（`agy`） | 1.4.10 | `auth: ok` | — 已真实委派（10.9 s；沙箱内读文件 13.2 s） |
-| **gemini** | `-p "<task>" --skip-trust --approval-mode plan` | 0.66.0 | `auth: unknown` | **已被 Google 弃用**：免费 OAuth 返回 `UNSUPPORTED_CLIENT`，官方指向 Antigravity |
-| **glm** | 同上（`claude` 二进制 + Z.ai 端点） | 2.1.312 | `auth: unknown`（端点连通） | — 已真实委派（3.9 s） |
-| **claude** | `-p "<task>" --output-format text` | 2.1.312 | 关闭 | 无 Anthropic 号；已由 `glm` 接管 |
-| qwen | `--prompt` | — | 未安装 | 多一个 npm 包 |
+| **codex** | `exec --skip-git-repo-check -s <sandbox> "<task>"` | 0.165.0 | enforced | 已真实委派 |
+| **opencode** | `run "<task>"` | 2.1.4 | advisory | 已真实委派；`auth: ok` |
+| **kimi** | `-p "<task>" [-m model]` | 2.4.0 | advisory | 已真实委派 |
+| **antigravity** | `-p "<task>" [--model slug] [--sandbox]`（`agy`） | 1.4.10 | enforced | 已真实委派 |
+| **gemini** | `-p "<task>" --skip-trust --approval-mode plan` | 0.66.0 | enforced | 免费 OAuth 已被 Google 弃用，官方指向 Antigravity |
+| **glm** | 同 `claude`，端点换 Z.ai | 2.1.312 | advisory | 已真实委派 |
+| **claude** | `-p "<task>" --output-format text` | 2.1.312 | advisory | 无 Anthropic 账号时由 `glm` 接管 |
+| qwen | `--prompt` | — | unsupported | 未安装、argv 未验证 |
 
-**适配层为此改了三处**（都是真跑之后才发现的）：
+CLI 发现顺序：**配置路径 → PATH → 常见安装根目录 → WSL 各发行版**。`doctor` 的 `exec` 列会显示来源（`native:path` / `native:search` / `wsl:Ubuntu`）。
 
-1. **codex 的 git 信任**：headless 下无法回答交互式提示，必须 `--skip-git-repo-check`，否则直接失败。
-2. **gemini 的只读被静默覆盖**：目录不可信时 CLI 会把 `--approval-mode plan` 改回 `default` —— 必须同时给 `--skip-trust`，否则「只读」只是纸面承诺。
-3. **`mode` 不再是 advisory**：codex 映射到 `-s read-only|workspace-write`，gemini 映射到 `--approval-mode plan|auto_edit`；没有沙箱开关的 CLI（opencode/claude/kimi）保持自己的默认，工具输出里会明说。
+`auth: unknown` 是正常的：大多数 CLI 没有稳定的状态子命令。OMC 不会因为文件存在就断言「已登录」。
 
-认证状态现在也尽量给确定值：`codex login status` 与 `claude auth status` 都有稳定退出码（未登录 = 1），所以 doctor 能显示 `signed-out` 而不是 `unknown`。gemini/kimi 没有状态子命令，保持 `unknown` —— 这是诚实，不是缺陷。
-
-### 没有 CLI 的模型也能当 Harness
-
-GLM 没有自己的命令行。它提供的是**协议端点**（Anthropic Messages 协议），所以任何 Anthropic 客户端都能驱动它：
+GLM 这类没有自己命令行的模型，仍然可以作为 Harness——`harness = 二进制 × 端点 × 模型`：
 
 ```yaml
 - id: oh-my-coharness
   name: oh-my-coharness
   config:
     harnesses:
-      glm:                                   # bin 是 claude，端点换成 Z.ai
+      glm:
         enabled: true
         envFile: "C:/Users/<you>/.dsh/coharness.env"
 ```
@@ -259,79 +191,77 @@ GLM 没有自己的命令行。它提供的是**协议端点**（Anthropic Messa
 ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 ```
 
-于是 **Harness = 二进制 × 端点 × 模型**，不是厂商。同一个 `claude` 二进制指向不同端点就是不同 Harness。这条链路的环境注入已实测（`OMC_ENV_PROBE` 在 WSL 子进程里读到了预期值），只差你的 key 就能把 `glm` 从 `missing` 变成 `usable`。
-
-`env` 与 `envFile` 的优先级：**定义默认** < **行配置 `env`** < **`envFile`**。WSL 走 `export` 注入（保留 login PATH），native 走合并后的进程环境。
-
-这是 v0.1 里最容易被忽略、也最容易让用户觉得「坏了」的一环：
-
-1. **GUI 启动的进程继承的是系统 PATH，不是 shell profile 的 PATH。** 从开始菜单打开的 DSH Desktop 看不到你在终端里 `export` 的路径。
-2. **Linux 侧的 CLI 根本不在 Windows PATH 里。** 本机的 opencode 装在 WSL Ubuntu 中（`/root/.opencode/bin` 一类不在 PATH 的位置），Windows 侧任何 `where` 都不可能找到它。
-
-所以发现顺序是：**配置里写死的路径 → PATH → 常见安装根目录 → WSL 各发行版（PATH → 已知前缀 → 有界 `find`）**。
-`exec` 列会显示它到底从哪来（`native:path` / `native:search` / `wsl:Ubuntu`），出问题时不用猜。
+---
 
 ## 安全边界（请先读这段）
 
-- 由 OMC 启动的外部 CLI **运行在 DSH 的 sandbox 与 approval 之外**。文件策略管不到它们，这与 `dsh-wsl` 的既有结论一致。
-- 因此 `mode` 默认 `read-only`；写入必须显式 `in-place`。0.2.0 不做隔离 worktree，也不开放并行写入；0.2.1+ 再评估。
+- 外部 CLI **运行在 DSH sandbox/approval 之外**。文件策略管不到它们；`enforced` 只读来自 CLI 自己的沙箱，`advisory` 只读只是约定。
+- 角色的 `omc:*` Provider 固定只读；`coharness` 的写入必须显式 `mode: "in-place"`，且走 `surface: direct`（无 childId、无宿主容量、无子会话面板）。
+- 第一版只开放 **Oracle / Explorer / Council 席位**的外部执行。Fixer、Designer、Librarian、Observer、Council 合成器保持原生。
 - 任务文本会发给该 CLI 自己的服务商。不要把密钥或无关私有内容放进 prompt。
-- OMC 不读 `~/.codex`、`~/.claude`、`~/.gemini` 的凭证，也不写它们。
+- OMC 不读取 `~/.codex`、`~/.claude`、`~/.gemini` 的凭证，也不写它们。
 
-## 能力与限制（v0.3.0）
+---
 
-| 已有 | 还没有 |
+## 从 0.3.0 + OMD 0.8.6 迁移
+
+1. **先不要卸载 OMD**：运行 `/coharness migrate` 预览，它会读取旧 settings / `oh-my-dsh-slim.json` / 自定义 Profile。
+2. `/coharness migrate --apply`：自动备份到 `~/.dsh/coharness-backups/`，再写入新配置；旧 JSON 文件原样保留。
+3. 卸载 `oh-my-dsh-slim`，重启 DSH。
+4. 旧会话绑定的 `oh-my-dsh-slim` / `omc-harness` preset 不再能解析：迁移会报告数量，但不会改写或删除会话；请用新 Preset 创建新会话。
+5. 回滚：`/coharness migrate --rollback`。
+
+迁移只搬运配置引用，**不复制任何 CLI 凭据**。完整步骤、备份结构和回滚边界见 [`docs/MIGRATION.md`](docs/MIGRATION.md)。
+
+---
+
+## 能力与限制（v0.4.0-alpha.1）
+
+| 已有 | 暂不提供 |
 |---|---|
-| 发现 native / WSL、版本、认证状态（诚实的 unknown） | `coharness` 上的 `role` 字段 / 路由表（B 方案，未做） |
-| 单任务派发 + `tasks[]` 并行（超限显式失败，不再丢任务） | worktree 隔离（0.2.1+；默认只读 + 显式 in-place） |
-| 真实退出判定、超时、整树终止、输出裁剪 | 并行写入（不开放） |
-| `surface` / `downgradeReason` 明示降级 | 新增 action（council / verify 都是 Skill） |
-| 外部 CLI 作为 external child session | 原生会话续接、跨 Harness Handoff（v0.4） |
-| `omc-harness` preset：`subagent_<harness>` 原生委派（只读、一次性） | 外部子 Agent 的追问 / 续接（provider 层不支持） |
-| 脱敏诊断报告 + Companion 检测（detected，不是 verified） | 配置 UI（Companion 优先用 Slim 的设置卡） |
-| council / ULW / verify 三个 Skill | 代码级门禁（若 Skill 被证明不够稳，再加字段） |
+| 单 Preset、单安装入口、Native 角色完整回归 | 外部 CLI 原生 Session Resume |
+| Oracle / Explorer / Council 席位切换外部只读 CLI | 外部 Fixer / Designer 默认可写 |
+| 外部 Persona 自包含 Brief（不是只发原始 prompt） | Agent 间点对点通信 / 消息总线 |
+| Council 混合后端 + 原生合成器 | 自动模型能力评分 |
+| 设置卡后端选择、Provider 状态、只读风险确认 | 新的多 Agent Dashboard |
+| 配置预览 / 备份 / 回滚迁移 | 自研 Git Worktree 调度器 |
+| CLI 超时、取消、进程树终止、输出裁剪 | worktree 模式（仍返回明确的 not implemented） |
 
-## 开发
+---
 
-本机没有 `node`/`pnpm`/`dsh` 在 PATH 上，但 DSH Desktop 自带 Node：
+## 开发与验证
 
-```powershell
-$node = 'C:/Users/<you>/AppData\Local\Programs\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe'
+```bash
+# 全部测试（Node 20+；DSH Desktop 自带 Node 也能跑）
+node test/smoke.test.mjs
+node test/integration/contracts.test.mjs
+node test/integration/preset.test.mjs
+node test/integration/client.test.mjs
+node test/integration/migration.test.mjs
 
-& $node scripts/check.mjs        # manifest + patch + locale + icon + 模块加载 + 5 个 skill 前言
-& $node test/smoke.test.mjs      # 36 个用例，全部 shim 掉 ctx，不需要真实 CLI
-& $node scripts/live-check.mjs   # 真实 CLI 冒烟：两个 Harness、只读、并行、工作区不变
-& $node scripts/pack-check.mjs   # npm pack 会真的带走哪些文件
+# 包自检：manifest、patch、locales、模块、skills、导出
+node scripts/check.mjs
+
+# 打包清单：npm publish 会实际带上哪些文件
+node scripts/pack-check.mjs
 ```
 
-不要用 `node --test test/`：它会 spawn 子进程，在本机受限 token 下报 `EPERM`（这是沙箱边界，不是代码错误）。
+额外的真实环境验收记录见 [`docs/INTEGRATION-ACCEPTANCE.md`](docs/INTEGRATION-ACCEPTANCE.md)。
 
-目录：
-
-```
-src/index.js       入口：注册 provider / tool / command / skills
-src/harnesses.js   定义表（新增 CLI 只改这里）
-src/transport.js   argv、native/WSL 执行、裁剪、超时
-src/provider.js    SubagentProvider 工厂
-src/dispatch.js    DispatchRequest → DispatchResult[]（auto、隔离、surface）
-src/doctor.js      探测 + 脱敏报告 + Companion 检测
-src/skills.js      五个 Skill 的注册表（导出 SKILLS 供自检复用）
-scripts/live-check.mjs  真实 CLI 冒烟（不随包发布）
-```
-
-想加一个 CLI？在 `harnesses.js` 加一条，并在 PR 里附上该 CLI 的 `--help` 实测记录。不要改 provider。
-想加一个 Skill？在 `src/skills.js` 的 `SKILLS` 加一行，再建同名目录；`check.mjs` 与 `pack-check.mjs` 会自动发现。
+---
 
 ## 文档
 
-- [`docs/PLAN.zh-CN.md`](docs/PLAN.zh-CN.md) — 完整开发方案：事实核查、复用矩阵、三阶段计划、发布路径、风险
-- [`docs/V0.2-PLAN.zh-CN.md`](docs/V0.2-PLAN.zh-CN.md) — v0.2 极薄桥接方案：三个 Skill、dispatch 可靠性、Slim Companion、A–H 验收、五 PR / 三检查点
-- [`docs/ACCEPTANCE-V0.2.md`](docs/ACCEPTANCE-V0.2.md) — v0.2 验收记录：A–H 每一条的证据与未完成项
-- [`docs/ROLE-ROUTING.zh-CN.md`](docs/ROLE-ROUTING.zh-CN.md) — 「角色 → 不同 harness」的现状、差距与两条落地路线（0.2.1 / 0.3）
-- [`docs/ARCHITECTURE.zh-CN.md`](docs/ARCHITECTURE.zh-CN.md) — OMC / OMD / DSH 的拓扑：三个 preset、两条委派通路、谁能调用谁
-- [`docs/ADAPTER.zh-CN.md`](docs/ADAPTER.zh-CN.md) — 适配层规范：宿主契约、provider 实现、并发语义、待确认 API
-- [`docs/UPSTREAM.md`](docs/UPSTREAM.md) — 借鉴来源与署名
+| 文档 | 内容 |
+|---|---|
+| [`docs/ARCHITECTURE.zh-CN.md`](docs/ARCHITECTURE.zh-CN.md) | 合并后的分层、契约与关键决策 |
+| [`docs/MIGRATION.md`](docs/MIGRATION.md) | 从 OMC 0.3.0 + OMD 0.8.6 升级 |
+| [`docs/INTEGRATION-ACCEPTANCE.md`](docs/INTEGRATION-ACCEPTANCE.md) | 验收矩阵与证据 |
+| [`docs/UPSTREAM.md`](docs/UPSTREAM.md) | 上游基线与固定 commit |
+| [`vendor/omd/PATCHES.md`](vendor/omd/PATCHES.md) | 对 OMD 源码的全部改动点 |
+
+---
 
 ## 许可证
 
-MIT。
+MIT。OMD 的角色文本改编自 [oh-my-opencode-slim](https://github.com/alvinunreal/oh-my-opencode-slim)（MIT © 2025 alvinunreal），署名保留在 [`LICENSE`](LICENSE) 与 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。

@@ -1,0 +1,2234 @@
+// Oh My CoHarness agent settings card — the browser half of the npm package.
+//
+// A hand-written ModuleLoader bundle (archive/docs/PLAN-CONFIG-CARD.md §2): no build chain,
+// no JSX. React and the UI primitives are host-provided platform seeds; the
+// settings namespace is registered by the host half (lib/index.js) with the
+// shipped defaults.json as its BASE layer, so the bundled profile is edited as
+// the USER layer only — a field written back equal to the base value is unset
+// (inherits) rather than stored.
+//
+// Multi-preset profiles: the card exposes a roster of native agent presets
+// (bundled "Oh My CoHarness" + the user's custom profiles) behind the
+// /coharness RPC. The dropdown only picks WHICH configuration is being edited;
+// which preset a new session actually runs is DSH's own agent-preset picker +
+// default setting. The bundled profile writes through the settings namespace
+// (hot, conflict-fenced); custom profiles write their config snapshot
+// (profile.json beside the native preset directory) through profile-save with a
+// revision fence, and creating one first copies the bundled preset under a
+// generated stable id (display name only — no id field, no pinyin/translation
+// deps).
+//
+// Execution backend: each role may run natively in DSH or on an external CLI
+// (`omc:<harness>`). The control edits role.execution only; provider
+// registration, CLI detection and the read-only class remain the Host's job.
+// Harness status arrives through the same /coharness RPC (execution-status),
+// never through a browser-side doctor reimplementation.
+window.__ModuleLoader__.load({
+  id: 'oh-my-coharness',
+  factory: (require) => {
+    var module = { exports: {} };
+    var exports = module.exports;
+
+    const React = require('react');
+    // Host generations rename primitives (0.2 dropped the `16` icon suffix and
+    // some glyphs entirely). An unknown name would otherwise be `undefined`,
+    // which makes React throw #130 and the whole settings section render empty.
+    // Structural components are still checked below; unknown names render nothing.
+    const uiPrimitives = require('@deepseek-ai/dsh-client-ui-primitives');
+    // ONE sentinel for "absent", because `icon()` below has to tell a real
+    // component from the stand-in. Returning a fresh `() => null` per unknown
+    // name made every candidate look present, so the fallback chain stopped at
+    // its first entry — that is how the advanced toggle lost its chevron on
+    // 0.2.1, where every icon now ends in `Outline(Medium|Regular)`.
+    const MISSING_PRIMITIVE = () => null;
+    const ui = new Proxy(uiPrimitives, {
+      get: (target, prop) => (prop in target ? target[prop] : MISSING_PRIMITIVE),
+    });
+
+    const NS = 'oh-my-coharness';
+    // Shipped package version, shown in the card header. The browser bundle has
+    // no build step or package metadata, so this is a literal; the contract
+    // tests compare it with package.json so a release bump cannot leave the
+    // header stale.
+    const VERSION = '0.4.0-alpha.1';
+    const UPSTREAM_ROLE_IDS = ['oracle', 'designer', 'fixer', 'explorer', 'librarian', 'observer'];
+    const COUNCILLOR_ROLE_IDS = ['councillor-alpha', 'councillor-beta', 'councillor-gamma'];
+    // Council's synthesizer has no user-facing enable switch: it is active
+    // exactly when at least two councillors are. Never persist its enabled bit.
+    const COUNCIL_ROLE_ID = 'council';
+    const COUNCIL_ROLE_IDS = [...COUNCILLOR_ROLE_IDS, COUNCIL_ROLE_ID];
+    const MIN_COUNCIL_SEATS = 2;
+    const ROLE_IDS = [...UPSTREAM_ROLE_IDS, ...COUNCILLOR_ROLE_IDS, COUNCIL_ROLE_ID];
+    const DERIVED_ENABLED_ROLES = new Set([COUNCIL_ROLE_ID]);
+    // Keep in sync with integration/compatibility.js. Read-only roles only:
+    // external writers wait for isolated workspaces.
+    const EXTERNAL_ROLE_IDS = ['oracle', 'explorer', 'councillor-alpha', 'councillor-beta', 'councillor-gamma'];
+    // Fallback labels when the RPC status is unavailable; the Live status is
+    // authoritative for provider registration and the read-only class.
+    const HARNESS_CATALOG = [
+      { id: 'codex', label: 'Codex', readOnly: 'enforced' },
+      { id: 'gemini', label: 'Gemini CLI', readOnly: 'enforced' },
+      { id: 'antigravity', label: 'Antigravity', readOnly: 'enforced' },
+      { id: 'opencode', label: 'opencode', readOnly: 'advisory' },
+      { id: 'claude', label: 'Claude Code', readOnly: 'advisory' },
+      { id: 'glm', label: 'GLM (Claude Code)', readOnly: 'advisory' },
+      { id: 'kimi', label: 'Kimi CLI', readOnly: 'advisory' },
+      { id: 'qwen', label: 'Qwen Code', readOnly: 'unsupported' },
+    ];
+    const EXECUTION_BACKENDS = ['native', 'omc'];
+    const COUNCIL_DESC_KEYS = {
+      'councillor-alpha': 'roleCouncillorAlpha',
+      'councillor-beta': 'roleCouncillorBeta',
+      'councillor-gamma': 'roleCouncillorGamma',
+      council: 'roleCouncil',
+    };
+    const EFFORTS = ['none', 'off', 'low', 'medium', 'high', 'max'];
+
+    // Reasoning-effort selection is MODEL-scoped: the host model catalog
+    // exposes each model's supported reasoning.efforts (adapter-authoritative
+    // — e.g. DeepSeek supports Off/Low/High/Max, no medium). Offering a fixed
+    // list regardless of model produced the flash+medium failure, and also
+    // hid host levels the preset never listed (e.g. intelalloc xhigh).
+    // 'none' (omit reasoningEffort) is always offered where a model is known:
+    // it never sends the field, so no model can reject it.
+    function findModelEntry(groups, provider, model) {
+      const group = (groups ?? []).find((entry) => entry?.id === provider);
+      return group?.models?.find((entry) => entry.id === model);
+    }
+
+    /** Effort dropdown options for one role row's selected model. */
+    function effortOptionsFor(groups, provider, model) {
+      const entry = findModelEntry(groups, provider, model);
+      if (entry === undefined) {
+        // Model unknown (catalog loading/error, or a configured value outside
+        // the catalog): fall back to the fixed list — behavior unchanged.
+        return EFFORTS.map((id) => ({ value: id, label: id }));
+      }
+      const efforts = entry.reasoning?.efforts;
+      if (!Array.isArray(efforts) || efforts.length === 0) {
+        // Known model without declared effort control: only 'none' — let the
+        // model use its own default instead of sending an unverifiable level.
+        return [{ value: 'none', label: 'none' }];
+      }
+      // 'none' stays FIRST (same placement the fixed list had); the model's
+      // own levels follow in the catalog's order.
+      const options = efforts.some((effort) => effort.id === 'none')
+        ? []
+        : [{ value: 'none', label: 'none' }];
+      for (const effort of efforts) {
+        options.push({
+          value: effort.id,
+          label: typeof effort.name === 'string' && effort.name.length > 0 ? effort.name : effort.id,
+        });
+      }
+      return options;
+    }
+
+    /**
+     * Display label for one effort option.
+     *
+     * The plugin's `none` token means "do not specify": the request keeps the
+     * session-resolved level, or the adapter default when the session has none.
+     * Rendering the raw token made it read like a model level (`off` is the
+     * level that actually disables thinking), so the dropdown names the
+     * behaviour instead. `off` is the adapter's explicit "no reasoning" level
+     * and reads as such. Other adapter-declared levels keep the catalog label.
+     */
+    function effortLabel(option, t) {
+      if (option?.value === 'none') return t('effortInherit');
+      if (option?.value === 'off') return t('effortOff');
+      return option?.label;
+    }
+
+    /**
+     * The value the effort select must display.
+     *
+     * `undefined` and `none` are the same runtime state ("send no level"), so an
+     * unset role must SELECT the follow-session option rather than falling
+     * through to the placeholder — otherwise the control shows "Select…" while
+     * the configuration is simply "unspecified" (the issue-#9 failure mode).
+     * A stored level the selected model does not declare selects the disabled
+     * placeholder, and the error line names the level.
+     */
+    function effortSelectValue(role, effortBad) {
+      return effortBad ? '' : (role?.effort ?? 'none');
+    }
+
+    /**
+     * Whether a role carries its own model route. A route is both halves or
+     * neither (issue #11); the same predicate decides display, persistence and
+     * which spawn-time controls still apply.
+     */
+    function roleRouted(role) {
+      return typeof role?.provider === 'string' && role.provider !== ''
+        && typeof role?.model === 'string' && role.model !== '';
+    }
+
+    /**
+     * The explanatory line under an effort control set to `none`.
+     *
+     * `none` means "send no level", and the outcome depends on the route: an
+     * inherited route keeps the session's effort (the host merges the parent's
+     * resolved level into the child), while a pinned route makes the host drop
+     * that inherited level, leaving the model's own default. Only the
+     * inheriting case follows the session, so the line must say which one
+     * applies instead of claiming both.
+     * @returns a locale key, or undefined when the effort is not `none`.
+     */
+    function effortHintKey(role) {
+      if (role?.effort !== 'none') return undefined;
+      return roleRouted(role) ? 'effortModelDefaultHint' : 'effortFollowHint';
+    }
+
+    /**
+     * The role patch applied when the model dropdown changes.
+     *
+     * Choosing "inherit" is the default coupling: the role's own effort AND
+     * output-token cap are cleared in the SAME edit, so "follow the model"
+     * cannot leave a stale route-bound value behind for the next session's
+     * main model. The user can pin them again afterwards. Picking a concrete
+     * model keeps whatever the row already has.
+     */
+    function roleModelPatch(provider, model) {
+      const routed = typeof provider === 'string' && provider !== ''
+        && typeof model === 'string' && model !== '';
+      return routed
+        ? { provider, model }
+        : { provider: undefined, model: undefined, effort: 'none', maxTokens: undefined };
+    }
+
+    /**
+    * Whether an explicitly configured effort cannot be taken by the selected
+    * model (per the catalog). Unknown models never mismatch (the fixed-list
+    * fallback applies); undefined/''/'none' never mismatch.
+    */
+    function effortMismatch(effort, groups, provider, model) {
+      if (effort === undefined || effort === null || effort === '' || effort === 'none') return false;
+      if (findModelEntry(groups, provider, model) === undefined) return false;
+      return !effortOptionsFor(groups, provider, model).some((option) => option.value === effort);
+    }
+
+    /**
+     * Whether a role's stored effort must block saving and render the error.
+     *
+     * A switched-off role is never dispatched, so its effort cannot fail at
+     * dispatch and must not gate the card: observer ships disabled with
+     * effort "high", and a model without that level would otherwise lock every
+     * save — including the roles the user is actually editing.
+     */
+    function effortGatesSave(role, groups) {
+      return role?.enabled !== false
+        && effortMismatch(role?.effort, groups, role?.provider, role?.model);
+    }
+
+    // Fields the card manages on the preset layer (inherit-or-override vs the
+    // base) and on the advanced layer (user-only; no shipped default).
+    const PRESET_FIELDS = ['enabled', 'provider', 'model', 'effort'];
+    const ADVANCED_FIELDS = ['maxTokens', 'temperature'];
+    // String-valued advanced fields (no numeric parsing, no shipped base).
+    const ADVANCED_TEXT_FIELDS = ['personaAppend'];
+    const PERSONA_APPEND_MAX = 8000;
+    // The host rejects these too; the card must not stage them in the first place.
+    const personaAppendInvalid = (value) =>
+      typeof value === 'string' && (value.length > PERSONA_APPEND_MAX || value.includes('{{'));
+
+    /**
+     * Warning keys for the Council group, derived from the draft.
+     * - one seat: needs a second seat to be a council at all;
+     * - >= 2 seats with an inherited route: the seats fall back to the
+     *   session's model, so the council may be a repeat sample (this is the
+     *   default path — no provider/model is shipped — and the explicit-route
+     *   comparison alone used to stay silent about it);
+     * - >= 2 seats, all explicit and identical: same repeat-sample warning.
+     */
+    function councilWarningKeys(draft) {
+      const seats = COUNCILLOR_ROLE_IDS.filter((roleId) => {
+        const role = draft.roles?.[roleId];
+        return role !== undefined && role.enabled !== false;
+      });
+      const keys = [];
+      if (seats.length === 1) keys.push('councilNeedsSeats');
+      if (seats.length >= MIN_COUNCIL_SEATS) {
+        // "Repeat sample" needs BOTH axes to be identical. Three seats on one
+        // model with three different seat prompts are still correlated samples,
+        // but they are not the same question asked three times — and the plain
+        // warning said exactly that, which made it fire on every default
+        // configuration once roles began inheriting the session model.
+        const prompts = seats.map((roleId) => String(draft.roles[roleId].personaAppend ?? '').trim());
+        const distinctPrompts = prompts.every((prompt) => prompt !== '') && new Set(prompts).size === seats.length;
+        const inherited = seats.filter((roleId) => !draft.roles[roleId].provider || !draft.roles[roleId].model);
+        if (inherited.length > 0) keys.push(distinctPrompts ? 'councilInheritedModelsDistinct' : 'councilInheritedModels');
+        else if (new Set(seats.map((roleId) => `${draft.roles[roleId].provider}/${draft.roles[roleId].model}`)).size === 1) {
+          keys.push(distinctPrompts ? 'councilSameModelDistinct' : 'councilSameModel');
+        }
+      }
+      return keys;
+    }
+
+    // Profile management lives behind the /coharness RPC (registered by the
+    // host half). The card never writes a native preset directory itself — no
+    // id field, no path, just the display name the user types.
+    const BUNDLED_PROFILE_ID = 'oh-my-coharness';
+    const BUNDLED_PROFILE_NAME = 'Oh My CoHarness';
+    const NEW_PROFILE_SENTINEL = '__new__';
+    const PROFILE_RPC_PATH = '/coharness';
+    const PROFILE_RPC_METHODS = Object.freeze({
+      list: 'profile-list',
+      create: 'profile-create',
+      save: 'profile-save',
+      setDefault: 'profile-set-default',
+      migrate: 'profile-migrate',
+      delete: 'profile-delete',
+    });
+
+    const REQUIRED_PRIMITIVES = ['Button', 'Input', 'Modal', 'Toast'];
+    // Icon names differ across host generations (0.2 primitives dropped the
+    // `16` suffix). Icons are cosmetic: resolve the first available name and
+    // render nothing when the host ships none of them, instead of disabling
+    // the whole card over a missing glyph.
+    const ICON_CHECK = ['IconCheckOutline16', 'IconCheckOutlineMedium', 'IconCheckOutline', 'IconCheckOutlineRegular'];
+    const ICON_WARNING = ['IconWarningOutline16', 'IconWarningOutlineMedium', 'IconWarningOutline', 'IconWarningOutlineRegular'];
+    const ICON_CHEVRON = ['IconChevronDownOutline14', 'IconChevronDownOutlineMedium', 'IconChevronDownOutline', 'IconChevronDownOutlineRegular'];
+    function icon(mod, names) {
+      for (const name of names) {
+        const candidate = mod?.[name];
+        // The proxy answers every unknown name with MISSING_PRIMITIVE, so the
+        // sentinel — not `undefined` — is what a missing glyph looks like here.
+        if (candidate !== undefined && candidate !== null && candidate !== MISSING_PRIMITIVE) return candidate;
+      }
+      return null;
+    }
+    function renderIcon(mod, names, props) {
+      const component = icon(mod, names);
+      return component === null ? null : React.createElement(component, props);
+    }
+    // Stable fallbacks for the settings snapshot fields: each render must NOT
+    // mint a new object for values used in effect dependencies (a fresh {}
+    // per render would refire the roster-load effect forever).
+    const EMPTY_BASE = Object.freeze({});
+    const EMPTY_EFFECTIVE = Object.freeze({});
+    const EMPTY_USER = Object.freeze({});
+
+    function missingPrimitives(mod, required = REQUIRED_PRIMITIVES) {
+      return required.filter((name) => mod[name] === undefined);
+    }
+
+    // ---------------------------------------------------------------- locale
+    const zh = {
+      desc: '专家角色Subagent委派预设和设置。',
+      executionBackend: '执行后端',
+      executionNative: 'DSH 原生',
+      executionExternal: '外部 CLI',
+      executionHarness: '外部 Harness',
+      executionFallback: 'Provider 缺失时',
+      executionFallbackFail: '报错（推荐）',
+      executionFallbackNative: '回退原生',
+      executionNativeHint: 'DSH 子 Agent：可续接、使用会话模型与 DSH 工具权限。',
+      executionRoleUnsupported: '该角色本版本仅支持 DSH 原生（写角色、合成器、视觉角色需要原生能力）。',
+      executionProviderMissing: '外部 Provider 未注册：请启用对应 Harness，或运行 /coharness doctor。',
+      executionRefresh: '重新检测',
+      executionReadOnlyEnforced: '只读（沙箱强制）',
+      executionReadOnlyAdvisory: '只读（仅提示）',
+      executionReadOnlyUnsupported: '该 CLI 没有经过验证的只读调用方式，只读角色不能使用它。',
+      executionAdvisoryBlocked: '该 CLI 只能提供 advisory 只读（仍可能写文件）。默认拒绝；如接受风险，请显式勾选右侧选项。',
+      executionAllowAdvisory: '接受 advisory 只读风险',
+      executionAdvisoryAccepted: 'advisory 只读：CLI 仍可能写入，已由你显式接受。',
+      executionModelOwnedByCli: '外部运行时，模型由该 CLI 自己的配置决定；这里的 DSH 模型/强度设置不生效。',
+      orchestratorNote: 'orchestrator 即当前会话主模型：在对话输入框的模型选择器中更换，默认模型在 设置-模型 维护。未单独选模型/档位的角色跟随它；固定档位不被主模型支持时会在委派时退回会话档位。',
+      enabled: '启用',
+      model: '模型',
+      modelInherit: '继承会话模型（跟随主模型）',
+      effort: '思考强度',
+      effortInherit: '跟随会话（不指定）',
+      effortOff: '关闭思考',
+      effortFollowHint: '使用主对话当前的思考档位：主对话换档后，下一次委派自动跟随，无需新建会话。',
+      effortModelDefaultHint: '使用该模型自己的默认思考档位。',
+      effortPlaceholder: '请选择',
+      advanced: '高级',
+      advancedWarn: '非必要不要修改默认值，可能改变插件行为。',
+      maxTokens: 'token 上限',
+      maxTokensFollowHint: '跟随会话模型时，输出上限由主对话决定；固定模型后留空，则使用该模型自己的默认上限。',
+      maxTokensEmptyHint: '留空 = 使用该模型自己的默认上限；只有需要限制输出长度时才填。',
+      temperature: '温度',
+      observerLocked: '本版本锁定：待上游支持委派附件转发（deepseek-harness #4297）后重新评估。',
+      save: '保存',
+      saving: '保存中…',
+      saved: '已保存',
+      dirty: '有未保存更改',
+      reset: '恢复默认',
+      resetConfirm: '确认恢复默认？',
+      resetDone: '已恢复默认',
+      effectiveHint: '模型、思考强度与温度保存后对当前会话立即生效；token 上限与角色启停从新会话开始生效。',
+      readOnly: '当前连接只读，无法在此修改配置。',
+      modelsLoading: '模型目录加载中…',
+      modelsEmpty: '未发现可用模型：请先在 设置-模型 导入 provider。',
+      modelsError: '模型目录不可用（当前会话/宿主未提供枚举）；已配置的模型值可正常查看与保存。',
+      currentValueTag: '当前值',
+      invalidMaxTokens: '需为正整数',
+      invalidTemperature: '需在 0–2 之间',
+      effortMismatch: '当前模型不支持思考强度「{effort}」：请在下拉中重新选择。',
+      roleOracle: '架构 / 攻坚 / 代码审查（只读）',
+      roleDesigner: 'UI/UX 与视觉实现（可写）',
+      roleFixer: '代码实现、修复与重构（可写）',
+      roleExplorer: '代码库扫描与调研（只读）',
+      roleLibrarian: '外部文档检索（context7 / gh_grep）',
+      roleObserver: '视觉分析（本版锁定）',
+      roleCouncillorAlpha: '议会席位 α（只读评审）',
+      roleCouncillorBeta: '议会席位 β（只读评审）',
+      roleCouncillorGamma: '议会席位 γ（只读评审）',
+      roleCouncil: '议会合成器（无工具，汇总各席位）',
+      councilGroup: 'Council 议会',
+      councilOn: '已启用：{seats}',
+      councilOff: '未启用（至少需要 2 个议员）',
+      councilAutoOn: '随席位自动启用',
+      councilAutoOff: '需要至少 2 个议员',
+      councilNeedsSeats: 'Council 需要至少 2 个议员；只开 1 个时该席位作为普通只读委派使用。',
+      councilInheritedModels: '有席位未配置模型，将继承当前会话模型；若全部继承，议会只是同一模型的重复采样。',
+      councilSameModel: '建议为议员选择不同模型：相同模型的“议会”只是重复采样。',
+      councilInheritedModelsDistinct: '有席位未配置模型，将继承当前会话模型；席位提示词不同、视角有别，但同模型的样本仍高度相关。',
+      councilSameModelDistinct: '各席位提示词不同、视角有别；但相同模型的样本仍高度相关，要真正多模型评审请为席位选择不同模型。',
+      personaAppend: '席位提示词（追加）',
+      personaAppendHint: '留空：由主模型按任务给各席分配视角；填写后该视角固定生效。例如：特别关注并发与失败恢复。',
+      councilPrompt: '合成提示词（追加）',
+      councilPromptHint: '例如：先列出分歧点，再给出结论。',
+      personaAppendInvalid: '提示词不能包含 {{...}}，且不超过 8000 字符。',
+      profile: '委派配置',
+      bundledProfile: 'Oh My CoHarness',
+      newProfile: '新建配置',
+      newProfileHint: '点击后直接下方修改，记得保存',
+      draft: '草稿',
+      newSessionDefault: '新会话默认',
+      setNewSessionDefault: '设为新会话默认',
+      selectionHint: '这里只编辑配置，不会切换当前会话；实际用哪个预设由 Agent 预设选择器决定。',
+      draftNote: '正在编辑新配置草稿，保存时命名',
+      nameTitle: '命名配置',
+      nameDescription: '仅填写显示名称，配置 ID 将自动生成且不再改变。',
+      displayName: '显示名称',
+      nameRequired: '请输入显示名称。',
+      nameTooLong: '显示名称不能超过 64 个字符。',
+      nameConflict: '该显示名称已存在，请换一个。',
+      create: '创建并保存',
+      cancel: '取消',
+      discard: '放弃更改',
+      saveAndSwitch: '保存后切换',
+      switchTitle: '有未保存更改',
+      switchDescription: '切换配置会离开当前编辑内容。要先保存吗？',
+      profileUnavailable: '当前宿主未提供配置列表接口，自定义配置暂不可保存。',
+      profileListFailed: '配置列表读取失败。',
+      profileMigrationNeeded: '此配置是旧格式（DSH 0.1.5 的 persona 字段已改名），不迁移将无法在新版宿主上加载。迁移会改写 agent.cordis.yml 并保留备份。',
+      profileMigrate: '迁移',
+      profileMigrated: '已迁移该配置',
+      profileMigrateFailed: '迁移失败，请查看宿主日志后重试。',
+      profileSaveFailed: '配置保存失败，请检查后重试；当前编辑内容已保留。',
+      profileConflict: '保存被拒绝：配置可能已被其他窗口修改，或该取值不被接受。已重新载入最新配置，请再保存一次。',
+      profileDefaultFailed: '新会话默认设置失败，请重试。',
+      defaultSet: '已设为新会话默认',
+      deleteProfile: '删除',
+      deleteProfileTitle: '删除配置',
+      deleteProfileDescription: '删除后无法恢复。已经开始的会话继续运行；之后重新打开该配置下的会话时，会改用当前的新会话默认配置。',
+      deleteProfileConfirm: '确认删除',
+      deleteProfileDone: '已删除该配置',
+      deleteProfileFailed: '删除失败，请重试。',
+      deleteProfileNotFound: '该配置已不存在，可能已在其他窗口被删除。',
+      deleteProfileIsDefault: '这是当前新会话默认配置，请先把其他配置设为默认再删除。',
+      deleteProfileDirty: '该配置还有未保存的修改，删除会一并丢弃。',
+    };
+    const en = {
+      desc: 'Oh My CoHarness: specialist role delegation plus native or external execution.',
+      executionBackend: 'Execution backend',
+      executionNative: 'DSH native',
+      executionExternal: 'External CLI',
+      executionHarness: 'External harness',
+      executionFallback: 'If provider is missing',
+      executionFallbackFail: 'Fail (recommended)',
+      executionFallbackNative: 'Fall back to native',
+      executionNativeHint: 'DSH child: continuable, uses the session model and DSH tool permissions.',
+      executionRoleUnsupported: 'This role is native-only in this release (writers, the synthesizer and the vision role need native capabilities).',
+      executionProviderMissing: 'The external provider is not registered; enable that harness or run /coharness doctor.',
+      executionRefresh: 'Re-check',
+      executionReadOnlyEnforced: 'read-only (enforced)',
+      executionReadOnlyAdvisory: 'read-only (advisory)',
+      executionReadOnlyUnsupported: 'This CLI has no verified read-only invocation; read-only roles cannot use it.',
+      executionAdvisoryBlocked: 'This CLI only offers advisory read-only (it may still write). Refused by default; explicitly accept the risk on the right.',
+      executionAllowAdvisory: 'Accept advisory read-only risk',
+      executionAdvisoryAccepted: 'Advisory read-only: the CLI may still write; you explicitly accepted that.',
+      executionModelOwnedByCli: 'For external runs the CLI owns model selection; the DSH model/effort settings here do not apply.',
+      orchestratorNote: 'The orchestrator is the session\u2019s main model: change it in the composer\u2019s model picker; defaults live in Settings \u2192 Models. Roles without their own model or level follow it; a fixed level the model does not offer falls back to the session\u2019s level.',
+      enabled: 'Enabled',
+      model: 'Model',
+      modelInherit: 'Inherit session model (follows the main model)',
+      effort: 'Reasoning effort',
+      effortInherit: 'Follow session (unspecified)',
+      effortOff: 'Thinking off',
+      effortFollowHint: 'Uses the main conversation\u2019s current effort; a later change applies to the next delegation, no new session needed.',
+      effortModelDefaultHint: 'Uses the model\u2019s own default effort.',
+      effortPlaceholder: 'Select\u2026',
+      advanced: 'Advanced',
+      advancedWarn: 'Avoid changing these defaults; they can alter plugin behavior.',
+      maxTokens: 'Max tokens',
+      maxTokensFollowHint: 'With an inherited model the main conversation decides the output cap; a pinned model uses the model default when left empty.',
+      maxTokensEmptyHint: 'Empty = the model\u2019s own default output cap; fill this only to bound the output.',
+      temperature: 'Temperature',
+      observerLocked: 'Locked in this version: re-evaluate once upstream forwards attachments into delegated subagents (deepseek-harness #4297).',
+      save: 'Save',
+      saving: 'Saving\u2026',
+      saved: 'Saved',
+      dirty: 'Unsaved changes',
+      reset: 'Reset to defaults',
+      resetConfirm: 'Reset to defaults?',
+      resetDone: 'Reset to defaults',
+      effectiveHint: 'Model, effort and temperature apply to the current session immediately after saving; token budget and role toggles apply to new sessions.',
+      readOnly: 'This connection is read-only; configuration cannot be edited here.',
+      modelsLoading: 'Loading model catalog\u2026',
+      modelsEmpty: 'No models found: import a provider under Settings \u2192 Models first.',
+      modelsError: 'Model catalog unavailable (this session/host exposes no enumeration); configured model values still render and save.',
+      currentValueTag: 'Current',
+      invalidMaxTokens: 'Must be a positive integer',
+      invalidTemperature: 'Must be between 0 and 2',
+      effortMismatch: 'This model does not support the reasoning effort "{effort}": pick another level from the list.',
+      roleOracle: 'Architecture / hard problems / code review (read-only)',
+      roleDesigner: 'UI/UX and visual implementation (writable)',
+      roleFixer: 'Code implementation, fixes, and refactoring (writable)',
+      roleExplorer: 'Codebase scan and research (read-only)',
+      roleLibrarian: 'External docs (context7 / gh_grep)',
+      roleObserver: 'Vision analysis (locked this release)',
+      roleCouncillorAlpha: 'Council seat alpha (read-only review)',
+      roleCouncillorBeta: 'Council seat beta (read-only review)',
+      roleCouncillorGamma: 'Council seat gamma (read-only review)',
+      roleCouncil: 'Council synthesizer (no tools, merges the seats)',
+      councilGroup: 'Council',
+      councilOn: 'Active: {seats}',
+      councilOff: 'Off (needs at least 2 seats)',
+      councilAutoOn: 'Auto-enabled by the seats',
+      councilAutoOff: 'Needs at least 2 seats',
+      councilNeedsSeats: 'A council needs at least 2 seats; a single enabled seat runs as an ordinary read-only delegation.',
+      councilInheritedModels: 'Some seats inherit the session model (no provider/model set); if every seat inherits, the council becomes a repeat sample of one model.',
+      councilSameModel: 'Give the seats different models: identical models make the council a repeat sample.',
+      councilInheritedModelsDistinct: 'Some seats inherit the session model. Their seat prompts differ, so the angles do — but samples from one model stay correlated.',
+      councilSameModelDistinct: 'The seat prompts differ, so the angles do; samples from one model still stay correlated. Pick different models for a true multi-model review.',
+      personaAppend: 'Seat prompt (appended)',
+      personaAppendHint: 'Empty: the main model assigns each seat a focus per task; a value here fixes the angle. e.g. Focus on concurrency and failure recovery.',
+      councilPrompt: 'Synthesis prompt (appended)',
+      councilPromptHint: 'e.g. List the disagreements first, then the verdict.',
+      personaAppendInvalid: 'Prompt must not contain {{...}} and must stay under 8000 characters.',
+      profile: 'Delegation configuration',
+      bundledProfile: 'Minimal Role Delegation',
+      newProfile: 'New configuration',
+      newProfileHint: 'edit right below, then save',
+      draft: 'Draft',
+      newSessionDefault: 'Default for new sessions',
+      setNewSessionDefault: 'Set as default for new sessions',
+      selectionHint: 'This only edits a configuration; it does not switch the current session. Which preset a new session uses is the Agent preset picker\u2019s decision.',
+      draftNote: 'Editing an unsaved new profile; it is named on save',
+      nameTitle: 'Name configuration',
+      nameDescription: 'Enter a display name only. The configuration ID is generated automatically and never changes.',
+      displayName: 'Display name',
+      nameRequired: 'Enter a display name.',
+      nameTooLong: 'Display name must be 64 characters or fewer.',
+      nameConflict: 'That display name already exists. Choose another.',
+      create: 'Create and save',
+      cancel: 'Cancel',
+      discard: 'Discard changes',
+      saveAndSwitch: 'Save and switch',
+      switchTitle: 'Unsaved changes',
+      switchDescription: 'Switching configurations will leave the current edits. Save them first?',
+      profileUnavailable: 'This host does not provide the profile API; custom configurations cannot be saved yet.',
+      profileListFailed: 'Failed to read the configuration list.',
+      profileMigrationNeeded: 'This configuration predates the DSH 0.1.5 persona field and would not load on the new host. Migrating rewrites agent.cordis.yml and keeps a backup.',
+      profileMigrate: 'Migrate',
+      profileMigrated: 'Configuration migrated',
+      profileMigrateFailed: 'Migration failed; check the host log and retry.',
+      profileSaveFailed: 'Could not save the configuration. Your edits are still here.',
+      profileConflict: 'The save was rejected: the configuration may have changed in another window, or a value was refused. The latest configuration has been reloaded \u2014 try saving again.',
+      profileDefaultFailed: 'Could not change the new-session default. Try again.',
+      defaultSet: 'Default for new sessions set',
+      deleteProfile: 'Delete',
+      deleteProfileTitle: 'Delete configuration',
+      deleteProfileDescription: 'This cannot be undone. Sessions already running keep working; reopening a session created with this configuration falls back to the current new-session default.',
+      deleteProfileConfirm: 'Delete',
+      deleteProfileDone: 'Configuration deleted',
+      deleteProfileFailed: 'Could not delete the configuration. Try again.',
+      deleteProfileNotFound: 'That configuration no longer exists; another window may have deleted it.',
+      deleteProfileIsDefault: 'This is the new-session default. Set another configuration as the default first.',
+      deleteProfileDirty: 'This configuration has unsaved edits; deleting also discards them.',
+    };
+
+    // ------------------------------------------------------------- utilities
+    function getPath(obj, path) {
+      let cursor = obj;
+      for (const key of path) {
+        if (cursor === undefined || cursor === null || typeof cursor !== 'object') return undefined;
+        cursor = cursor[key];
+      }
+      return cursor;
+    }
+
+    function deepEqualJson(a, b) {
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
+
+    function cloneJson(value) {
+      return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+    }
+
+    /** Draft shape for one role's execution block. Native is the default. */
+    function normalizeExecution(raw) {
+      if (!raw || typeof raw !== 'object' || raw.backend !== 'omc') return { backend: 'native' };
+      return {
+        backend: 'omc',
+        harness: typeof raw.harness === 'string' && raw.harness !== '' ? raw.harness : 'codex',
+        ...(raw.fallback === 'native' ? { fallback: 'native' } : {}),
+        ...(raw.allowAdvisory === true ? { allowAdvisory: true } : {}),
+      };
+    }
+
+    /**
+     * What a role's execution block actually writes. Native is the absence of a
+     * field, so an untouched role never persists `{backend:'native'}`; defaults
+     * (`fallback:'fail'`, `allowAdvisory:false`) are omitted for the same reason.
+     */
+    function executionForWrite(raw) {
+      const execution = normalizeExecution(raw);
+      if (execution.backend !== 'omc') return undefined;
+      return {
+        backend: 'omc',
+        harness: execution.harness,
+        ...(execution.fallback === 'native' ? { fallback: 'native' } : {}),
+        ...(execution.allowAdvisory === true ? { allowAdvisory: true } : {}),
+      };
+    }
+
+    /** A role that may be sent to an external CLI in this release. */
+    function externalRoleAllowed(roleId) {
+      return EXTERNAL_ROLE_IDS.includes(roleId);
+    }
+
+    /** Harness rows: live status wins; the static catalog fills the gap. */
+    function harnessOptions(status) {
+      const rows = Array.isArray(status?.execution?.harnesses) ? status.execution.harnesses : [];
+      return rows.length > 0 ? rows : HARNESS_CATALOG;
+    }
+
+    function harnessReadOnly(status, harnessId) {
+      const row = harnessOptions(status).find((entry) => entry.id === harnessId);
+      return row?.readOnly ?? HARNESS_CATALOG.find((entry) => entry.id === harnessId)?.readOnly ?? 'unsupported';
+    }
+
+    function harnessProviderAvailable(status, harnessId) {
+      const row = harnessOptions(status).find((entry) => entry.id === harnessId);
+      return row?.providerAvailable !== false;
+    }
+
+    function parseAdvancedNumber(raw, kind) {
+      if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
+      const n = Number(raw);
+      if (kind === 'maxTokens') return Number.isSafeInteger(n) && n >= 1 ? n : null; // null = invalid
+      return Number.isFinite(n) && n >= 0 && n <= 2 ? n : null;
+    }
+
+    /**
+     * Effective role face the card edits, from the resolved namespace value.
+     *
+     * `base` (the shipped/factory document) fills fields the user's document
+     * does not carry. Without that fallback a role added in a later release
+     * renders as `enabled: true` for every existing settings document, and the
+     * first unrelated save writes that bit — silently enabling the new role.
+     */
+    function buildDraft(value, advanced, base) {
+      const presetName = value?.preset ?? base?.preset ?? 'my-dsh-slim-default';
+      const basePreset = base?.presets?.[presetName] ?? {};
+      const roles = {};
+      for (const roleId of ROLE_IDS) {
+        const presetRole = value?.presets?.[presetName]?.[roleId] ?? {};
+        const baseRole = basePreset[roleId] ?? {};
+        const adv = advanced?.roles?.[roleId] ?? base?.advanced?.roles?.[roleId] ?? {};
+        // A route is provider AND model, or neither (issue #11). A half route
+        // is unreachable — never pair one provider's id with another
+        // provider's model — so the editor renders it as "inherit" and the
+        // next save clears both fields.
+        const provider = presetRole.provider ?? baseRole.provider;
+        const model = presetRole.model ?? baseRole.model;
+        const routed = typeof provider === 'string' && provider !== ''
+          && typeof model === 'string' && model !== '';
+        roles[roleId] = {
+          enabled: presetRole.enabled ?? baseRole.enabled ?? true,
+          provider: routed ? provider : undefined,
+          model: routed ? model : undefined,
+          effort: presetRole.effort ?? baseRole.effort,
+          maxTokens: adv.maxTokens,
+          temperature: adv.temperature,
+          personaAppend: adv.personaAppend,
+          execution: normalizeExecution(presetRole.execution ?? baseRole.execution),
+        };
+      }
+      return { preset: presetName, roles };
+    }
+
+    /**
+     * Minimal user-layer write plan moving `user` toward `draft`, treating any
+     * field equal to the base (shipped default) as inherit (unset). Advanced
+     * fields have no base default: absent draft value means unset. Exported
+     * for unit tests; pure.
+     * @returns ops shaped like the settings mutate contract.
+     */
+    function planUserOps(base, user, draft) {
+      const ops = [];
+      const presetName = draft.preset;
+      for (const roleId of ROLE_IDS) {
+        const d = draft.roles?.[roleId] ?? {};
+        // Execution is an object, and native is represented by absence: compare
+        // the write form so an untouched native role never gains an `execution`
+        // field just because the draft normalizes it.
+        {
+          const path = ['presets', presetName, roleId, 'execution'];
+          const dv = executionForWrite(d.execution);
+          const bv = executionForWrite(getPath(base, path));
+          const uv = getPath(user, path);
+          if (dv === undefined || deepEqualJson(dv, bv)) {
+            if (uv !== undefined) ops.push({ op: 'unset', path });
+          } else if (!deepEqualJson(uv, dv)) {
+            ops.push({ op: 'set', path, value: dv });
+          }
+        }
+        for (const field of PRESET_FIELDS) {
+          // council.enabled is derived from the seats; never write it.
+          if (field === 'enabled' && DERIVED_ENABLED_ROLES.has(roleId)) continue;
+          const path = ['presets', presetName, roleId, field];
+          const dv = d[field];
+          const bv = getPath(base, path);
+          const uv = getPath(user, path);
+          if (dv === undefined || deepEqualJson(dv, bv)) {
+            if (uv !== undefined) ops.push({ op: 'unset', path });
+          } else if (!deepEqualJson(uv, dv)) {
+            ops.push({ op: 'set', path, value: dv });
+          }
+        }
+        for (const field of ADVANCED_FIELDS) {
+          const path = ['advanced', 'roles', roleId, field];
+          // The draft holds what the input element reports: a STRING, and ''
+          // once the user clears it. The namespace document requires a
+          // positive integer, so writing the raw value rejected the whole
+          // document — the save looked impossible even after the field was
+          // emptied. Coerce here (the card already gates saving on a valid
+          // number) and treat an empty box as "unset".
+          const raw = d[field];
+          const dv = raw === undefined || raw === '' ? undefined : parseAdvancedNumber(raw, field);
+          const uv = getPath(user, path);
+          if (dv === undefined || dv === null) {
+            if (uv !== undefined) ops.push({ op: 'unset', path });
+          } else if (!deepEqualJson(uv, dv)) {
+            ops.push({ op: 'set', path, value: dv });
+          }
+        }
+        for (const field of ADVANCED_TEXT_FIELDS) {
+          const path = ['advanced', 'roles', roleId, field];
+          const dv = d[field];
+          const uv = getPath(user, path);
+          if (dv === undefined || dv === '') {
+            if (uv !== undefined) ops.push({ op: 'unset', path });
+          } else if (!deepEqualJson(uv, dv)) {
+            ops.push({ op: 'set', path, value: dv });
+          }
+        }
+      }
+      return ops;
+    }
+
+    // ----------------------------------------------------- profile helpers
+    /** Extract a raw profile config document from a roster payload entry. */
+    function profileConfig(value) {
+      if (!value || typeof value !== 'object') return {};
+      return cloneJson(value.config ?? value.value ?? value);
+    }
+
+    /** The roster shape before the host answers (bundled profile only). */
+    function initialProfileRoster(base) {
+      return {
+        profiles: [{
+          id: BUNDLED_PROFILE_ID,
+          displayName: BUNDLED_PROFILE_NAME,
+          kind: 'bundled',
+          isDefaultForNewSessions: true,
+          revision: undefined,
+          config: undefined,
+        }],
+        defaultProfileId: BUNDLED_PROFILE_ID,
+      };
+    }
+
+    /**
+     * Normalize the roster payload from profile-list. Always keeps the
+     * bundled profile first (it carries the bundled defaults and must remain
+     * present even when the host lists nothing), then appends every custom
+     * profile. The host is authoritative for names, defaults and revisions.
+     */
+    function normalizeProfileRoster(base, payload) {
+      const initial = initialProfileRoster(base);
+      const incoming = Array.isArray(payload) ? payload : payload?.profiles;
+      if (!Array.isArray(incoming)) return initial;
+      const profiles = [...initial.profiles];
+      for (const item of incoming) {
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || item.id === NEW_PROFILE_SENTINEL) continue;
+        // Defense in depth: only ids this package owns can be edited here; the
+        // host filters its roster too, but showing a foreign native preset that
+        // the save RPC would refuse would be misleading.
+        if (item.id !== BUNDLED_PROFILE_ID && !item.id.startsWith('profile-')) continue;
+        const next = {
+          id: item.id,
+          displayName: typeof item.displayName === 'string' && item.displayName.trim() !== ''
+            ? item.displayName.trim()
+            : item.id,
+          kind: item.id === BUNDLED_PROFILE_ID ? 'bundled' : 'custom',
+          isDefaultForNewSessions: item.isDefaultForNewSessions === true,
+          revision: item.revision,
+          config: item.config === undefined ? undefined : profileConfig(item.config),
+          // DSH 0.1.5 reads only the `prefix` persona key: a directory copied
+          // from pre-0.1.5 content still carries `text` alone and would fail its
+          // whole preset mount. The host flags such profiles so the card can
+          // offer the one-click rewrite.
+          needsMigration: item.needsMigration === true,
+        };
+        const index = profiles.findIndex((profile) => profile.id === next.id);
+        if (index >= 0) {
+          profiles[index] = {
+            ...profiles[index],
+            ...next,
+            config: next.config !== undefined ? next.config : profiles[index].config,
+          };
+        } else {
+          profiles.push(next);
+        }
+      }
+      // The host's new-session default is a NATIVE agent preset id and may be
+      // a preset this card does not own (dsh-base ships "standard"). Only an id
+      // present in this roster can be marked; a foreign default is reported as
+      // no default instead of silently pinning the bundled profile (which
+      // would both select the wrong editor target and claim a default that is
+      // not actually set).
+      const requestedDefaultId = typeof payload?.defaultProfileId === 'string'
+        ? payload.defaultProfileId
+        : profiles.find((profile) => profile.isDefaultForNewSessions)?.id;
+      const defaultProfileId = profiles.some((profile) => profile.id === requestedDefaultId)
+        ? requestedDefaultId
+        : undefined;
+      return {
+        profiles: profiles.map((profile) => ({
+          ...profile,
+          isDefaultForNewSessions: profile.id === defaultProfileId,
+        })),
+        defaultProfileId,
+      };
+    }
+
+    /**
+     * Resolve a profile config document against the bundled base, yielding the
+     * effective configuration (same shape the settings snapshot has) that the
+     * editor renders for a custom profile. Accepts both the legacy document
+     * (overrides under `presets[<preset>]`) and the compact one (`roles`).
+     */
+    function mergeProfileConfig(base, doc) {
+      const config = profileConfig(doc);
+      const presetName = typeof config.preset === 'string'
+        ? config.preset
+        : typeof base?.preset === 'string'
+          ? base.preset
+          : 'my-dsh-slim-default';
+      const basePreset = base?.presets?.[presetName] ?? {};
+      // Role-level merge: an override document supplies ONE field per role and
+      // must not shadow the rest of the base role it inherits.
+      const inherited = config.presets?.[presetName] ?? {};
+      const compact = config.roles ?? {};
+      const mergedRoles = {};
+      for (const roleId of ROLE_IDS) {
+        mergedRoles[roleId] = {
+          ...(basePreset[roleId] ?? {}),
+          ...(inherited[roleId] ?? {}),
+          ...(compact[roleId] ?? {}),
+        };
+      }
+      return {
+        preset: presetName,
+        mcpServers: { ...(base?.mcpServers ?? {}), ...(config.mcpServers ?? {}) },
+        presets: {
+          ...(base?.presets ?? {}),
+          [presetName]: {
+            ...basePreset,
+            ...inherited,
+            ...compact,
+            ...mergedRoles,
+          },
+        },
+        advanced: {
+          ...(base?.advanced ?? {}),
+          roles: {
+            ...(base?.advanced?.roles ?? {}),
+            ...Object.fromEntries(ROLE_IDS.map((roleId) => [roleId, {
+              ...(base?.advanced?.roles?.[roleId] ?? {}),
+              ...(config.advanced?.roles?.[roleId] ?? {}),
+            }])),
+          },
+        },
+      };
+    }
+
+    /** The draft profile object opened by the "new configuration" item. */
+    function createNewProfileDraft(sourceEffective) {
+      return {
+        id: NEW_PROFILE_SENTINEL,
+        displayName: '',
+        kind: 'draft',
+        isDefaultForNewSessions: false,
+        revision: undefined,
+        sourceConfig: cloneJson(sourceEffective ?? {}),
+      };
+    }
+
+    /** Display-name validation shared with the host's own rules (≤64, unique). */
+    function validateProfileName(raw, profiles = [], currentId) {
+      const displayName = String(raw ?? '').trim();
+      if (displayName.length === 0) return { valid: false, reason: 'required', value: displayName };
+      if (displayName.length > 64) return { valid: false, reason: 'too-long', value: displayName };
+      const duplicate = (profiles ?? []).some((profile) => profile.id !== currentId
+        && String(profile.displayName ?? '').trim().toLocaleLowerCase() === displayName.toLocaleLowerCase());
+      if (duplicate) return { valid: false, reason: 'conflict', value: displayName };
+      return { valid: true, value: displayName };
+    }
+
+    /**
+     * Whether a profile can be deleted. Only a PERSISTED custom profile
+     * qualifies: the bundled preset is declared by this package's patch row
+     * (there is no dict record to remove) and the in-place new-profile draft
+     * has not been stored yet. The revision is the fence the delete RPC
+     * requires, so a profile without one cannot be removed safely.
+     */
+    function canDeleteProfile(profile) {
+      return Boolean(profile)
+        && profile.kind === 'custom'
+        && typeof profile.revision === 'string'
+        && profile.revision !== '';
+    }
+
+    /**
+     * Whether the "set as default for new sessions" action exists for a
+     * profile: any non-default profile — bundled included, so the default can
+     * always be switched back — but never the in-place new-profile draft.
+     */
+    function canSetDefault(profile) {
+      return Boolean(profile)
+        && profile.kind !== 'draft'
+        && profile.isDefaultForNewSessions !== true;
+    }
+
+    /** Whether `id` names a profile the dropdown can select, or the draft. */
+    function selectionInRoster(id, roster) {
+      return id === NEW_PROFILE_SENTINEL
+        || (Array.isArray(roster?.profiles) && roster.profiles.some((profile) => profile.id === id));
+    }
+
+    /**
+     * The dropdown selection once the roster is known: the new-session
+     * default, unless the user already picked a profile manually (anything
+     * other than the still-untouched bundled initial value). Only ids present
+     * in the roster are selectable: the host default may be a native preset
+     * this card does not own, and a custom profile may disappear on reload.
+     */
+    function resolveInitialSelection(current, roster) {
+      const known = new Set((roster?.profiles ?? []).map((profile) => profile.id));
+      if (current === NEW_PROFILE_SENTINEL) return current;
+      const wanted = roster?.defaultProfileId;
+      if (current !== undefined && known.has(current)) {
+        return current === BUNDLED_PROFILE_ID
+          && wanted !== undefined
+          && wanted !== BUNDLED_PROFILE_ID
+          && known.has(wanted)
+          ? wanted
+          : current;
+      }
+      return wanted !== undefined && known.has(wanted) ? wanted : BUNDLED_PROFILE_ID;
+    }
+
+    /**
+     * Which write path the Save action takes. The resolved profile must be the
+     * selected id: a fallback profile rendered after a roster reload must never
+     * be saved under another id (the 0.8.0 default-profile bug: selectedId was
+     * the host's foreign "standard" id while selectedProfile fell back to the
+     * bundled profile, so the bundled save never ran).
+     * @returns 'bundled' | 'create' | 'custom' | 'invalid'
+     */
+    function profileSaveMode(selectedId, selectedProfile) {
+      if (selectedId === NEW_PROFILE_SENTINEL) return 'create';
+      if (!selectedProfile || selectedProfile.id !== selectedId) return 'invalid';
+      if (selectedProfile.kind === 'bundled') return 'bundled';
+      return typeof selectedProfile.revision === 'string' && selectedProfile.revision.length > 0
+        ? 'custom'
+        : 'invalid';
+    }
+
+    /**
+     * Serialize one draft into the profile configuration document the host
+     * persists as profile.json. Only fields differing from the referenced
+     * baseline are written (unset = inherit the bundled defaults), so resetting
+     * a profile to defaults saves an empty document.
+     */
+    function draftToConfig(draft, original, baseline) {
+      const config = profileConfig(original);
+      const preset = typeof draft?.preset === 'string' ? draft.preset : (config.preset ?? 'my-dsh-slim-default');
+      const effective = baseline ?? config;
+      // Compare against the editor's own view of the baseline: a draft built
+      // from buildDraft(effective) yields exact equality for untouched fields,
+      // so only genuine overrides are persisted (unset = inherit defaults).
+      const baselineDraft = buildDraft(effective, effective?.advanced, baseline ?? config);
+      const out = {
+        preset,
+        mcpServers: config.mcpServers ?? {},
+        presets: {},
+        advanced: { roles: {} },
+      };
+      for (const roleId of ROLE_IDS) {
+        const role = draft?.roles?.[roleId] ?? {};
+        const baseRole = baselineDraft.roles[roleId] ?? {};
+        const record = {};
+        {
+          const value = executionForWrite(role.execution);
+          const baseValue = executionForWrite(baseRole.execution);
+          if (value !== undefined && !deepEqualJson(value, baseValue)) record.execution = value;
+        }
+        for (const field of PRESET_FIELDS) {
+          if (field === 'enabled' && DERIVED_ENABLED_ROLES.has(roleId)) continue;
+          const value = role[field];
+          if (value === undefined || deepEqualJson(value, baseRole[field])) continue;
+          record[field] = value;
+        }
+        if (Object.keys(record).length > 0) out.presets[preset] = { ...(out.presets[preset] ?? {}), [roleId]: record };
+        const advanced = {};
+        for (const field of ADVANCED_FIELDS) {
+          const value = role[field];
+          if (value === undefined || value === '' || deepEqualJson(value, baseRole[field])) continue;
+          advanced[field] = parseAdvancedNumber(value, field);
+        }
+        for (const field of ADVANCED_TEXT_FIELDS) {
+          const value = role[field];
+          if (value === undefined || value === '' || deepEqualJson(value, baseRole[field])) continue;
+          advanced[field] = value;
+        }
+        if (Object.keys(advanced).length > 0) out.advanced.roles[roleId] = advanced;
+      }
+      return out;
+    }
+
+    function createProfileRequest(displayName, draft, original, baseline) {
+      return { displayName: String(displayName).trim(), config: draftToConfig(draft, original, baseline) };
+    }
+
+    function unwrapProfileRpc(response) {
+      if (response?.ok === true) return response.value;
+      if (response?.result?.ok === true) return response.result.value;
+      if (response && response.profiles) return response;
+      return undefined;
+    }
+
+    /** Thin adapter over the loopback RPC; undefined when the host has none. */
+    function createProfileAdapter(connection) {
+      const rpc = connection?.rpc;
+      if (!rpc || typeof rpc.call !== 'function') return undefined;
+      const call = (method, payload) => rpc.call(PROFILE_RPC_PATH, method, payload).then((response) => {
+        const value = unwrapProfileRpc(response);
+        if (value === undefined) {
+          const error = new Error(response?.error?.message ?? `profile API ${method} failed`);
+          error.code = response?.error?.code;
+          throw error;
+        }
+        return value;
+      });
+      return {
+        list: () => call(PROFILE_RPC_METHODS.list, {}),
+        create: (payload) => call(PROFILE_RPC_METHODS.create, payload),
+        save: (payload) => call(PROFILE_RPC_METHODS.save, payload),
+        setDefault: (profileId) => call(PROFILE_RPC_METHODS.setDefault, { profileId }),
+        migrate: (profileId) => call(PROFILE_RPC_METHODS.migrate, { profileId }),
+        delete: (payload) => call(PROFILE_RPC_METHODS.delete, payload),
+        // Provider registration + read-only class, computed by the Host. The
+        // card never re-runs CLI discovery in the browser.
+        executionStatus: () => call('execution-status', {}),
+      };
+    }
+
+    function profileErrorKey(error) {
+      const code = String(error?.code ?? error?.status ?? '').toLowerCase();
+      const message = String(error?.message ?? '').toLowerCase();
+      if (code.includes('conflict') || code === '409' || message.includes('conflict') || message.includes('already exists')) return 'conflict';
+      return 'save';
+    }
+
+    /**
+     * Classify a profile-delete failure into the copy the dialog shows. The RPC
+     * returns distinct codes for each refusal; folding them into one generic
+     * "failed" would hide the only actionable one (IS_DEFAULT tells the user to
+     * pick another default first).
+     * @returns {'conflict'|'not-found'|'is-default'|'failed'}
+     */
+    function deleteErrorKey(error) {
+      const code = String(error?.code ?? error?.status ?? '').toUpperCase();
+      if (code === 'PROFILE_IS_DEFAULT') return 'is-default';
+      if (code === 'PROFILE_NOT_FOUND') return 'not-found';
+      if (code === 'PROFILE_CONFLICT') return 'conflict';
+      const message = String(error?.message ?? '').toLowerCase();
+      if (message.includes('conflict') || message.includes('changed since')) return 'conflict';
+      if (message.includes('does not exist')) return 'not-found';
+      if (message.includes('default for new sessions')) return 'is-default';
+      return 'failed';
+    }
+
+    /**
+     * One settings-namespace write. DSH 0.2.x resolves false when the host
+     * refuses a write (revision conflict or validation); 0.1.5 resolved
+     * undefined on success, so only an explicit false is a rejection. A thrown
+     * transport error is also a failure. Exported for unit tests.
+     * @returns {Promise<{ok: true} | {ok: false, reason: 'conflict'|'error', error?: unknown}>}
+     */
+    async function writeSettings(scope, writeOps, revision) {
+      try {
+        const result = await scope.mutate(writeOps, revision);
+        return result === false ? { ok: false, reason: 'conflict' } : { ok: true };
+      } catch (error) {
+        return { ok: false, reason: 'error', error };
+      }
+    }
+
+    // ------------------------------------------------------------ components
+    const color = {
+      text: 'var(--dsw-alias-label-primary)',
+      secondary: 'var(--dsw-alias-label-secondary)',
+      tertiary: 'var(--dsw-alias-label-tertiary)',
+      hover: 'var(--dsw-alias-interactive-bg-hover)',
+      border: 'var(--dsw-alias-border-l3)',
+      menuBg: 'var(--dsw-specific-menu)',
+      warn: 'var(--dsw-alias-state-warn-label)',
+      warnBg: 'var(--dsw-alias-bg-module-platform)',
+    };
+
+    function Switch({ checked, disabled, onChange, label }) {
+      const track = {
+        width: 34, height: 20, borderRadius: 10, cursor: disabled ? 'default' : 'pointer',
+        border: `1px solid ${color.border}`, background: checked ? 'var(--dsw-alias-label-primary)' : color.hover,
+        opacity: disabled ? 0.4 : 1, position: 'relative', flex: 'none', transition: 'background .12s',
+      };
+      const knob = {
+        position: 'absolute', top: 2, left: checked ? 16 : 2, width: 14, height: 14, borderRadius: 7,
+        background: checked ? 'var(--dsw-specific-menu)' : color.tertiary, transition: 'left .12s',
+      };
+      return React.createElement('button', {
+        type: 'button', role: 'switch', 'aria-checked': checked, 'aria-label': label,
+        disabled, onClick: disabled ? undefined : onChange, style: { ...track, border: 'none', padding: 0 },
+      }, React.createElement('span', { style: knob }));
+    }
+
+    function Field({ label, children, hint, grow = true }) {
+      // `grow` is the horizontal layout's default (controls share one row).
+      // In a COLUMN container the same `1 1 160px` becomes a 160px-tall floor,
+      // which is what left a band of empty space under the seat-prompt box.
+      return React.createElement('label', { style: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: grow ? '1 1 160px' : '0 0 auto' } },
+        React.createElement('span', { style: { fontSize: 12, lineHeight: '18px', color: color.secondary } }, label),
+        children,
+        hint ? React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, hint) : null,
+      );
+    }
+
+    const controlStyle = {
+      height: 30, fontSize: 13, color: color.text, background: 'transparent',
+      border: `1px solid ${color.border}`, borderRadius: 8, padding: '0 8px', minWidth: 0, width: '100%',
+    };
+
+    function ModelSelect({ groups, status, provider, model, onChange, disabled, t }) {
+      // A route is BOTH halves or neither (issue #11). A provider without a
+      // model cannot describe a reachable target, and filling the missing half
+      // from the session would pair one provider id with another provider's
+      // model id; such a value renders — and saves — as "inherit".
+      const routed = typeof provider === 'string' && provider !== ''
+        && typeof model === 'string' && model !== '';
+      const known = routed && groups.some((g) => g.id === provider && g.models.some((m) => m.id === model));
+      // Select values are the synthetic "<provider>/<modelId>" — the current
+      // value must use the SAME form or the browser falls back to the first
+      // option (found in GUI acceptance: oracle showed Flash instead of Pro).
+      const synthetic = routed ? `${provider}/${model}` : '';
+      const options = [
+        // Inherit is a first-class choice, not an empty state: it is what each
+        // role runs on until the user pins a model, and the only way BACK after
+        // pinning one. It stays available while the catalog loads, because
+        // following the session model needs no catalog at all.
+        React.createElement('option', { key: 'inherit', value: '' }, t('modelInherit')),
+      ];
+      if (routed && !known) {
+        options.push(React.createElement('option', { key: 'current', value: synthetic }, `${t('currentValueTag')}: ${synthetic}`));
+      }
+      for (const group of groups) {
+        options.push(React.createElement('optgroup', { key: group.id, label: group.name },
+          group.models.map((m) => React.createElement('option', { key: m.id, value: `${group.id}/${m.id}` }, m.name || m.id))));
+      }
+      // Catalog state is a NOTICE, not the selected value. The old placeholder
+      // doubled as both, so an inheriting role (or any role on a host that
+      // exposes no catalog) looked like an installation with no providers.
+      const notice = status === 'loading' ? t('modelsLoading')
+        : status === 'error' ? t('modelsError')
+          : groups.length === 0 ? t('modelsEmpty') : undefined;
+      if (notice !== undefined) {
+        options.push(React.createElement('option', { key: 'catalog', value: '__catalog__', disabled: true }, notice));
+      }
+      return React.createElement('select', {
+        value: synthetic, disabled,
+        onChange: (e) => {
+          const next = e.target.value;
+          // Clearing BOTH halves is what "inherit" persists as: the bundled
+          // profile writes two `unset` ops, a custom profile omits both fields,
+          // and the host then resolves the session's own model.
+          if (next === '') { onChange(undefined, undefined); return; }
+          if (!known && next === synthetic) return;
+          const slash = next.indexOf('/');
+          if (slash < 0) return;
+          onChange(next.slice(0, slash), next.slice(slash + 1));
+        }, style: { ...controlStyle, appearance: 'auto' },
+      }, options);
+    }
+
+    /** The roster dropdown: existing profiles (default marker on the selected
+     * one) then the always-present "new configuration" sentinel. */
+    function ProfileSelect({ profiles, selectedId, onChange, disabled, t }) {
+      return React.createElement('select', {
+        value: selectedId,
+        disabled,
+        'aria-label': t('profile'),
+        onChange: (event) => onChange(event.target.value),
+        style: { ...controlStyle, width: 'min(100%, 320px)', flex: '1 1 220px', fontWeight: 600 },
+      },
+        profiles.map((profile) => React.createElement('option', { key: profile.id, value: profile.id },
+          `${profile.displayName}${profile.isDefaultForNewSessions ? ` · ${t('newSessionDefault')}` : ''}`)),
+        React.createElement('option', { key: '__sep__', value: '__sep__', disabled: true }, '────────────'),
+        React.createElement('option', { key: NEW_PROFILE_SENTINEL, value: NEW_PROFILE_SENTINEL }, `+ ${t('newProfile')}（${t('newProfileHint')}）`),
+      );
+    }
+
+    /** One harness option label: name + read-only class + provider state. */
+    function harnessLabel(row, t) {
+      const readOnly = row.readOnly === 'enforced'
+        ? t('executionReadOnlyEnforced')
+        : row.readOnly === 'advisory'
+          ? t('executionReadOnlyAdvisory')
+          : t('executionReadOnlyUnsupported');
+      return `${row.label ?? row.id} · ${readOnly}${row.providerAvailable === false ? ` · ${t('executionProviderMissing')}` : ''}`;
+    }
+
+    function RoleRow({ roleId, draft, groups, modelsStatus, advOpen, onAdvancedToggle, onChange, t, showSwitch = true, statusText, executionStatus, onRefreshExecution }) {
+      const role = draft.roles[roleId];
+      const locked = roleId === 'observer';
+      const execution = normalizeExecution(role.execution);
+      const external = execution.backend === 'omc';
+      const externalCapable = externalRoleAllowed(roleId) && !locked;
+      const harnessRows = harnessOptions(executionStatus);
+      const harness = execution.harness ?? 'codex';
+      const readOnly = external ? harnessReadOnly(executionStatus, harness) : undefined;
+      const providerAvailable = external ? harnessProviderAvailable(executionStatus, harness) : true;
+      const advisoryBlocked = external && readOnly === 'advisory' && execution.allowAdvisory !== true;
+      const effortOptions = effortOptionsFor(groups, role.provider, role.model);
+      // A switched-off role is never dispatched, so a stale effort its model
+      // cannot take is not an error: observer ships disabled, and letting it
+      // fail this check would lock the whole card on any model without "high".
+      // External roles do not use the DSH model route at all, so an effort the
+      // local catalog does not know cannot break their run either.
+      const effortBad = !external && effortGatesSave(role, groups);
+      const hintKey = external ? undefined : effortHintKey(role);
+      const routed = roleRouted(role);
+      const descKey = COUNCIL_DESC_KEYS[roleId] ?? `role${roleId[0].toUpperCase()}${roleId.slice(1)}`;
+      const invalid = {
+        maxTokens: !external && role.maxTokens !== undefined && role.maxTokens !== '' && parseAdvancedNumber(role.maxTokens, 'maxTokens') === null,
+        temperature: role.temperature !== undefined && role.temperature !== '' && parseAdvancedNumber(role.temperature, 'temperature') === null,
+        personaAppend: personaAppendInvalid(role.personaAppend),
+      };
+      // Two-line layout (GUI acceptance): line 1 = switch + name + description;
+      // line 2 = model select (grows, full model names visible) + effort +
+      // advanced toggle — controls align across roles regardless of name length.
+      return React.createElement('div', { style: { border: `1px solid ${color.border}`, borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
+          showSwitch
+            ? React.createElement(Switch, {
+              checked: role.enabled !== false, disabled: locked,
+              onChange: () => onChange(roleId, { enabled: !(role.enabled !== false) }), label: `${roleId} ${t('enabled')}`,
+            })
+            : React.createElement('span', {
+              style: { fontSize: 11, lineHeight: '16px', padding: '2px 8px', borderRadius: 999, border: `1px solid ${color.border}`, color: color.secondary, flex: 'none' },
+            }, statusText),
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, roleId),
+          React.createElement('span', {
+            style: { fontSize: 11, color: color.tertiary, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+          }, t(descKey)),
+        ),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
+          React.createElement('div', { style: { flex: '1 1 auto', minWidth: 0 } },
+            React.createElement(ModelSelect, {
+              groups, status: modelsStatus, provider: role.provider, model: role.model, disabled: locked || external,
+              onChange: (provider, model) => onChange(roleId, roleModelPatch(provider, model)), t,
+            }),
+          ),
+          React.createElement('select', {
+            // The select must never display a level the configuration does not
+            // hold. With `value` absent from the options the browser falls back
+            // to the FIRST option, which is exactly how the card showed "none"
+            // while the stored value was still "max": the error line and the
+            // control disagreed, and re-picking "none" did not fire a change.
+            // A mismatched value now renders the placeholder instead, and the
+            // error line names the level the configuration still holds. The
+            // placeholder exists only for that mismatch: with no mismatch an
+            // unset role selects the follow-session option, so the placeholder
+            // is neither shown nor selectable.
+            value: effortSelectValue(role, effortBad), disabled: locked || external, 'aria-label': t('effort'),
+            onChange: (e) => onChange(roleId, { effort: e.target.value === '' ? undefined : e.target.value }),
+            style: { ...controlStyle, width: 120, flex: 'none' },
+          },
+            effortBad ? React.createElement('option', { value: '', disabled: true }, t('effortPlaceholder')) : null,
+            effortOptions.map((option) => React.createElement('option', { key: option.value, value: option.value }, effortLabel(option, t))),
+          ),
+          React.createElement('button', {
+            // The label is text, not just a glyph: an icon-only control
+            // disappeared outright whenever the host renamed the icon set
+            // (0.2.1 → `OutlineMedium`), which made the advanced fields — the
+            // only place to set maxTokens or temperature — unreachable.
+            type: 'button', 'aria-label': t('advanced'), 'aria-expanded': advOpen,
+            onClick: onAdvancedToggle,
+            style: {
+              background: 'none', border: 'none', cursor: 'pointer', color: color.tertiary,
+              padding: '2px 4px', flex: 'none', display: 'flex', alignItems: 'center', gap: 2,
+              fontSize: 11, lineHeight: '16px', fontFamily: 'inherit',
+            },
+          },
+            t('advanced'),
+            renderIcon(ui, ICON_CHEVRON, { size: 14, style: { transform: advOpen ? 'rotate(180deg)' : 'none', transition: 'transform .12s' } }),
+          ),
+        ),
+        // Execution backend row: native (DSH child) or one external CLI. This
+        // is the only place `role.execution` is edited.
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' } },
+          React.createElement('span', { style: { fontSize: 11, color: color.tertiary, flex: 'none' } }, t('executionBackend')),
+          React.createElement('select', {
+            value: execution.backend, disabled: locked || !externalCapable, 'aria-label': t('executionBackend'),
+            onChange: (e) => {
+              if (e.target.value === 'native') {
+                onChange(roleId, { execution: { backend: 'native' } });
+                return;
+              }
+              const first = harnessRows.find((row) => row.readOnly !== 'unsupported') ?? HARNESS_CATALOG[0];
+              onChange(roleId, { execution: { backend: 'omc', harness: first.id } });
+            },
+            style: { ...controlStyle, width: 150, flex: 'none' },
+          },
+            React.createElement('option', { value: 'native' }, t('executionNative')),
+            externalCapable ? React.createElement('option', { value: 'omc' }, t('executionExternal')) : null,
+          ),
+          external ? React.createElement('select', {
+            value: harness, disabled: locked, 'aria-label': t('executionHarness'),
+            onChange: (e) => onChange(roleId, { execution: { ...execution, harness: e.target.value } }),
+            style: { ...controlStyle, width: 300, flex: 'none' },
+          },
+            harnessRows.filter((row) => row.readOnly !== 'unsupported' || row.id === harness).map((row) =>
+              React.createElement('option', { key: row.id, value: row.id }, harnessLabel(row, t))),
+          ) : null,
+          external ? React.createElement('select', {
+            value: execution.fallback ?? 'fail', disabled: locked, 'aria-label': t('executionFallback'),
+            onChange: (e) => onChange(roleId, { execution: { ...execution, fallback: e.target.value === 'native' ? 'native' : undefined } }),
+            style: { ...controlStyle, width: 160, flex: 'none' },
+          },
+            React.createElement('option', { value: 'fail' }, t('executionFallbackFail')),
+            React.createElement('option', { value: 'native' }, t('executionFallbackNative')),
+          ) : React.createElement('span', { style: { fontSize: 11, color: color.tertiary } },
+            externalCapable ? t('executionNativeHint') : t('executionRoleUnsupported')),
+          external && readOnly === 'advisory'
+            ? React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: color.warn, flex: 'none' } },
+              React.createElement('input', {
+                type: 'checkbox', checked: execution.allowAdvisory === true, disabled: locked,
+                onChange: () => onChange(roleId, { execution: { ...execution, allowAdvisory: execution.allowAdvisory !== true } }),
+              }),
+              React.createElement('span', null, t('executionAllowAdvisory')))
+            : null,
+        ),
+        external && !providerAvailable
+          ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, color: 'var(--dsw-alias-state-error-primary)', fontSize: 12 } },
+            renderIcon(ui, ICON_WARNING, { size: 14 }), t('executionProviderMissing'),
+            React.createElement('button', {
+              type: 'button', onClick: onRefreshExecution,
+              style: { background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--dsw-alias-state-info-primary)', fontSize: 12, fontFamily: 'inherit' },
+            }, t('executionRefresh')))
+          : null,
+        external && readOnly === 'unsupported'
+          ? React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' } }, t('executionReadOnlyUnsupported'))
+          : null,
+        advisoryBlocked
+          ? React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' } }, t('executionAdvisoryBlocked'))
+          : null,
+        external && readOnly === 'advisory' && !advisoryBlocked
+          ? React.createElement('div', { style: { fontSize: 11, lineHeight: '16px', color: color.warn } }, t('executionAdvisoryAccepted'))
+          : null,
+        external ? React.createElement('div', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('executionModelOwnedByCli')) : null,
+        !externalCapable && execution.backend === 'omc'
+          ? React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' } }, t('executionRoleUnsupported'))
+          : null,
+        hintKey ? React.createElement('div', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t(hintKey)) : null,
+        effortBad ? React.createElement('div', { style: { fontSize: 12, lineHeight: '16px', color: 'var(--dsw-alias-state-error-primary)' } },
+          t('effortMismatch').replace('{effort}', String(role.effort))) : null,
+        locked ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: color.warn, fontSize: 12 } },
+          renderIcon(ui, ICON_WARNING, { size: 14 }), t('observerLocked')) : null,
+        advOpen ? React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, borderTop: `1px solid ${color.border}`, paddingTop: 8 } },
+          React.createElement('div', { style: { display: 'flex', gap: 12 } },
+            React.createElement(Field, { label: t('maxTokens') },
+              React.createElement(ui.Input, {
+                value: role.maxTokens ?? '', placeholder: ' ', inputMode: 'numeric', disabled: locked || external || !routed,
+                onChange: (e) => onChange(roleId, { maxTokens: e.target.value }), style: controlStyle,
+              })),
+            React.createElement(Field, { label: t('temperature') },
+              React.createElement(ui.Input, {
+                value: role.temperature ?? '', placeholder: ' ', inputMode: 'decimal', disabled: locked,
+                onChange: (e) => onChange(roleId, { temperature: e.target.value }), style: controlStyle,
+              })),
+          ),
+          !routed
+            ? React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('maxTokensFollowHint'))
+            : (role.maxTokens === undefined || role.maxTokens === '')
+              ? React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('maxTokensEmptyHint'))
+              : null,
+          COUNCIL_ROLE_IDS.includes(roleId) ? React.createElement(Field, {
+            label: t(roleId === COUNCIL_ROLE_ID ? 'councilPrompt' : 'personaAppend'),
+            grow: false,
+          },
+            React.createElement('textarea', {
+              value: role.personaAppend ?? '', rows: 3,
+              placeholder: t(roleId === COUNCIL_ROLE_ID ? 'councilPromptHint' : 'personaAppendHint'), disabled: locked,
+              onChange: (e) => onChange(roleId, { personaAppend: e.target.value === '' ? undefined : e.target.value }),
+              // controlStyle carries `height: 30` (single-line) and a
+              // content-box width of 100%: the box would both hug the top and
+              // spill past the card's padding by its own padding + border.
+              style: {
+                ...controlStyle, height: 'auto', padding: '6px 8px', boxSizing: 'border-box',
+                minHeight: 56, resize: 'vertical', fontFamily: 'inherit', width: '100%',
+              },
+            })) : null,
+          (invalid.maxTokens || invalid.temperature || invalid.personaAppend) ? React.createElement('span', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' } },
+            invalid.personaAppend ? t('personaAppendInvalid') : invalid.maxTokens ? t('invalidMaxTokens') : t('invalidTemperature')) : null,
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: color.warn, fontSize: 12, background: color.warnBg, borderRadius: 8, padding: '6px 8px' } },
+            renderIcon(ui, ICON_WARNING, { size: 14 }), t('advancedWarn')),
+        ) : null,
+      );
+    }
+
+    // -------------------------------------------------------------- card
+    /**
+     * The revision fence to send with a write.
+     *
+     * React state lags the host: `mutate` bumps the revision, and the row
+     * restart that follows can bump it again before the next render. Reading
+     * the live snapshot keeps a second save possible without a manual reload.
+     */
+    function liveRevision(scope, fallback) {
+      try {
+        const current = scope?.getSnapshot?.();
+        return current?.revision ?? fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function SettingsCard({ scope, connection, remote, t }) {
+      const [snap, setSnap] = React.useState(scope.getSnapshot());
+      React.useEffect(() => scope.subscribe(() => setSnap(scope.getSnapshot())), [scope]);
+      // draft === undefined → clean (mirror the snapshot / profile config);
+      // object → staged edits.
+      const [draft, setDraft] = React.useState(undefined);
+      const [roster, setRoster] = React.useState(() => initialProfileRoster({}));
+      const [selectedId, setSelectedId] = React.useState(BUNDLED_PROFILE_ID);
+      // The in-place draft profile opened by the "new configuration" item.
+      const [newDraft, setNewDraft] = React.useState(undefined);
+      // Pending selection while the user decides the dirty-guard prompt.
+      const [pendingSwitch, setPendingSwitch] = React.useState(undefined);
+      // Naming dialog: {open, input, error}.
+      const [nameModal, setNameModal] = React.useState({ open: false, input: '', error: undefined });
+      const [profileError, setProfileError] = React.useState(undefined);
+      const profileAdapter = React.useMemo(() => createProfileAdapter(connection), [connection]);
+      // External harness status: provider registration + read-only class come
+      // from the Host RPC. "loading" renders the static catalog; "error" is a
+      // visible refresh target, never a silent claim that every CLI is ready.
+      const [executionStatus, setExecutionStatus] = React.useState({ status: 'loading' });
+      const loadExecutionStatus = React.useCallback(() => {
+        if (!profileAdapter?.executionStatus) {
+          setExecutionStatus({ status: 'error' });
+          return Promise.resolve();
+        }
+        return profileAdapter.executionStatus().then((value) => {
+          setExecutionStatus({ status: 'ready', ...(value ?? {}) });
+        }).catch(() => setExecutionStatus({ status: 'error' }));
+      }, [profileAdapter]);
+      React.useEffect(() => { void loadExecutionStatus(); }, [loadExecutionStatus]);
+      // advOpen per role id: the advanced sub-section visibility.
+      const [expanded, setExpanded] = React.useState(() => Object.fromEntries(ROLE_IDS.map((id) => [id, false])));
+      const [saving, setSaving] = React.useState(false);
+      const [confirmReset, setConfirmReset] = React.useState(false);
+      // Delete confirmation: an independent modal because the removal is final
+      // and the profile name is the only proof of what is about to disappear.
+      const [deleteModal, setDeleteModal] = React.useState({ open: false, profileId: undefined, displayName: '', revision: undefined, error: undefined });
+      const [toast, setToast] = React.useState(null);
+      const [models, setModels] = React.useState({ status: 'loading', groups: [] });
+      const loadModels = React.useCallback(() => {
+        // DSH 0.1.2: the model catalog moved behind the host remote face
+        // (ctx.remote.session.modelCatalog()); 0.1.1's connection.api.llm is
+        // gone. Degrade to the error notice when the face is unavailable so
+        // the card still renders with configured values intact.
+        if (remote?.session?.modelCatalog === undefined) {
+          setModels({ status: 'error', groups: [] });
+          return;
+        }
+        Promise.resolve(remote.session.modelCatalog()).then((response) => {
+          if (response?.ok !== true || response.value === undefined) {
+            setModels({ status: 'error', groups: [] });
+            return;
+          }
+          const groups = (response.value.groups ?? []).map((group) => ({
+            id: group.id,
+            name: group.name,
+            models: group.models.map((model) => ({
+              id: model.id,
+              name: model.name,
+              // reasoning.efforts are the per-model supported effort levels;
+              // the effort dropdown and its mismatch check read them here.
+              ...(model.reasoning === undefined ? {} : { reasoning: model.reasoning }),
+            })),
+          }));
+          setModels({ status: 'ready', groups });
+        }).catch(() => setModels({ status: 'error', groups: [] }));
+      }, [remote]);
+      React.useEffect(() => { loadModels(); }, [loadModels]);
+
+      const writable = snap.writable === true;
+      const effective = snap.value ?? EMPTY_EFFECTIVE;
+      const base = snap.base ?? EMPTY_BASE;
+      const user = snap.user ?? EMPTY_USER;
+      // Profiles persist a delta against the BUNDLED defaults (not against
+      // the profile's own saved snapshot): with the wrong baseline a second
+      // save rewrites profile.json and silently drops fields that matched
+      // the previous save (e.g. explorer=A saved first, designer=B saved
+      // second would lose explorer).
+      const defaultsBaseline = mergeProfileConfig(base, {});
+
+      const refreshRoster = React.useCallback(() => {
+        if (!profileAdapter) return Promise.resolve();
+        return profileAdapter.list().then((payload) => {
+          setRoster(normalizeProfileRoster(base, payload));
+          setProfileError(undefined);
+        }).catch(() => {
+          setRoster(initialProfileRoster(base));
+          setProfileError(t('profileListFailed'));
+        });
+      }, [profileAdapter, base]);
+      React.useEffect(() => {
+        if (!profileAdapter) return undefined;
+        let alive = true;
+        profileAdapter.list().then((payload) => {
+          if (!alive) return;
+          const next = normalizeProfileRoster(base, payload);
+          setRoster(next);
+          // Open the card on the NEW-SESSION DEFAULT (not hard-coded on the
+          // bundled profile). Only while the user has not picked anything yet
+          // (still on the bundled initial value); a later manual selection is
+          // never overridden.
+          setSelectedId((current) => resolveInitialSelection(current, next));
+        }).catch(() => {
+          if (!alive) return;
+          setRoster(initialProfileRoster(base));
+          setProfileError(t('profileListFailed'));
+        });
+        return () => { alive = false; };
+      }, [profileAdapter, base]);
+
+      // A roster reload can drop the selected custom profile (or leave a stale
+      // id from a host default this card does not own). Never edit a fallback
+      // profile under a stale id: reset to a valid selection and drop the old
+      // edits, which belonged to the profile that disappeared.
+      React.useEffect(() => {
+        if (selectionInRoster(selectedId, roster)) return;
+        setDraft(undefined);
+        setProfileError(undefined);
+        setPendingSwitch(undefined);
+        setSelectedId(resolveInitialSelection(selectedId, roster));
+      }, [roster, selectedId]);
+
+      // The profile object currently edited: roster entry, or the sentinel draft.
+      const selectedProfile = selectedId === NEW_PROFILE_SENTINEL
+        ? newDraft
+        : roster.profiles.find((profile) => profile.id === selectedId) ?? roster.profiles[0];
+      // Writes are gated by an invariant: the resolved profile must be the
+      // selected id. Display may fall back to the first roster entry while a
+      // reconciliation is pending, but that fallback is never saved under a
+      // different id.
+      const saveMode = profileSaveMode(selectedId, selectedProfile);
+      const isBundledProfile = selectedProfile?.kind === 'bundled';
+      // The RESOLVED configuration the editor renders: settings snapshot for
+      // the bundled profile, base ⊕ profile.json for custom profiles, and the
+      // frozen copy-of-current for the new-profile draft.
+      const editEffective = isBundledProfile
+        ? effective
+        : selectedId === NEW_PROFILE_SENTINEL
+          ? (newDraft?.sourceConfig ?? base)
+          : mergeProfileConfig(base, selectedProfile?.config ?? {});
+      const current = draft ?? buildDraft(editEffective, editEffective?.advanced, base);
+      const baseline = buildDraft(editEffective, editEffective?.advanced, base);
+      const ops = isBundledProfile && draft !== undefined ? planUserOps(base, user, draft) : [];
+      const dirty = isBundledProfile
+        ? ops.length > 0
+        : draft !== undefined && !deepEqualJson(draft, baseline);
+      const invalid = ROLE_IDS.some((roleId) => {
+        const role = current.roles[roleId];
+        return parseAdvancedNumber(role.maxTokens, 'maxTokens') === null
+          || parseAdvancedNumber(role.temperature, 'temperature') === null
+          || personaAppendInvalid(role.personaAppend)
+          // A stored effort the selected model cannot take (e.g. flash+max)
+          // blocks saving until it is reselected — but only for a role that
+          // will be dispatched. A disabled role never sends its effort, so
+          // failing here (observer ships disabled) would lock the whole card
+          // on any model that does not offer that level.
+          || effortGatesSave(role, models.groups);
+      });
+
+      const changeRole = (roleId, patch) => {
+        setDraft((previous) => {
+          const next = previous ?? buildDraft(editEffective, editEffective?.advanced, base);
+          return { ...next, roles: { ...next.roles, [roleId]: { ...next.roles[roleId], ...patch } } };
+        });
+      };
+      const toggleAdvanced = (roleId) => {
+        setExpanded((previous) => ({ ...previous, [roleId]: !previous[roleId] }));
+      };
+      const run = async (writeOps, doneText) => {
+        setSaving(true);
+        setProfileError(undefined);
+        try {
+          // DSH 0.1.2 settings scope: set/unset are top-level fields only;
+          // multi-level paths (presets.<preset>.<role>.<field>) go through
+          // one atomic mutate(ops) — the documented replacement for the
+          // 0.1.1 per-op scope.write (which is gone).
+          //
+          // The fence comes from the LIVE snapshot, not from React state: an
+          // accepted mutation bumps the revision, and the settings row is
+          // restarted right after it, which can bump it again. The state copy
+          // is then one generation behind, and the next save is rejected as
+          // "changed in another window" although the user is the only writer —
+          // and stays rejected on every retry because nothing refreshes it.
+          let result = await writeSettings(scope, writeOps, liveRevision(scope, snap.revision));
+          if (!result.ok && result.reason === 'conflict') {
+            result = await writeSettings(scope, writeOps, liveRevision(scope, snap.revision));
+          }
+          if (!result.ok) {
+            // Resync either way so a manual retry starts from what the host
+            // actually holds now instead of repeating the same stale fence.
+            setSnap(scope.getSnapshot());
+            setProfileError(t(result.reason === 'conflict' ? 'profileConflict' : 'profileSaveFailed'));
+            return false;
+          }
+          setSnap(scope.getSnapshot());
+          setDraft(undefined);
+          setToast({ text: doneText, icon: renderIcon(ui, ICON_CHECK, { size: 14 }) });
+          return true;
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      // Persist a CUSTOM profile: an atomic whole-document snapshot write with
+      // a revision fence (the host refuses stale writers).
+      const saveCustom = async (profile, config) => {
+        if (!profileAdapter) {
+          setProfileError(t('profileUnavailable'));
+          return false;
+        }
+        setSaving(true);
+        setProfileError(undefined);
+        try {
+          const response = await profileAdapter.save({
+            id: profile.id,
+            config,
+            expectedRevision: profile.revision,
+          });
+          const saved = response?.profile ?? response;
+          const revision = typeof saved?.revision === 'string' ? saved.revision : profile.revision;
+          setRoster((previous) => ({
+            ...previous,
+            profiles: previous.profiles.map((entry) => (
+              entry.id === profile.id
+                // Backfill the just-persisted snapshot so the editor keeps
+                // showing the saved values (the save response carries only
+                // id/displayName/revision; without the config backfill the
+                // card re-renders from the previous profile.json and looks
+                // like a reset to defaults).
+                ? { ...entry, ...saved, revision, config: profileConfig(config) }
+                : entry
+            )),
+          }));
+          setDraft(undefined);
+          setToast({ text: t('saved'), icon: renderIcon(ui, ICON_CHECK, { size: 14 }) });
+          return true;
+        } catch (error) {
+          setProfileError(profileErrorKey(error) === 'conflict' ? t('profileConflict') : t('profileSaveFailed'));
+          if (profileErrorKey(error) === 'conflict') void refreshRoster();
+          return false;
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      // The bundled profile saves through the settings namespace (hot, fenced
+      // by the host per op). Saving a new-profile draft opens the naming
+      // dialog; the create RPC itself is confirmed from the dialog.
+      const save = () => {
+        if (!dirty || invalid || saving) return;
+        if (saveMode === 'bundled') { void run(ops, t('saved')); return; }
+        if (saveMode === 'create') {
+          setNameModal({ open: true, input: '', error: undefined });
+          return;
+        }
+        if (saveMode !== 'custom' || !selectedProfile) {
+          setProfileError(t('profileSaveFailed'));
+          return;
+        }
+        void saveCustom(selectedProfile, draftToConfig(draft, selectedProfile.config, defaultsBaseline));
+      };
+
+      const confirmCreate = async () => {
+        const validation = validateProfileName(nameModal.input, roster.profiles);
+        if (!validation.valid) {
+          setNameModal({
+            open: true,
+            input: nameModal.input,
+            error: t(validation.reason === 'conflict' ? 'nameConflict' : validation.reason === 'too-long' ? 'nameTooLong' : 'nameRequired'),
+          });
+          return;
+        }
+        if (!profileAdapter) {
+          setNameModal({ open: false, input: '', error: undefined });
+          setProfileError(t('profileUnavailable'));
+          return;
+        }
+        setSaving(true);
+        setProfileError(undefined);
+        try {
+          // The new profile stores a SNAPSHOT of the draft against the
+          // bundled defaults — the merge baseline a fresh profile resolves
+          // against. Comparing against the source profile's effective values
+          // instead would drop every field inherited from it (a profile
+          // created from the GPT series would silently become the defaults
+          // plus the one edited field): the draft's differences vs the
+          // source are NOT the draft's differences vs the new profile's own
+          // base.
+          const defaultsEffective = mergeProfileConfig(base, {});
+          const snapshot = draftToConfig(draft, newDraft?.sourceConfig, defaultsEffective);
+          const response = await profileAdapter.create(createProfileRequest(validation.value, draft, newDraft?.sourceConfig, defaultsEffective));
+          const saved = response?.profile ?? response;
+          const profile = {
+            id: saved?.id,
+            displayName: saved?.displayName ?? validation.value,
+            kind: 'custom',
+            isDefaultForNewSessions: false,
+            revision: saved?.revision,
+            config: snapshot,
+          };
+          setRoster((previous) => normalizeProfileRoster(base, {
+            defaultProfileId: previous.defaultProfileId,
+            profiles: [...previous.profiles.filter((entry) => entry.id !== profile.id), profile],
+          }));
+          setNewDraft(undefined);
+          setSelectedId(profile.id);
+          setDraft(undefined);
+          setNameModal({ open: false, input: '', error: undefined });
+          setToast({ text: t('saved'), icon: renderIcon(ui, ICON_CHECK, { size: 14 }) });
+          if (pendingSwitch) {
+            commitSelect(pendingSwitch);
+            setPendingSwitch(undefined);
+          }
+        } catch (error) {
+          setProfileError(profileErrorKey(error) === 'conflict' ? t('profileConflict') : t('profileSaveFailed'));
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      const makeDefault = async (profileId) => {
+        if (!profileAdapter) {
+          setProfileError(t('profileUnavailable'));
+          return;
+        }
+        setSaving(true);
+        setProfileError(undefined);
+        try {
+          await profileAdapter.setDefault(profileId);
+          await refreshRoster();
+          setToast({ text: t('defaultSet'), icon: renderIcon(ui, ICON_CHECK, { size: 14 }) });
+        } catch {
+          setProfileError(t('profileDefaultFailed'));
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      const closeDeleteModal = () => setDeleteModal({ open: false, profileId: undefined, displayName: '', revision: undefined, error: undefined });
+      const openDeleteModal = (profile) => {
+        if (!profileAdapter) {
+          setProfileError(t('profileUnavailable'));
+          return;
+        }
+        if (!canDeleteProfile(profile)) return;
+        // The server enforces this too; failing here explains the rule before
+        // a round trip and keeps the user out of a dialog that cannot succeed.
+        if (profile.isDefaultForNewSessions === true) {
+          setProfileError(t('deleteProfileIsDefault'));
+          return;
+        }
+        setProfileError(undefined);
+        setDeleteModal({ open: true, profileId: profile.id, displayName: profile.displayName, revision: profile.revision, error: undefined });
+      };
+      const confirmDelete = async () => {
+        const target = deleteModal;
+        if (!profileAdapter || !target.profileId) return;
+        setSaving(true);
+        setProfileError(undefined);
+        try {
+          await profileAdapter.delete({ id: target.profileId, expectedRevision: target.revision });
+          closeDeleteModal();
+          // Deleted the profile being edited: point the card at the bundled
+          // preset immediately instead of rendering an id that is gone. The
+          // roster reload below keeps the dropdown in sync.
+          if (selectedId === target.profileId) {
+            setDraft(undefined);
+            setNewDraft(undefined);
+            setPendingSwitch(undefined);
+            setSelectedId(BUNDLED_PROFILE_ID);
+          }
+          setToast({ text: t('deleteProfileDone'), icon: renderIcon(ui, ICON_CHECK, { size: 14 }) });
+          await refreshRoster();
+        } catch (error) {
+          const key = deleteErrorKey(error);
+          if (key === 'not-found') {
+            // Another window already deleted it: the end state the user asked
+            // for holds, so close the dialog and resync instead of retrying.
+            closeDeleteModal();
+            setProfileError(t('deleteProfileNotFound'));
+            await refreshRoster();
+          } else {
+            setDeleteModal((previous) => ({
+              ...previous,
+              error: t(key === 'conflict'
+                ? 'profileConflict'
+                : key === 'is-default' ? 'deleteProfileIsDefault' : 'deleteProfileFailed'),
+            }));
+          }
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      // Rewrite one legacy profile directory into the dual-key persona form so
+      // it mounts on DSH 0.1.5 (the host backs the file up first and is
+      // idempotent, so a double click is harmless).
+      const migrateProfile = async (profileId) => {
+        if (!profileAdapter) {
+          setProfileError(t('profileUnavailable'));
+          return;
+        }
+        setSaving(true);
+        setProfileError(undefined);
+        try {
+          await profileAdapter.migrate(profileId);
+          await refreshRoster();
+          setToast({ text: t('profileMigrated'), icon: renderIcon(ui, ICON_CHECK, { size: 14 }) });
+        } catch {
+          setProfileError(t('profileMigrateFailed'));
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      const commitSelect = (nextId) => {
+        setDraft(undefined);
+        setProfileError(undefined);
+        if (nextId === NEW_PROFILE_SENTINEL) {
+          setNewDraft(createNewProfileDraft(editEffective));
+          setSelectedId(NEW_PROFILE_SENTINEL);
+        } else {
+          setNewDraft(undefined);
+          setSelectedId(nextId);
+        }
+      };
+      const requestSelect = (nextId) => {
+        if (nextId === selectedId || saving) return;
+        if (dirty) {
+          setPendingSwitch(nextId);
+          return;
+        }
+        commitSelect(nextId);
+      };
+      // Dirty-guard dialog decision: save-and-switch, discard, or cancel.
+      // While the naming dialog is open (sentinel save-and-switch), the guard
+      // hides — both would stack on screen otherwise.
+      const guard = pendingSwitch !== undefined && !nameModal.open;
+      const confirmGuardSave = async () => {
+        if (saveMode === 'bundled') {
+          if (!(await run(ops, t('saved')))) return;
+        } else if (saveMode === 'create') {
+          setNameModal({ open: true, input: '', error: undefined });
+          return; // confirmCreate performs the switch
+        } else if (saveMode === 'custom' && selectedProfile) {
+          const ok = await saveCustom(selectedProfile, draftToConfig(draft, selectedProfile.config, defaultsBaseline));
+          if (!ok) return;
+        } else {
+          setProfileError(t('profileSaveFailed'));
+          return;
+        }
+        const next = pendingSwitch;
+        setPendingSwitch(undefined);
+        commitSelect(next);
+      };
+      const confirmGuardDiscard = () => {
+        const next = pendingSwitch;
+        setPendingSwitch(undefined);
+        commitSelect(next);
+      };
+
+      const reset = async () => {
+        setConfirmReset(false);
+        if (isBundledProfile) {
+          const resetDraft = buildDraft(base, base?.advanced, base);
+          const resetOps = planUserOps(base, user, resetDraft);
+          if (resetOps.length === 0) { setDraft(undefined); return; }
+          await run(resetOps, t('resetDone'));
+          return;
+        }
+        // Custom profiles: restore the LOCAL edit to the bundled defaults;
+        // nothing is persisted until the user saves (spec: reset only touches
+        // what is being edited).
+        const defaultsDraft = buildDraft(base, base?.advanced, base);
+        if (!deepEqualJson(defaultsDraft, baseline)) setDraft(defaultsDraft);
+      };
+      // Expanded by default: on DSH 0.2 the card is a settings page (the
+      // `settings.section` slot), so the content should be visible on entry
+      // instead of hiding behind an extra click. The header stays a toggle.
+      const [cardOpen, setCardOpen] = React.useState(true);
+
+      const headerButton = React.createElement('button', {
+        type: 'button',
+        onClick: () => setCardOpen((o) => !o),
+        'aria-expanded': cardOpen,
+        // Match the host built-in cards' header chrome (dsh-client-ui-settings-plugins):
+        // one flex row — text block (title + description stacked, flex:1) then chevron.
+        style: {
+          appearance: 'none', width: '100%', textAlign: 'left', cursor: 'pointer',
+          background: 'none', border: 'none', color: color.text,
+          display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 12,
+        },
+      },
+        React.createElement('span', { style: { display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 } },
+          React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+            React.createElement('span', { style: { fontSize: 15, fontWeight: 600, lineHeight: '1.4', color: color.text } }, 'Oh My CoHarness'),
+            React.createElement('span', {
+              style: {
+                fontSize: 11, lineHeight: '16px', padding: '1px 6px', borderRadius: 999,
+                border: `1px solid ${color.border}`, color: color.tertiary, flex: 'none',
+              },
+            }, `v${VERSION}`),
+            !cardOpen && dirty ? renderIcon(ui, ICON_WARNING, { size: 14 }) : null,
+          ),
+          React.createElement('span', { style: { fontSize: 13, lineHeight: '1.5', color: color.tertiary } }, t('desc')),
+        ),
+        renderIcon(ui, ICON_CHEVRON, {
+          size: 14,
+          style: { transform: cardOpen ? 'rotate(180deg)' : 'none', transition: 'transform .12s', color: color.tertiary, flex: 'none' },
+        }),
+      );
+
+      const enabledSeats = COUNCILLOR_ROLE_IDS.filter((roleId) => {
+        const role = current.roles[roleId];
+        return role !== undefined && role.enabled !== false;
+      });
+      const councilOn = enabledSeats.length >= MIN_COUNCIL_SEATS;
+      const councilStatusText = councilOn
+        ? t('councilOn').replace('{seats}', enabledSeats.map((roleId) => roleId.replace('councillor-', '')).join(', '))
+        : t('councilOff');
+      const councilWarnings = councilWarningKeys(current).map((key) => t(key));
+      // observer is force-disabled (no attachment forwarding yet) and parked
+      // last; the Council group takes its previous position above it.
+      const upstreamRows = UPSTREAM_ROLE_IDS.filter((roleId) => roleId !== 'observer').map((roleId) => React.createElement(RoleRow, {
+        key: roleId, roleId, draft: current, groups: models.groups, modelsStatus: models.status,
+        advOpen: expanded[roleId] === true,
+        onAdvancedToggle: () => toggleAdvanced(roleId), onChange: changeRole, t,
+        executionStatus, onRefreshExecution: loadExecutionStatus,
+      }));
+      const observerRow = React.createElement(RoleRow, {
+        key: 'observer', roleId: 'observer', draft: current, groups: models.groups, modelsStatus: models.status,
+        advOpen: expanded.observer === true,
+        onAdvancedToggle: () => toggleAdvanced('observer'), onChange: changeRole, t,
+        executionStatus, onRefreshExecution: loadExecutionStatus,
+      });
+      const councilRows = COUNCIL_ROLE_IDS.map((roleId) => React.createElement(RoleRow, {
+        key: roleId, roleId, draft: current, groups: models.groups, modelsStatus: models.status,
+        advOpen: expanded[roleId] === true,
+        onAdvancedToggle: () => toggleAdvanced(roleId), onChange: changeRole, t,
+        executionStatus, onRefreshExecution: loadExecutionStatus,
+        // The synthesizer has no switch: it follows the seats. The row only
+        // configures its model/effort/prompt and shows the derived state.
+        showSwitch: roleId !== COUNCIL_ROLE_ID,
+        statusText: councilOn ? t('councilAutoOn') : t('councilAutoOff'),
+      }));
+      const councilGroup = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 } },
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, t('councilGroup')),
+          React.createElement('span', { style: { fontSize: 11, color: councilOn ? color.secondary : color.tertiary, minWidth: 0 } }, councilStatusText),
+        ),
+        ...councilWarnings.map((text, index) => React.createElement('div', { key: 'warn-' + index, style: { fontSize: 11, lineHeight: '16px', color: color.warn } }, text)),
+        ...councilRows,
+      );
+      const roleRows = [...upstreamRows, councilGroup, observerRow];
+
+      // The profile strip lives at the top of the expanded card: choosing a
+      // profile only changes WHAT is edited; the session is untouched.
+      const profileStrip = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, t('profile')),
+          React.createElement('div', { style: { flex: '1 1 260px', minWidth: 0 } },
+            React.createElement(ProfileSelect, {
+              profiles: roster.profiles, selectedId,
+              onChange: requestSelect, disabled: saving, t,
+            }),
+          ),
+          // The dropdown already shows the selected profile's name, so no
+          // badge repeats it on the right. The "set as default" action is
+          // available for EVERY non-default profile — including the bundled
+          // one, so the default can always be switched back — but never for
+          // the in-place new-profile draft (nothing exists to point at yet).
+          canSetDefault(selectedProfile)
+            ? React.createElement(ui.Button, {
+              variant: 'outline', size: 'sm', disabled: saving || !writable,
+              onClick: () => void makeDefault(selectedProfile.id),
+            }, t('setNewSessionDefault'))
+            : null,
+          // Deleting is final, so the action only exists for a persisted custom
+          // profile and always confirms in its own dialog.
+          canDeleteProfile(selectedProfile)
+            ? React.createElement(ui.Button, {
+              variant: 'outline', size: 'sm', disabled: saving || !writable,
+              onClick: () => openDeleteModal(selectedProfile),
+            }, t('deleteProfile'))
+            : null,
+        ),
+        React.createElement('span', { style: { fontSize: 11, color: color.tertiary, lineHeight: '16px' } }, t('selectionHint')),
+        selectedProfile?.needsMigration === true
+          ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 11, color: color.warn, lineHeight: '16px' } },
+            renderIcon(ui, ICON_WARNING, { size: 14 }),
+            React.createElement('span', null, t('profileMigrationNeeded')),
+            React.createElement(ui.Button, {
+              variant: 'outline', size: 'sm', disabled: saving || !writable,
+              onClick: () => void migrateProfile(selectedProfile.id),
+            }, t('profileMigrate')),
+          )
+          : null,
+        selectedId === NEW_PROFILE_SENTINEL
+          ? React.createElement('span', { style: { fontSize: 11, color: color.warn, lineHeight: '16px' } }, t('draftNote'))
+          : null,
+        profileError
+          ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: 'var(--dsw-alias-state-error-primary)', fontSize: 12, lineHeight: '16px' } },
+            renderIcon(ui, ICON_WARNING, { size: 14 }), profileError)
+          : null,
+      );
+
+      // reachable without scrolling; dirty only switches the "unsaved" note
+      // and the save button's availability.
+      const actions = React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' } },
+        dirty ? React.createElement('span', { style: { fontSize: 12, color: color.warn, marginRight: 'auto' } }, t('dirty')) : null,
+        confirmReset
+          ? React.createElement(React.Fragment, null,
+            React.createElement('span', { style: { fontSize: 12, color: color.warn } }, t('resetConfirm')),
+            React.createElement(ui.Button, { variant: 'outline', size: 'sm', disabled: saving, onClick: () => void reset() }, t('reset')),
+            React.createElement(ui.Button, { variant: 'outline', size: 'sm', disabled: saving, onClick: () => setConfirmReset(false) }, '×'),
+          )
+          : React.createElement(ui.Button, { variant: 'outline', size: 'sm', disabled: saving || !writable, onClick: () => setConfirmReset(true) }, t('reset')),
+        React.createElement(ui.Button, {
+          variant: 'outline', size: 'sm', disabled: saving || !writable || !dirty || invalid, onClick: save,
+        }, saving ? t('saving') : t('save')),
+      );
+
+      const nameModalNode = nameModal.open ? React.createElement(ui.Modal, {
+        open: true,
+        onClose: () => {
+          setNameModal({ open: false, input: '', error: undefined });
+          // Cancel the naming dialog ends a pending guard switch too: the user
+          // stays on the current (still dirty) edit.
+          if (pendingSwitch !== undefined) setPendingSwitch(undefined);
+        },
+        closeLabel: t('cancel'),
+        title: t('nameTitle'),
+        description: t('nameDescription'),
+        footer: React.createElement(React.Fragment, null,
+          React.createElement(ui.Button, { variant: 'outline', size: 'sm', disabled: saving, onClick: () => {
+            setNameModal({ open: false, input: '', error: undefined });
+            if (pendingSwitch !== undefined) setPendingSwitch(undefined);
+          } }, t('cancel')),
+          React.createElement(ui.Button, { variant: 'primary', size: 'sm', disabled: saving, onClick: () => void confirmCreate() }, t('create')),
+        ),
+      },
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+          // Same column-container trap as the seat prompt: without this the
+          // new-profile dialog reserves a 160px-tall field for one text input.
+          React.createElement(Field, { label: t('displayName'), grow: false },
+            React.createElement(ui.Input, {
+              value: nameModal.input,
+              disabled: saving,
+              placeholder: ' ',
+              onChange: (e) => setNameModal((previous) => ({ ...previous, input: e.target.value, error: undefined })),
+              style: controlStyle,
+            })),
+          nameModal.error
+            ? React.createElement('span', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)', lineHeight: '16px' } }, nameModal.error)
+            : null,
+        ),
+      ) : null;
+
+      const guardModalNode = guard ? React.createElement(ui.Modal, {
+        open: true,
+        onClose: () => setPendingSwitch(undefined),
+        closeLabel: t('cancel'),
+        title: t('switchTitle'),
+        description: t('switchDescription'),
+        footer: React.createElement(React.Fragment, null,
+          React.createElement(ui.Button, { variant: 'outline', size: 'sm', disabled: saving, onClick: () => setPendingSwitch(undefined) }, t('cancel')),
+          React.createElement(ui.Button, { variant: 'outline', size: 'sm', disabled: saving, onClick: confirmGuardDiscard }, t('discard')),
+          React.createElement(ui.Button, { variant: 'primary', size: 'sm', disabled: saving, onClick: () => void confirmGuardSave() }, t('saveAndSwitch')),
+        ),
+      }, null) : null;
+
+      const deleteModalNode = deleteModal.open ? React.createElement(ui.Modal, {
+        open: true,
+        onClose: closeDeleteModal,
+        closeLabel: t('cancel'),
+        title: t('deleteProfileTitle'),
+        description: t('deleteProfileDescription'),
+        footer: React.createElement(React.Fragment, null,
+          React.createElement(ui.Button, { variant: 'outline', size: 'sm', disabled: saving, onClick: closeDeleteModal }, t('cancel')),
+          React.createElement(ui.Button, { variant: 'primary', size: 'sm', disabled: saving, onClick: () => void confirmDelete() }, t('deleteProfileConfirm')),
+        ),
+      },
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, lineHeight: '18px' } }, deleteModal.displayName),
+          selectedId === deleteModal.profileId && dirty
+            ? React.createElement('span', { style: { fontSize: 12, color: color.warn, lineHeight: '16px' } }, t('deleteProfileDirty'))
+            : null,
+          deleteModal.error
+            ? React.createElement('span', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)', lineHeight: '16px' } }, deleteModal.error)
+            : null,
+        ),
+      ) : null;
+
+      // Collapsed cards render only the header row; every editable surface
+      // (profile strip, roles, actions, hints, toast mount point) lives
+      // behind cardOpen.
+      const body = cardOpen ? React.createElement(React.Fragment, null,
+        React.createElement('div', { style: { borderTop: '1px solid var(--dsw-alias-border-l2)', padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, color: color.text } },
+        profileStrip,
+        actions,
+        React.createElement('div', { style: { display: 'flex', gap: 6, fontSize: 12, color: color.secondary, background: color.hover, borderRadius: 8, padding: '6px 8px' } },
+          t('orchestratorNote')),
+        roleRows,
+        !writable ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: color.warn, fontSize: 12 } },
+          renderIcon(ui, ICON_WARNING, { size: 14 }), t('readOnly')) : null,
+        React.createElement('span', { style: { fontSize: 11, color: color.tertiary } }, t('effectiveHint')),
+        toast ? React.createElement(ui.Toast, { text: toast.text, icon: toast.icon, onDone: () => setToast(null) }) : null,
+        ),
+      ) : null;
+
+      return React.createElement('div', {
+        style: {
+          border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12,
+          background: 'var(--dsw-alias-bg-layer-3)',
+          display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden',
+        },
+      }, headerButton, body, nameModalNode, guardModalNode, deleteModalNode);
+    }
+
+    // ----------------------------------------------------------------- apply
+    const name = NS;
+    // `remote` / `remote.session` exist on DSH 0.2 — the host's own Subagent
+    // settings page injects the same pair and calls
+    // `ctx.remote.session.modelCatalog()` for its model picker. Inject them so
+    // the card's dropdown gets the full provider/model catalog.
+    const inject = ['slots', 'locale', 'connection', 'remote', 'remote.session', 'configForms'];
+
+    function apply(ctx) {
+      const gaps = missingPrimitives(uiPrimitives);
+      if (gaps.length > 0) {
+        console.warn('[oh-my-coharness] host ui-primitives missing ' + gaps.join(', ') + ' — settings card disabled');
+        return;
+      }
+      ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'oh-my-coharness: dictionaries');
+      const t = ctx.locale.bind(NS);
+      // DSH 0.2 desktop renders plugin configuration as a settings page: the
+      // settings shell draws the active `settings.section` entry (its own
+      // General/Models pages and third-party cards such as dsh-better-sidebar
+      // all register there). The older `plugins.item` slot is not rendered by
+      // that UI, so a card registered only there stays invisible.
+      const scope = ctx.configForms.get(NS);
+      ctx.effect(() => ctx.configForms.whileServed([NS], () => ctx.slots.inject('settings.section', () => ctx.slots.register({
+        name: 'settings.section',
+        id: NS,
+        order: 100,
+        label: () => BUNDLED_PROFILE_NAME,
+        locale: NS,
+        inject: () => ({ t }),
+      }, () => React.createElement(SettingsCard, { t, scope, connection: ctx.connection, remote: ctx.remote })))), 'oh-my-coharness: settings page');
+    }
+
+    exports.name = name;
+    exports.VERSION = VERSION;
+    exports.inject = inject;
+    exports.apply = apply;
+    exports.REQUIRED_PRIMITIVES = REQUIRED_PRIMITIVES;
+    exports.missingPrimitives = missingPrimitives;
+    exports.planUserOps = planUserOps;
+    exports.buildDraft = buildDraft;
+    exports.normalizeExecution = normalizeExecution;
+    exports.executionForWrite = executionForWrite;
+    exports.externalRoleAllowed = externalRoleAllowed;
+    exports.harnessOptions = harnessOptions;
+    exports.harnessLabel = harnessLabel;
+    exports.effortOptionsFor = effortOptionsFor;
+    exports.effortLabel = effortLabel;
+    exports.effortSelectValue = effortSelectValue;
+    exports.effortHintKey = effortHintKey;
+    exports.roleModelPatch = roleModelPatch;
+    exports.effortMismatch = effortMismatch;
+    exports.effortGatesSave = effortGatesSave;
+    exports.initialProfileRoster = initialProfileRoster;
+    exports.normalizeProfileRoster = normalizeProfileRoster;
+    exports.mergeProfileConfig = mergeProfileConfig;
+    exports.councilWarningKeys = councilWarningKeys;
+    exports.validateProfileName = validateProfileName;
+    exports.draftToConfig = draftToConfig;
+    exports.createProfileAdapter = createProfileAdapter;
+    exports.unwrapProfileRpc = unwrapProfileRpc;
+    exports.ProfileSelect = ProfileSelect;
+    exports.ModelSelect = ModelSelect;
+    exports.canSetDefault = canSetDefault;
+    exports.canDeleteProfile = canDeleteProfile;
+    exports.deleteErrorKey = deleteErrorKey;
+    exports.resolveInitialSelection = resolveInitialSelection;
+    exports.selectionInRoster = selectionInRoster;
+    exports.profileSaveMode = profileSaveMode;
+    exports.writeSettings = writeSettings;
+    exports.liveRevision = liveRevision;
+    // Icon resolution is exported for the regression test: the card's advanced
+    // toggle became invisible on hosts that renamed every glyph to
+    // `OutlineMedium`, and an icon-only control has no other trace to assert.
+    exports.ICON_CHEVRON = ICON_CHEVRON;
+    exports.ICON_CHECK = ICON_CHECK;
+    exports.ICON_WARNING = ICON_WARNING;
+    exports.resolveIcon = (names) => icon(ui, names);
+    return module.exports;
+  },
+});

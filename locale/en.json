@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Oh My CoHarness",
-    "description": "Discover the AI coding CLIs already installed on this machine, hand them real tasks from DSH, and keep every run visible as a real child session."
+    "description": "One agent preset with specialist roles that run natively in DSH or on the AI coding CLIs you already installed — orchestration, Council, read-only external execution, and one settings card."
   }
 }

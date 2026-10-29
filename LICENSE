@@ -1,6 +1,7 @@
 MIT License
 
 Copyright (c) 2026 Oh My CoHarness contributors
+Copyright (c) 2026 oh-my-dsh-slim contributors (vendored preset code, see THIRD_PARTY_NOTICES.md)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +20,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Third-party attribution:
+
+The agent personas in the bundled preset are adapted from oh-my-opencode-slim
+(MIT License, Copyright (c) 2025 alvinunreal,
+https://github.com/alvinunreal/oh-my-opencode-slim). The adapted persona text
+and role-design attribution are retained here per the terms of that license.

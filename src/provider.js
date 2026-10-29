@@ -34,8 +34,10 @@ function failureText(def, status, outcome, captured) {
  * @param {{ subprocess: any }} ctx
  * @param {import('./harnesses.js').HarnessDef} def
  * @param {ReturnType<typeof import('./config.js').resolveConfig>} cfg
+ * @param {{ readOnly?: boolean }} [options] - the provider surface is read-only
+ *   by design: a role may never become writable by changing a global default.
  */
-export function makeProvider(ctx, def, cfg) {
+export function makeProvider(ctx, def, cfg, options = {}) {
   return {
     name: `omc:${def.id}`,
     // An external CLI cannot see this conversation; the host turns that flag into
@@ -56,7 +58,10 @@ export function makeProvider(ctx, def, cfg) {
         task,
         cwd: request.cwd,
         model: hcfg.model || undefined,
-        mode: cfg.dispatch.defaultMode,
+        // A role provider is a read-only surface. `dispatch.defaultMode` governs
+        // the direct `coharness` tool only; letting a global default widen a
+        // role would silently turn Oracle/Explorer/Council seats into writers.
+        mode: options.readOnly === true ? 'read-only' : cfg.dispatch.defaultMode,
         env: harnessEnv(def, hcfg),
         plan,
         // A per-harness deadline wins; the global one is the floor.

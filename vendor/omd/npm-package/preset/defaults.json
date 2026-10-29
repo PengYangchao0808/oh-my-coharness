@@ -1,0 +1,138 @@
+{
+  "preset": "my-dsh-normal",
+  "mcpServers": {
+    "context7": {
+      "transport": "streamable-http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "gh_grep": {
+      "transport": "streamable-http",
+      "url": "https://mcp.grep.app"
+    }
+  },
+  "presets": {
+    "my-dsh-normal": {
+      "orchestrator": {
+        "effort": "max",
+        "mcps": []
+      },
+      "oracle": {
+        "enabled": true,
+        "deny": [
+          "edit",
+          "write",
+          "skill",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "todo_write",
+          "ask_user_question"
+        ],
+        "mcps": []
+      },
+      "designer": {
+        "enabled": true,
+        "deny": [
+          "skill",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "todo_write",
+          "ask_user_question"
+        ],
+        "mcps": []
+      },
+      "fixer": {
+        "enabled": true,
+        "deny": [
+          "skill",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "todo_write",
+          "ask_user_question"
+        ],
+        "mcps": []
+      },
+      "explorer": {
+        "enabled": true,
+        "deny": [
+          "edit",
+          "write",
+          "skill",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "todo_write",
+          "ask_user_question"
+        ],
+        "mcps": []
+      },
+      "librarian": {
+        "enabled": true,
+        "deny": [
+          "edit",
+          "write",
+          "skill",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "todo_write",
+          "ask_user_question"
+        ],
+        "mcps": [
+          "context7",
+          "gh_grep"
+        ]
+      },
+      "observer": {
+        "enabled": false,
+        "deny": [
+          "edit",
+          "write",
+          "skill",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "todo_write",
+          "ask_user_question"
+        ],
+        "mcps": []
+      },
+      "councillor-alpha": {
+        "enabled": false,
+        "tools": [
+          "read",
+          "glob",
+          "grep"
+        ],
+        "mcps": []
+      },
+      "councillor-beta": {
+        "enabled": false,
+        "tools": [
+          "read",
+          "glob",
+          "grep"
+        ],
+        "mcps": []
+      },
+      "councillor-gamma": {
+        "enabled": false,
+        "tools": [
+          "read",
+          "glob",
+          "grep"
+        ],
+        "mcps": []
+      },
+      "council": {
+        "enabled": false,
+        "mcps": []
+      }
+    }
+  },
+  "advanced": {
+    "roles": {}
+  }
+}

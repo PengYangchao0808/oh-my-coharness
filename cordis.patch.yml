@@ -1,13 +1,22 @@
-# Oh My CoHarness — bundle layer.
+# Oh My CoHarness — the single bundle layer.
 #
-# Two rows:
-#   1. the Host plugin: `coharness` tool, `omc:<id>` subagent providers, skills;
-#   2. an agent preset whose delegation tools are bound to those external
-#      providers, so "specialist roles" really run on different CLIs.
+# One install, one preset family:
+#   1. `oh-my-coharness`            Host row: settings schema, profile RPC,
+#      `omc:<id>` subagent providers, `coharness` tool, `/coharness` command,
+#      skills, and the startup report.
+#   2. `preset-oh-my-coharness`     the Orchestrator + specialist roles + Council
+#      (native or external execution per role; see the settings card).
+#   3. `oh-my-coharness-profiles`   user-authored named role profiles.
+#   4. `agent-preset-registry`      makes this the default preset for new sessions.
+#
+# The Host row intentionally keeps the id `oh-my-coharness`: a pre-0.4 user
+# override of that row keeps targeting the same row after the merge.
 #
 # Everything below the Host row's `config` is the user-editable surface; see
-# docs/PLAN.zh-CN.md §3.5. The preset list mirrors the shipped `standard`
-# preset so this composition keeps the normal coding tools.
+# docs/PLAN.zh-CN.md §3.5 and docs/MIGRATION.md. The preset list mirrors the
+# shipped `standard` preset so this composition keeps the normal coding tools.
+# Secrets never go in this patch: point `harnesses.<id>.envFile` at a 0600 file
+# outside the profile.
 
 - insert:
     - id: oh-my-coharness
@@ -21,8 +30,7 @@
           maxOutputBytes: 20000
         wsl:
           distro: ""
-        # Enable a harness that needs an endpoint or a key by pointing it at a
-        # 0600 env file outside the profile. Secrets never go in this patch.
+        # Example: enable a harness that needs an endpoint or a key.
         # harnesses:
         #   glm:
         #     enabled: true
@@ -30,158 +38,20 @@
         privacy:
           reportBinaryPaths: false
 
-# `omc-harness`: the same coding surface as `standard`, but its delegation group
-# adds one subagent tool per external harness. The stock tool takes `provider`,
-# so each row is a real DSH child session backed by that CLI. External providers
-# have no `depthLimit`/`agentOptions`/`agentPreset`, hence `maxDepth:
-# provider-managed` and no model-selection config.
-- insert:
-    - id: preset-omc-harness
-      name: '@deepseek-ai/dsh-agent-preset'
-      config:
-        id: omc-harness
-        name: OMC · 外部 Harness 角色
-        description: 与 standard 相同的编码工具面，额外把 subagent_codex / antigravity / opencode / kimi 绑到外部 CLI。
-        order: 20
-        plugins:
-          - id: persona
-            name: '@deepseek-ai/dsh-persona'
-            config:
-              prefix: |
-                You are a coding agent powered by the {{model}} model.
+    # The Orchestrator and every specialist role. Execution backends are role
+    # configuration, not row wiring: the same subagent_oracle tool runs natively
+    # or through omc:<harness> according to role.execution.
+    - id: preset-oh-my-coharness
+      name: 'oh-my-coharness/preset'
 
-                You also have external specialist tools. Each one launches a separate CLI program with its own model and its own login, in its own process. It cannot see this conversation, it cannot be asked a follow-up question afterwards, and it always runs read-only (the CLI's own sandbox where the CLI provides one).
+    # Named role profiles, persisted through the host ConfigEditor.
+    - id: oh-my-coharness-profiles
+      name: 'oh-my-coharness/profile-registry'
 
-                - `subagent_codex` — Codex. Architecture, hard debugging, and review of implementation decisions. Best at deep code reasoning.
-                - `subagent_antigravity` — Antigravity. UI, visual design, and front-end polish.
-                - `subagent_opencode` — opencode. Fast repository reconnaissance: file maps, entry points, summaries.
-                - `subagent_kimi` — Kimi. Long-context reading: large documents, broad surveys, external material you paste in.
-
-                When you delegate to one of them, write a self-contained brief: the goal, the exact files or excerpts, the constraints, the acceptance criteria, and the role it should play (for example "You are the oracle: review this design for risks"). Do not paste the whole conversation. Do not run the same task through two specialists, and do not claim one finished before its result returns. Use the in-process `subagent` for quick local checks that can reuse this context, and `coharness` when you need an explicit mode, a council of two seats, or a harness that is not mounted here.
-          - id: agent-instructions
-            name: '@deepseek-ai/dsh-agent-instructions'
-            config:
-              maxBytes: 65536
-          - id: time-context
-            name: '@deepseek-ai/dsh-time-context'
-          - id: tool-bash
-            name: '@deepseek-ai/dsh-tool-bash'
-            disabled: !!js process.platform === 'win32'
-          - id: tool-pwsh
-            name: '@deepseek-ai/dsh-tool-pwsh'
-            disabled: !!js process.platform !== 'win32'
-          - id: tool-fs
-            name: '@deepseek-ai/dsh-tool-fs'
-          - id: tool-fs-search
-            name: '@deepseek-ai/dsh-tool-fs-search'
-            config:
-              sampleOverCapGlobResults: false
-          - id: tool-jobs
-            name: '@deepseek-ai/dsh-tool-jobs'
-          - id: tool-schedule
-            name: '@deepseek-ai/dsh-tool-schedule'
-          - id: skill-filesystem
-            name: '@deepseek-ai/dsh-skill-filesystem'
-          - id: tool-skill
-            name: '@deepseek-ai/dsh-tool-skill'
-          - id: command-goal
-            name: '@deepseek-ai/dsh-command-goal'
-          - id: tool-goal
-            name: '@deepseek-ai/dsh-tool-goal'
-          - id: planning
-            name: cordis:group
-            group: true
-            isolate:
-              planMode: true
-            config:
-              - id: plan-mode
-                name: '@deepseek-ai/dsh-plan-mode'
-                config:
-                  section: |
-                    You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode. Imperative language to implement changes means plan the implementation, not execute it.
-
-                    Explore first. Use non-mutating reads, searches and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, or otherwise carry out the plan.
-
-                    When ready, call exit_plan_mode with the complete plan markdown, starting with a # title, as the only and final tool call in that response.
-          - id: compaction
-            name: cordis:group
-            group: true
-            isolate:
-              compaction: true
-              toolResultPruner: true
-            config:
-              - id: compaction-basic
-                name: '@deepseek-ai/dsh-compaction-basic'
-              - id: command-compact
-                name: '@deepseek-ai/dsh-command-compact'
-              - id: tool-result-pruner
-                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
-                config:
-                  thresholdChars: 8192
-                  headChars: 4096
-                  tailChars: 1024
-          - id: delegation
-            name: cordis:group
-            group: true
-            isolate:
-              workflowEngine: true
-            config:
-              - id: tool-subagent-control
-                name: '@deepseek-ai/dsh-tool-subagent-control'
-              - id: tool-subagent-list-agents
-                name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
-              - id: tool-subagent
-                name: '@deepseek-ai/dsh-tool-subagent'
-                config:
-                  provider: spawn
-                  toolName: subagent
-                  modelSelectionSettings: true
-              - id: tool-subagent-fork
-                name: '@deepseek-ai/dsh-tool-subagent'
-                config:
-                  provider: fork
-                  toolName: subagent_fork
-              # ── external harness specialists ──────────────────────────────
-              - id: tool-subagent-codex
-                name: '@deepseek-ai/dsh-tool-subagent'
-                config:
-                  provider: 'omc:codex'
-                  toolName: subagent_codex
-                  maxDepth: provider-managed
-              - id: tool-subagent-antigravity
-                name: '@deepseek-ai/dsh-tool-subagent'
-                config:
-                  provider: 'omc:antigravity'
-                  toolName: subagent_antigravity
-                  maxDepth: provider-managed
-              - id: tool-subagent-opencode
-                name: '@deepseek-ai/dsh-tool-subagent'
-                config:
-                  provider: 'omc:opencode'
-                  toolName: subagent_opencode
-                  maxDepth: provider-managed
-              - id: tool-subagent-kimi
-                name: '@deepseek-ai/dsh-tool-subagent'
-                config:
-                  provider: 'omc:kimi'
-                  toolName: subagent_kimi
-                  maxDepth: provider-managed
-              - id: workflow-ptc
-                name: '@deepseek-ai/dsh-workflow-ptc'
-                config:
-                  provider: spawn
-              - id: tool-workflow
-                name: '@deepseek-ai/dsh-tool-workflow'
-          - id: tool-ask-user
-            name: '@deepseek-ai/dsh-tool-ask-user'
-          - id: tool-todo
-            name: '@deepseek-ai/dsh-tool-todo'
-            config:
-              allowParallelInProgress: true
-          - id: tool-web
-            name: '@deepseek-ai/dsh-tool-web'
-            config:
-              fetch: true
-              searchTimeoutMs: 60000
-          - id: present
-            name: '@deepseek-ai/dsh-tool-present'
+# Make Oh My CoHarness the preset a new session starts with. The native Agent
+# Preset picker remains authoritative: a user's explicit `selectedDefault`
+# (stored by DSH settings) still wins over this bundle default.
+- id: agent-preset-registry
+  name: '@deepseek-ai/dsh-agent-preset-registry'
+  config:
+    default: oh-my-coharness

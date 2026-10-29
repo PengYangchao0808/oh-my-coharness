@@ -10,6 +10,18 @@ whenToUse: The user asks for the whole thing — "做完整", "实现并审查",
 
 开始前用 `todo_write` 把五个阶段写成任务，之后每完成一个阶段就更新状态——那是用户能看到的进度，也是你对自己的约束。
 
+## 角色映射（同一个 Orchestrator）
+
+| 阶段 | 优先使用 | 说明 |
+|---|---|---|
+| Plan | 主控自己 | 必要时 `subagent_oracle` 做架构判断 |
+| Explore | `subagent_explorer` | 只读；外部后端也可，但一次性 |
+| Build | `subagent_fixer` / `subagent_designer` | **默认 DSH 原生**，可续接、可写入；本版不允许外部写角色 |
+| Review | `subagent_oracle`（独立时） | 外部 Oracle 也可，只读；不把 Review 交给 Build 的执行者 |
+| Verify | 主控直接跑命令 | 真实退出码；不让子 Agent 自己宣布通过 |
+
+内置角色不可用或用户明确点名某个 CLI 时，才回退到 `coharness`。**同一个阶段不要在 `subagent_*` 和 `coharness` 两边各跑一次。**
+
 ## 阶段与门禁
 
 | 阶段 | 产出 | 进入下一阶段的条件 |
@@ -29,7 +41,7 @@ whenToUse: The user asks for the whole thing — "做完整", "实现并审查",
 
 ## 输出契约
 
-外部 CLI 和子 Agent 都不会主动守格式，所以要在 prompt 里**明确要求 footer**：
+外部 CLI 和内置角色都不会主动守格式，所以要在 prompt 里**明确要求 footer**：
 
 - Build 的最后一行：`STATUS: done | partial | blocked`
 - Review 的最后一行：`VERDICT: approve | request-changes | insufficient-context`
@@ -38,9 +50,10 @@ whenToUse: The user asks for the whole thing — "做完整", "实现并审查",
 
 ## 写入纪律（单写者）
 
-- **单写者**：同一时刻只有一个执行者能写。0.2.0 **不做并行写入**。
-- 写必须显式 `mode: 'in-place'`，并且在派发前告诉用户：「这会用该 CLI 自己的权限写文件，不受 DSH 的文件策略约束。」
-- 写路径通常走 `surface: 'direct'`：**没有 childId、没有宿主容量槽、没有子会话面板**。报告里要说明这一点，不要假装它有子会话。
+- **单写者**：同一时刻只有一个执行者能写。**不做并行写入。**
+- 正常写路径是 DSH 原生的 `subagent_fixer` / `subagent_designer`：它们受 DSH 工具权限约束，可续接。
+- 只有用户明确要求某个 CLI 写入时，才用 `coharness` 的 `mode: 'in-place'`；派发前告诉用户：「这会用该 CLI 自己的权限写文件，不受 DSH 的文件策略约束。」
+- 外部写入走 `surface: 'direct'`：**没有 childId、没有宿主容量槽、没有子会话面板**。报告里要说明这一点，不要假装它有子会话。
 - 只读任务可以并行（`tasks[]`，默认 2–3 个）；写入永远串行。
 - 写之前先 `git status` 记录基线；写之后再看一次，确认只改了声明的文件。
 
@@ -98,12 +111,13 @@ DSH 主控（唯一调度与验收者）
 4. **集成与验收由主控统一做。** 不让两个执行者互相验收；它们没有共同的判据。
 5. **单侧可以先行。** 若契约已定而后端未就绪，前端可以对着 mock 开发，但要把 mock 标出来，并在集成阶段替换。
 
-## Companion 模式（装了 oh-my-dsh-slim）
+## 合并后的角色模型
 
-- 内部角色（同一模型、可续接）用 slim 的 `subagent_*`。
-- 外部 Harness 用 `coharness`。
+- 内置角色（同一模型、可续接）用 `subagent_*`；外部后端角色是一次性、只读的同一个工具。
+- 外部 Harness 的临时任务用 `coharness`。
 - **同一个任务不要在两边各跑一次**。选一边，说清选它的理由。
-- 只有一个主编排者：不要同时让 slim 的 orchestrator 和某个外部 CLI 各自调度。
+- 只有一个主编排者：不要同时让主控和某个外部 CLI 各自调度。
+- 外部角色报 `OMC/EXECUTION-*` 时，运行 `/coharness doctor`；不要静默改回 native 或重试。
 
 ## 什么时候不要用 ULW
 

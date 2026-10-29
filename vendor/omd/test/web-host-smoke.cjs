@@ -1,0 +1,237 @@
+// Installed-host HTTP transport acceptance; no model calls or browser rendering.
+// Run with Electron --expose-internals and DSH_HOST_ANCHOR (or a plain Node host).
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const http = require('node:http');
+const os = require('node:os');
+const path = require('node:path');
+const { createRequire } = require('node:module');
+const { pathToFileURL } = require('node:url');
+const anchor = process.env.DSH_HOST_ANCHOR;
+if (!anchor || !path.isAbsolute(anchor)) throw Error('Set DSH_HOST_ANCHOR to an absolute installed host JS entry');
+// Real npm-global CLI installs put a symlink in bin/; exercise that shape by
+// pointing argv[1] at a link while importing the host through the real entry.
+// An asar target cannot be realpath'd outside Electron, so this mode requires
+// a plain Node host (the release gate runs it against the installed prefix).
+let anchorLinkDir;
+if (process.env.OMDS_SYMLINK_ANCHOR === '1') {
+  if (anchor.split(path.sep).join('/').includes('/app.asar/')) throw Error('OMDS_SYMLINK_ANCHOR requires a plain Node host anchor, not an asar path');
+  anchorLinkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'omds-anchor-link-'));
+  const link = path.join(anchorLinkDir, 'dsh');
+  fs.symlinkSync(anchor, link);
+  process.argv[1] = link;
+} else {
+  process.argv[1] = anchor;
+}
+const requireHost = createRequire(anchor);
+const hostImport = name => import(pathToFileURL(requireHost.resolve(name)).href);
+const hostBase = pathToFileURL(anchor).href;
+const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'omds-web-host-'));
+process.env.DSH_HOME = path.join(temporary, 'home');
+fs.mkdirSync(process.env.DSH_HOME);
+delete process.env.DSH_PROFILE;
+delete process.env.OH_MY_DSH_SLIM_CONFIG;
+let ctx;
+let port;
+let cookie;
+function request(route, { method = 'POST', body, headers = {} } = {}) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ hostname: '127.0.0.1', port, path: route, method,
+      headers: { ...(body !== undefined && { 'content-type': 'application/json' }), ...(cookie && { cookie }), ...headers } }, res => {
+      const chunks = []; res.on('data', x => chunks.push(x)); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text: Buffer.concat(chunks).toString() }));
+    });
+    req.on('error', reject); req.setTimeout(10000, () => req.destroy(Error('HTTP smoke timeout')));
+    req.end(body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body));
+  });
+}
+let sequence = 0;
+async function rpc(method, payload = {}) {
+  const rpcId = 'smoke-' + ++sequence;
+  const res = await request('/omds/' + method, { body: { type: 'client-request', rpcId, method, payload } }).catch(error => { error.message = method + ': ' + error.message + '; bound port ' + port + ', live port ' + ctx?.get('webServer')?.port; throw error; });
+  assert.equal(res.status, 200, res.text);
+  const message = JSON.parse(res.text);
+  assert.equal(message.type, 'server-response'); assert.equal(message.rpcId, rpcId);
+  return message.result;
+}
+(async () => {
+  try {
+    const yaml = requireHost('js-yaml');
+    const bootModule = await hostImport('@deepseek-ai/dsh-app-boot');
+    const { boot, entryListSchema, readProfilePatches } = bootModule;
+    const { provideCmdline } = await hostImport('@deepseek-ai/dsh-cmdline');
+    const schema = entryListSchema ?? yaml.JSON_SCHEMA.extend(new yaml.Type('tag:yaml.org,2002:js', { kind: 'scalar', construct: data => ({ __jsExpr: data }) }));
+    const loadPatch = name => yaml.load(fs.readFileSync(path.join(path.dirname(requireHost.resolve(name + '/package.json')), 'cordis.patch.yml'), 'utf8'), { schema });
+    const baseRows = loadPatch('@deepseek-ai/dsh-base').flatMap(p => p.insert ?? []);
+    for (const row of baseRows) if (['session-title-llm', 'hmr'].includes(row.id)) row.disabled = true;
+    const webPatches = loadPatch('@deepseek-ai/dsh-web-app');
+    // No native desktop directory dialog exists under ELECTRON_RUN_AS_NODE.
+    // This optional UI-only row is unrelated to HTTP/auth/profile transport.
+    for (const patch of webPatches) for (const row of patch.insert ?? []) {
+      if (row.id === 'directory-picker') row.disabled = true;
+      if (row.id === 'web-runtime') row.config.printUrl = false;
+    }
+    // Resolve all host rows at the installed anchor, never from the temporary
+    // configuration directory. This also works with npm-prefix/non-ASAR hosts.
+    const anchorNames = rows => { for (const row of rows) { if (row.name?.startsWith('@deepseek-ai/')) row.name = pathToFileURL(requireHost.resolve(row.name)).href; if (row.insert) anchorNames(row.insert); if (row.group && Array.isArray(row.config)) anchorNames(row.config); } };
+    anchorNames(baseRows); anchorNames(webPatches);
+    // Layer the bundles the way a real profile does: dsh-base first, then
+    // dsh-web-app, then this package, with an empty profile root. Writing the
+    // base rows INTO the root instead (the earlier shape here) put them on top of
+    // every bundle patch, so dsh-web-app's `disabled: true` entries never landed
+    // and the composition kept the host's tool-web row alive — the plane split
+    // the whole preset depends on was not actually exercised.
+    const packageDir = path.resolve(__dirname, '../npm-package');
+    const writeBundle = (name, patch) => {
+      const dir = path.join(temporary, 'node_modules', name); fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name, version: '1.0.0', dsh: { bundle: { patch: ['cordis.patch.yml'] } } }));
+      fs.writeFileSync(path.join(dir, 'cordis.patch.yml'), yaml.dump(patch, { schema }));
+    };
+    const BUNDLES = ['omds-base-smoke-bundle', 'omds-web-smoke-bundle', 'oh-my-dsh-slim'];
+    const configPath = path.join(temporary, 'smoke.yml'); fs.writeFileSync(configPath, yaml.dump([], { schema }));
+    writeBundle('omds-base-smoke-bundle', [{ insert: baseRows }]);
+    writeBundle('omds-web-smoke-bundle', webPatches);
+    fs.cpSync(packageDir, path.join(temporary, 'node_modules', 'oh-my-dsh-slim'), { recursive: true, dereference: true });
+    fs.writeFileSync(path.join(temporary, 'package.json'), JSON.stringify({ name: 'omds-web-smoke', private: true, dsh: { profile: { bundles: BUNDLES } } }));
+    const profileContext = { home: process.env.DSH_HOME, dir: temporary, patchPath: path.join(temporary, 'cordis.patch.yml'), installAnchor: anchor, name: 'omds-web-smoke', startedBundles: [], bundles: BUNDLES, overlays: [] };
+    const start = async patches => {
+      ctx = await boot('omds-web-smoke', configPath, patches, root => {
+        root.provide('profileContext', profileContext);
+        provideCmdline(root, { args: ['--host', '127.0.0.1', '--port', '0', '--no-open'], exit: code => { throw Error('Unexpected host appExit ' + code); } });
+        root.get('loader').config.bareModuleBaseUrl = hostBase;
+      }, pathToFileURL(path.join(temporary, 'package.json')).href);
+      for (const entry of ctx.get('loader').entries()) {
+        if (entry.disabled) continue;
+        assert.equal(entry.fiber?.state, 2, 'Host row not active: ' + entry.options.id);
+      }
+      port = ctx.get('webServer').port; assert.ok(port > 0);
+      assert.equal(ctx.get('webServer').host, '127.0.0.1');
+    };
+    await start(readProfilePatches('omds-web-smoke', profileContext));
+    // Effective tool catalog of the preset's own web row, mounted with the real
+    // host plugin. dsh-web-app disables the host's tool-web row in this
+    // composition, so the preset row is what the model would see: 0.6.0 through
+    // 0.6.2 shipped fetch:false here and silently lost web_fetch, which no
+    // static check caught. Assert the outcome, not the value.
+    {
+      const presetModule = await import(pathToFileURL(path.join(packageDir, 'preset/preset.js')).href);
+      const flatten = rows => rows.flatMap(row => [row, ...(row.group && Array.isArray(row.config) ? flatten(row.config) : [])]);
+      const row = flatten(presetModule.plugins).find(entry => entry.id === 'tool-web');
+      assert.ok(row, 'the preset composes a tool-web row');
+      const toolWeb = await hostImport('@deepseek-ai/dsh-tool-web');
+      const scope = await hostImport('@deepseek-ai/dsh-scope');
+      const probe = scope.createScope(ctx, Symbol('omds-web-tool-probe'));
+      try {
+        // The plugin's own visibility read (dsh-tool-web uses the same
+        // `tools.get(name, scope)` shape for its prompt sections); view() only
+        // lists agent-session restrictable tools and stays empty here.
+        const visible = name => probe.ctx.get('tools').get(name, scope.scopeOf(probe.ctx)) !== undefined;
+        assert.ok(!visible('web_search') && !visible('web_fetch'),
+          'the host tool-web row must stay disabled in web mode, or the preset row is not the only source');
+        // The loader resolves a row's config through the plugin's own schema and
+        // supplies its injected services before apply(); mirror both so the
+        // preset's raw row config is what the probe mounts.
+        toolWeb.apply(new Proxy(probe.ctx, { get(target, key) {
+          return key === 'systemPrompt' || key === 'tools' ? target.get(key) : Reflect.get(target, key);
+        } }), toolWeb.Config(row.config ?? {}));
+        assert.ok(visible('web_search'), 'preset session exposes web_search');
+        assert.ok(visible('web_fetch'), 'preset session exposes web_fetch — the 0.6.0 tool-web fetch:false regression');
+      } finally { await probe.dispose(); }
+      console.log('WEB_TOOL_CATALOG_PASS');
+    }
+    assert.equal((await request('/omds/profile-list', { body: {} })).status, 401);
+    assert.equal((await request('/omds/profile-list', { body: {}, headers: { host: 'evil.invalid' } })).status, 403);
+    assert.equal((await request('/omds/profile-list', { body: {}, headers: { origin: 'http://evil.invalid' } })).status, 403);
+    const authenticated = new URL(ctx.get('connection').authenticatedUrl(`http://127.0.0.1:${port}/`));
+    const exchange = await request(authenticated.pathname + authenticated.search, { method: 'GET' });
+    assert.equal(exchange.status, 303); assert.ok(exchange.headers['set-cookie']?.length);
+    cookie = exchange.headers['set-cookie'][0].split(';')[0];
+    console.log('WEB_AUTH_FENCE_PASS');
+    const listed = await rpc('profile-list'); assert.equal(listed.ok, true); assert.ok(listed.value.profiles.some(p => p.id === 'oh-my-dsh-slim'));
+    // A fresh host's default is a NATIVE agent preset (dsh-web-app ships
+    // "standard"), which is not one of this package's profiles. The card must
+    // not turn that id into a selection; the host endpoint still reports it raw.
+    const freshDefault = listed.value.defaultProfileId;
+    assert.equal(typeof freshDefault, 'string');
+    assert.equal(listed.value.profiles.some(profile => profile.id === freshDefault), false,
+      'fresh host default must be a native preset outside this roster (' + freshDefault + ')');
+    const settings = ctx.get('settings');
+    const settingsRow = settings.describe().find(row => row.ns === 'oh-my-dsh-slim');
+    assert.ok(settingsRow, 'oh-my-dsh-slim settings namespace must be served');
+    const bundledPreset = settingsRow.value.preset;
+    await settings.mutate('oh-my-dsh-slim', [
+      { op: 'set', path: ['presets', bundledPreset, 'oracle', 'provider'], value: 'smoke-p' },
+      { op: 'set', path: ['presets', bundledPreset, 'oracle', 'model'], value: 'smoke-bundled-save' },
+    ], settingsRow.revision);
+    const bundledAfter = settings.describe().find(row => row.ns === 'oh-my-dsh-slim');
+    assert.equal(bundledAfter.value.presets[bundledPreset].oracle.provider, 'smoke-p');
+    assert.equal(bundledAfter.value.presets[bundledPreset].oracle.model, 'smoke-bundled-save');
+    console.log('WEB_BUNDLED_SETTINGS_SAVE_PASS');
+    const created = await rpc('profile-create', { displayName: 'HTTP Named A', config: { roles: { oracle: { provider: 'smoke-p', model: 'http-a', effort: 'none' } } } }); assert.equal(created.ok, true);
+    const first = created.value;
+    const saved = await rpc('profile-save', { id: first.id, expectedRevision: first.revision, config: { roles: { oracle: { provider: 'smoke-p', model: 'http-saved' } } } }); assert.equal(saved.ok, true);
+    const stale = await rpc('profile-save', { id: first.id, expectedRevision: first.revision, config: {} }); assert.equal(stale.ok, false); assert.equal(stale.error.code, 'PROFILE_CONFLICT');
+    const defaulted = await rpc('profile-set-default', { profileId: first.id }); assert.equal(defaulted.ok, true, JSON.stringify(defaulted));
+    const migrated = await rpc('profile-migrate', { profileId: first.id }); assert.equal(migrated.ok, true); assert.equal(migrated.value.changed, false);
+    const afterSave = await rpc('profile-list'); assert.equal(afterSave.value.defaultProfileId, first.id); assert.equal(afterSave.value.profiles.find(p => p.id === first.id).config.roles.oracle.model, 'http-saved');
+    console.log('WEB_PROFILE_HTTP_ROUTES_PASS');
+    // Deleting removes a record from the profile dict, so the registry row
+    // restarts and the preset must vanish from the HOST's own registry too —
+    // asserting the /omds roster alone would not prove the unregister happened.
+    const pending = await rpc('profile-create', { displayName: 'HTTP Named B', config: {} }); assert.equal(pending.ok, true);
+    const second = pending.value;
+    const presets = ctx.get('agentPresets');
+    assert.equal((await presets.resolve(second.id)).id, second.id);
+    const refusedDefault = await rpc('profile-delete', { id: first.id, expectedRevision: saved.value.revision });
+    assert.equal(refusedDefault.ok, false); assert.equal(refusedDefault.error.code, 'PROFILE_IS_DEFAULT');
+    const refusedBundled = await rpc('profile-delete', { id: 'oh-my-dsh-slim', expectedRevision: 'x' });
+    assert.equal(refusedBundled.ok, false); assert.equal(refusedBundled.error.code, 'PROFILE_UNSUPPORTED');
+    const deleted = await rpc('profile-delete', { id: second.id, expectedRevision: second.revision });
+    assert.equal(deleted.ok, true, JSON.stringify(deleted)); assert.equal(deleted.value.id, second.id);
+    await assert.rejects(presets.resolve(second.id), error => /Unknown agent preset/.test(error.message));
+    const afterDelete = await rpc('profile-list');
+    assert.equal(afterDelete.value.profiles.some(profile => profile.id === second.id), false);
+    assert.equal(afterDelete.value.profiles.find(p => p.id === first.id).revision, saved.value.revision);
+    const twice = await rpc('profile-delete', { id: second.id, expectedRevision: second.revision });
+    assert.equal(twice.ok, false); assert.equal(twice.error.code, 'PROFILE_NOT_FOUND');
+    console.log('WEB_PROFILE_DELETE_PASS');
+    assert.equal((await request('/omds/profile-list', { body: '{bad' })).status, 400);
+    assert.equal((await request('/omds/profile-list', { body: '{}', headers: { 'content-type': 'text/plain' } })).status, 415);
+    const invalid = await request('/omds/profile-list', { body: { rpcId: 'invalid' } }); assert.equal(JSON.parse(invalid.text).result.error.code, 'gateway/bad-request');
+    const mismatch = await request('/omds/profile-list', { body: { type: 'client-request', rpcId: 'mismatch', method: 'profile-save', payload: {} } }); assert.equal(JSON.parse(mismatch.text).result.error.code, 'gateway/bad-request');
+    const unknown = await rpc('unknown-endpoint'); assert.equal(unknown.ok, false); assert.equal(unknown.error.code, 'UNKNOWN_ENDPOINT');
+    assert.equal((await request('/omds/profile-list', { method: 'GET' })).status, 404);
+    console.log('WEB_RPC_ENVELOPE_VALIDATION_PASS');
+    const restart = readProfilePatches('omds-web-smoke', profileContext);
+    await ctx.fiber.dispose(); ctx = undefined; cookie = undefined;
+    await start(restart);
+    const restartUrl = new URL(ctx.get('connection').authenticatedUrl(`http://127.0.0.1:${port}/`));
+    const nextExchange = await request(restartUrl.pathname + restartUrl.search, { method: 'GET' }); assert.equal(nextExchange.status, 303); cookie = nextExchange.headers['set-cookie'][0].split(';')[0];
+    const persisted = await rpc('profile-list'); assert.equal(persisted.ok, true); assert.equal(persisted.value.defaultProfileId, first.id); assert.equal(persisted.value.profiles.find(p => p.id === first.id).revision, saved.value.revision);
+    const bundledRestart = ctx.get('settings').describe().find(row => row.ns === 'oh-my-dsh-slim');
+    assert.ok(bundledRestart, 'oh-my-dsh-slim settings namespace survives restart');
+    assert.equal(bundledRestart.value.presets[bundledRestart.value.preset].oracle.model, 'smoke-bundled-save');
+    console.log('WEB_BUNDLED_SETTINGS_RESTART_PASS');
+    console.log('WEB_PROFILE_HTTP_RESTART_PASS');
+    const owner = [...ctx.get('loader').entries()].find(entry => entry.options.id === 'oh-my-dsh-slim');
+    assert.ok(owner?.fiber, 'companion owner fiber unavailable'); await owner.fiber.dispose();
+    const removed = await request('/omds/profile-list', { body: { type: 'client-request', rpcId: 'removed', method: 'profile-list', payload: {} } }); assert.notEqual(removed.status, 200);
+    console.log('WEB_OMDS_ROUTE_DISPOSAL_PASS');
+  } finally {
+    if (ctx) await ctx.fiber.dispose();
+    if (anchorLinkDir !== undefined) {
+      assert.ok(path.basename(anchorLinkDir).startsWith('omds-anchor-link-'));
+      fs.rmSync(anchorLinkDir, { recursive: true, force: true });
+    }
+    // The fixture contains physical copies only: never create junctions/symlinks.
+    // Verify the deletion root is the freshly-created temp-directory family.
+    assert.equal(path.dirname(path.resolve(temporary)), path.resolve(os.tmpdir()));
+    assert.ok(path.basename(temporary).startsWith('omds-web-host-'));
+    const rejectLinks = dir => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const child = path.join(dir, entry.name); const stat = fs.lstatSync(child);
+      assert.equal(stat.isSymbolicLink(), false, 'Refusing cleanup through link: ' + child);
+      if (stat.isDirectory()) rejectLinks(child);
+    } };
+    rejectLinks(temporary);
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
+})().then(() => process.exit(0), error => { console.error(error); process.exit(1); });

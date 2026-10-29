@@ -55,10 +55,12 @@ function providerEligibility(rt, def, shared, exec) {
   if (!rt.ctx.get('subagents')) return { ok: false, reason: 'the subagents service is unavailable' }
   if (!rt.registered.has(def.id)) return { ok: false, reason: `omc:${def.id} is not registered as a provider` }
   if (!exec.agent) return { ok: false, reason: 'this call has no parent agent to attach a child session to' }
-  // A per-call mode cannot travel through the provider surface, so honouring it
-  // means taking the direct path. Silently ignoring it would be worse.
-  if (shared.mode !== cfg.dispatch.defaultMode) {
-    return { ok: false, reason: `mode ${shared.mode} differs from the provider default ${cfg.dispatch.defaultMode}` }
+  // Every `omc:<id>` provider is a fixed read-only surface: roles depend on
+  // that promise and may not gain write access by changing a global default.
+  // A per-call write mode therefore takes the direct path; silently ignoring it
+  // would be worse than a documented degraded surface.
+  if (shared.mode !== 'read-only') {
+    return { ok: false, reason: `mode ${shared.mode} needs the direct surface: omc providers are fixed read-only` }
   }
   return { ok: true, reason: '' }
 }

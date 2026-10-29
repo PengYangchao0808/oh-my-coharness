@@ -1,0 +1,18 @@
+{
+  "upstream": {
+    "name": "oh-my-dsh-slim",
+    "repository": "https://github.com/ninipa/oh-my-dsh-slim",
+    "version": "0.8.6",
+    "commit": "537d4c7f5dc316c449de4ccfff8ab15d15901fa6",
+    "commitSubject": "release: v0.8.6 — the output cap belongs to the model, not the role",
+    "importedAt": "2026-10-30",
+    "importMethod": "pinned GitHub tarball (api.github.com/repos/ninipa/oh-my-dsh-slim/tarball/537d4c7f5dc3), extracted without git metadata",
+    "license": "MIT",
+    "path": "vendor/omd",
+    "notes": [
+      "Only npm-package/, test/ and licence/history documents were imported; the upstream legacy/ and scripts/ trees were not.",
+      "Files under npm-package/ are modified for the Oh My CoHarness integration; see vendor/omd/PATCHES.md.",
+      "The upstream package.json is preserved as UPSTREAM-package.json; it is not a nested npm package."
+    ]
+  }
+}

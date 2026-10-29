@@ -8,6 +8,74 @@ project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
 _No unreleased changes._
 
+## [0.4.0-alpha.1] — 2026-10-30
+
+**OMC 与 OMD 的原生合并。** One install, one preset family: OMD's Orchestrator,
+specialist roles, Council and settings card now ship inside Oh My CoHarness, and
+each role can run natively in DSH or on an external CLI through the existing
+`omc:<id>` providers. DSH remains the runtime; no second role system, no message
+bus, no reimplementation of session management.
+
+### Added
+- **Vendored OMD 0.8.6** (`vendor/omd/`, commit `537d4c7`) with its LICENSE and
+  provenance record. Role personas, Council, profile registry, settings card and
+  the native role path are preserved.
+- **Single bundle**: Host row `oh-my-coharness`, preset `preset-oh-my-coharness`,
+  profile row `oh-my-coharness-profiles`, and `agent-preset-registry` default
+  `oh-my-coharness`. The old `preset-omc-harness` and `preset-oh-my-dsh-slim`
+  rosters are gone.
+- **`role.execution`**: `{ backend: 'native' | 'omc', harness, fallback, allowAdvisory }`.
+  Native stays the default; external execution is opt-in per role.
+- **Execution resolver** (`integration/execution.js`): uses the live
+  `ctx.subagents.list()`, refuses advisory-only read-only by default, and returns
+  a blocked role instead of silently falling back to native.
+- **External task brief** (`integration/external-brief.js`): the same persona the
+  native child receives, with DSH-tool paragraphs replaced by the CLI environment
+  and a fixed report format.
+- **Read-only classes** for every harness: `enforced` (codex, gemini,
+  antigravity), `advisory` (opencode, kimi, claude, glm), `unsupported` (qwen,
+  unknown ids).
+- **`omc:<id>` providers are fixed read-only**: changing `dispatch.defaultMode`
+  can no longer turn a role into a writer. In-place `coharness` dispatch uses the
+  documented direct surface instead.
+- **Council backend mixing**: seats may use different backends; the Council mode
+  prompt names each backend, stops assuming identical tools, and keeps the
+  synthesizer native.
+- **Settings card execution controls**: backend, harness, fallback, advisory
+  acceptance, provider-missing refresh, read-only labels. Harness/provider status
+  comes from the new `/coharness` `execution-status` RPC.
+- **`/coharness migrate`**: preview, backup, apply, `--force`, `--rollback`, and
+  custom-profile import. Old JSON files and old registry rows are preserved;
+  credentials are never copied.
+- **`/coharness status`** and the `coharness` tool's `status` action for a
+  role → backend table without probing CLIs.
+- Doctor now reports the merged preset, role execution rows, read-only classes,
+  blocked roles and a still-mounted legacy OMD.
+
+### Changed
+- The package's main entry is the merged Host row (`src/entry.js`); the OMC Host
+  remains importable as `oh-my-coharness/host`, and the OMD companion as
+  `oh-my-coharness/orchestrator`.
+- Settings namespace, preset id, browser module id, RPC path and config file are
+  now `oh-my-coharness` / `/coharness` / `oh-my-coharness.json`.
+- Native role behavior is unchanged: `role-composition`, `subagent-roles`,
+  `role-mcp` and the official `@deepseek-ai/dsh-tool-subagent` still own the
+  native path.
+- External stock config now omits `agentOptions` entirely and uses
+  `maxDepth: 'provider-managed'`, matching the host's capability checks.
+
+### Breaking
+- Installing alongside `oh-my-dsh-slim` is unsupported: two role rosters fight
+  for the same tool names. Uninstall OMD after migration.
+- Sessions bound to the old preset ids (`oh-my-dsh-slim`, `omc-harness`) cannot
+  resolve their composition; migration reports them but does not rewrite them.
+- The `omc:<id>` provider surface no longer honors a writable
+  `dispatch.defaultMode`. Write dispatches take `surface: direct`.
+
+### License
+- MIT. OMD and OMO Slim attribution retained in [`LICENSE`](LICENSE) and
+  [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
 ## [0.3.0] — 2026-10-29
 
 **Roles that really run on different CLIs.** The bundle now ships an agent preset

@@ -1,3 +1,8 @@
+> **历史文档（v0.2 / v0.3）**：v0.4.0-alpha.1 已将 OMD v0.8.6 源码合并进 Oh My CoHarness，
+> 文中“OMC 与 OMD 两个插件并存 / 两套角色入口”的前提不再成立。
+> 当前架构、角色后端与迁移方式见 [`ARCHITECTURE.zh-CN.md`](./ARCHITECTURE.zh-CN.md)、
+> [`MIGRATION.md`](./MIGRATION.md)。
+
 # 角色 → Harness 路由：现状、差距与方案
 
 > 2026-10-29 · 针对「OMD 调用的子 Agent 应该是不同 harness」这一本意
