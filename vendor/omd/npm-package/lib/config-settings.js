@@ -1,8 +1,6 @@
 // DSH 0.2 settings are volatile Config fields on a profile entry, not namespaces
 // registered by a service. Keep this module independent of preset/config.js.
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
@@ -148,20 +146,9 @@ export function wireConfigSettings(ctx, { validate, log = ctx.logger, path } = {
       readers.set(token, () => child.settings);
       return () => readers.delete(token);
     });
-    // SettingsForms only describes active fibers. Wait until the owning entry
-    // is active rather than trying to import during its own activation.
-    let disposed = false;
-    child.effect(() => () => { disposed = true; });
-    const ready = child.root?.loader?.await?.() ?? Promise.resolve();
-    Promise.resolve(ready).then(() => {
-      if (disposed) return;
-      const home = process.env.DSH_HOME || join(homedir(), '.dsh');
-      const current = join(home, 'oh-my-coharness.json');
-      const legacy = join(home, 'oh-my-dsh-slim.json');
-      return importLegacyConfig(child.settings, {
-        path: path ?? (existsSync(current) ? current : legacy),
-        validate, log,
-      });
-    }).catch(error => log?.warn?.(`oh-my-coharness: settings import unavailable (${error?.message ?? error})`));
+    // v0.4 deliberately does NOT auto-import a legacy JSON document. The plan
+    // requires a previewable, backup-writing `/coharness migrate`; an implicit
+    // import would bypass that. `loadConfig` still reads the old file as a
+    // fallback, so an unmigrated installation keeps its roles.
   });
 }
