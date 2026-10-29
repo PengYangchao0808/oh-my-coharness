@@ -14,6 +14,7 @@
 
 import { loadConfig, bindProfileContext, councilSeats, MIN_COUNCIL_SEATS } from './config.js';
 import { ROLE_TABLE, isSubagent } from './roles.js';
+import { resolveExecution } from '../../../../integration/execution.js';
 
 export const name = 'omds-council-mode';
 export const inject = ['systemPrompt', 'tools'];
@@ -53,15 +54,24 @@ The synthesizer is always DSH-native: it works only from the material in its pro
 }
 
 /**
- * The seats whose tools are visible in one assembly context, in roster order.
- * A configured seat whose tool failed to mount is not advertised.
+ * The seats whose tools are visible AND runnable in one assembly context.
+ * A configured seat whose tool failed to mount — or whose external backend is
+ * blocked by a missing provider / advisory-only CLI — is not advertised.
  */
-function visibleSeats(ctx, context, seats) {
+function visibleSeats(ctx, context, seats, config) {
+  let providers = [];
+  try {
+    providers = ctx.get?.('subagents')?.list?.() ?? [];
+  } catch {
+    providers = [];
+  }
   return seats.filter((roleId) => {
     const row = ROLE_TABLE[roleId];
     if (row === undefined) return false;
     try {
-      return ctx.tools.get(row.toolName, context.scope) !== undefined;
+      if (ctx.tools.get(row.toolName, context.scope) === undefined) return false;
+      const execution = resolveExecution(roleId, config.roles?.[roleId] ?? {}, providers);
+      return execution.blocked !== true;
     } catch {
       return false;
     }
@@ -98,7 +108,7 @@ export async function apply(ctx, config = {}) {
       }
       const configured = councilSeats(config.roles);
       if (configured.length < MIN_COUNCIL_SEATS) return '';
-      const seats = visibleSeats(ctx, context, configured);
+      const seats = visibleSeats(ctx, context, configured, config);
       if (seats.length < MIN_COUNCIL_SEATS) {
         warnOnce('seats', 'council is configured active but only ' + String(seats.length) + ' of ' + String(configured.length) + ' seat tools are mounted; the Council Mode section is hidden');
         return '';

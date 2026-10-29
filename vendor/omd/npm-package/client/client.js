@@ -249,17 +249,24 @@ window.__ModuleLoader__.load({
       const keys = [];
       if (seats.length === 1) keys.push('councilNeedsSeats');
       if (seats.length >= MIN_COUNCIL_SEATS) {
-        // "Repeat sample" needs BOTH axes to be identical. Three seats on one
-        // model with three different seat prompts are still correlated samples,
-        // but they are not the same question asked three times — and the plain
-        // warning said exactly that, which made it fire on every default
-        // configuration once roles began inheriting the session model.
-        const prompts = seats.map((roleId) => String(draft.roles[roleId].personaAppend ?? '').trim());
-        const distinctPrompts = prompts.every((prompt) => prompt !== '') && new Set(prompts).size === seats.length;
-        const inherited = seats.filter((roleId) => !draft.roles[roleId].provider || !draft.roles[roleId].model);
-        if (inherited.length > 0) keys.push(distinctPrompts ? 'councilInheritedModelsDistinct' : 'councilInheritedModels');
-        else if (new Set(seats.map((roleId) => `${draft.roles[roleId].provider}/${draft.roles[roleId].model}`)).size === 1) {
-          keys.push(distinctPrompts ? 'councilSameModelDistinct' : 'councilSameModel');
+        // Only native seats share the DSH model route. External seats use their
+        // CLI's own model, so comparing or warning about their DSH route would
+        // be false. A mixed council with fewer than two native seats has no
+        // same-model warning to give.
+        const nativeSeats = seats.filter((roleId) => (draft.roles[roleId].execution?.backend ?? 'native') === 'native');
+        if (nativeSeats.length >= MIN_COUNCIL_SEATS) {
+          // "Repeat sample" needs BOTH axes to be identical. Three seats on one
+          // model with three different seat prompts are still correlated samples,
+          // but they are not the same question asked three times — and the plain
+          // warning said exactly that, which made it fire on every default
+          // configuration once roles began inheriting the session model.
+          const prompts = nativeSeats.map((roleId) => String(draft.roles[roleId].personaAppend ?? '').trim());
+          const distinctPrompts = prompts.every((prompt) => prompt !== '') && new Set(prompts).size === nativeSeats.length;
+          const inherited = nativeSeats.filter((roleId) => !draft.roles[roleId].provider || !draft.roles[roleId].model);
+          if (inherited.length > 0) keys.push(distinctPrompts ? 'councilInheritedModelsDistinct' : 'councilInheritedModels');
+          else if (new Set(nativeSeats.map((roleId) => `${draft.roles[roleId].provider}/${draft.roles[roleId].model}`)).size === 1) {
+            keys.push(distinctPrompts ? 'councilSameModelDistinct' : 'councilSameModel');
+          }
         }
       }
       return keys;
@@ -1318,7 +1325,13 @@ window.__ModuleLoader__.load({
                 onChange(roleId, { execution: { backend: 'native' } });
                 return;
               }
-              const first = harnessRows.find((row) => row.readOnly !== 'unsupported') ?? HARNESS_CATALOG[0];
+              // Prefer an enforced-read-only harness that is actually enabled;
+              // the first advisory CLI would immediately show a blocked-role
+              // warning after the user just switched backends.
+              const first = harnessRows.find((row) => row.readOnly === 'enforced' && row.enabled !== false)
+                ?? harnessRows.find((row) => row.readOnly !== 'unsupported')
+                ?? HARNESS_CATALOG.find((row) => row.readOnly === 'enforced')
+                ?? HARNESS_CATALOG[0];
               onChange(roleId, { execution: { backend: 'omc', harness: first.id } });
             },
             style: { ...controlStyle, width: 150, flex: 'none' },
