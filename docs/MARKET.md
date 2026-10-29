@@ -21,7 +21,7 @@ npm publish --access public --tag alpha
 | 执行契约 | `node test/integration/contracts.test.mjs` | `pass 14` |
 | Preset/角色 | `node test/integration/preset.test.mjs` | `pass 10` |
 | 设置卡 | `node test/integration/client.test.mjs` | `pass 8` |
-| 迁移 | `node test/integration/migration.test.mjs` | `pass 9` |
+| 迁移 | `node test/integration/migration.test.mjs` | `pass 10` |
 | 真实冒烟 | `node scripts/live-check.mjs` | `live check ok`（两个不同 Harness、只读、工作区不变） |
 | 版本号 | 手工 | `package.json`、客户端 `VERSION`、CHANGELOG 顶部一致 |
 | 仓库地址 | 手工 | `repository.url` 换成真实地址，不要留 `<owner>` |

@@ -13,7 +13,7 @@
 | 执行契约 | `node test/integration/contracts.test.mjs` | **14 pass / 0 fail** |
 | Preset / 角色 | `node test/integration/preset.test.mjs` | **10 pass / 0 fail** |
 | 设置卡模型 | `node test/integration/client.test.mjs` | **8 pass / 0 fail** |
-| 迁移 | `node test/integration/migration.test.mjs` | **9 pass / 0 fail** |
+| 迁移 | `node test/integration/migration.test.mjs` | **10 pass / 0 fail** |
 | 包自检 | `node scripts/check.mjs` | **ok**：manifest / patch / locales / 11 modules / 5 skills |
 | 打包清单 | `node scripts/pack-check.mjs` | **ok**：67 files · 708.8 KiB unpacked |
 

@@ -14,6 +14,7 @@ import {
   renderMigrationPlan,
   writeBackup,
 } from '../../integration/migration.js'
+import { applyMigrationCommand, planMigrationCommand } from '../../src/migrate.js'
 
 async function tempHome() {
   return mkdtemp(join(tmpdir(), 'omc-migrate-'))
@@ -117,4 +118,60 @@ test('config paths honour DSH_HOME', () => {
   assert.equal(paths.currentFile, join('D:\\dsh-home', 'oh-my-coharness.json'))
   assert.equal(paths.legacyFile, join('D:\\dsh-home', 'oh-my-dsh-slim.json'))
   assert.equal(paths.backupDir, join('D:\\dsh-home', 'coharness-backups'))
+})
+
+test('the host migration command previews, writes, imports profiles and rolls back', async () => {
+  const home = await tempHome()
+  const previousHome = process.env.DSH_HOME
+  const previousConfig = process.env.OH_MY_COHARNESS_CONFIG
+  process.env.DSH_HOME = home
+  delete process.env.OH_MY_COHARNESS_CONFIG
+  try {
+    let stored = {}
+    const oldProfiles = {
+      'profile-review': { displayName: 'Review', config: { roles: { oracle: { effort: 'high' } } } },
+    }
+    const newEntry = { options: { id: 'oh-my-coharness-profiles', config: { profiles: {} } } }
+    const editor = {
+      entries: () => [
+        { options: { id: 'oh-my-dsh-slim-profiles', config: { profiles: oldProfiles } } },
+        newEntry,
+      ],
+      edit: async (entry, change) => { entry.options.config = change(entry.options.config) },
+    }
+    const settings = {
+      describe: () => [
+        { ns: 'oh-my-dsh-slim', value: { roles: { oracle: { effort: 'high' } } }, revision: 1 },
+        { ns: 'oh-my-coharness', value: {}, revision: 2 },
+      ],
+      update: async (ns, document) => { stored = document },
+    }
+    const ctx = {
+      get(name) {
+        if (name === 'settings') return settings
+        if (name === 'configEditor') return editor
+        return undefined
+      },
+    }
+
+    const preview = await planMigrationCommand(ctx)
+    assert.equal(preview.plan.document.roles.oracle.effort, 'high')
+    assert.equal(preview.sessions.sessions.length, 0)
+
+    const applied = await applyMigrationCommand(ctx, { apply: true })
+    assert.equal(applied.applied, true)
+    assert.equal(stored.roles.oracle.effort, 'high')
+    assert.equal(newEntry.options.config.profiles['profile-review'].displayName, 'Review')
+    const backup = readBackup(applied.backupFile)
+    assert.deepEqual(backup.documents.current, {})
+
+    const rolled = await applyMigrationCommand(ctx, { rollback: true })
+    assert.equal(rolled.rollback, true)
+    assert.deepEqual(stored, {})
+  } finally {
+    if (previousHome === undefined) delete process.env.DSH_HOME
+    else process.env.DSH_HOME = previousHome
+    if (previousConfig === undefined) delete process.env.OH_MY_COHARNESS_CONFIG
+    else process.env.OH_MY_COHARNESS_CONFIG = previousConfig
+  }
 })
