@@ -420,6 +420,9 @@ export function resolveRole(config, ctx) {
   const roleConfig = preset.roles[row.roleId] ?? {};
   const shipped = roleConfig;
   const execution = resolveExecution(row.roleId, roleConfig, liveProviders(ctx));
+  if (execution.fallbackReason !== undefined) {
+    ctx?.logger?.warn?.('oh-my-coharness: role "' + row.roleId + '": ' + execution.fallbackReason);
+  }
   const external = execution.backend === 'omc';
   const agentOptions = {};
   let routed = false;
