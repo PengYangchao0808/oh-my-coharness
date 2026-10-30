@@ -6,7 +6,44 @@ project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- **Harness adapter contract** (`src/adapters.js`): one lifecycle for every
+  execution backend — `capabilities → start | resume → status → collect →
+  cancel`. The provider and the direct dispatcher share it, so a new transport
+  cannot grow a second task state machine. `cli` is implemented; `mcp` and
+  `app-server` are declared and return `OMC/ADAPTER-UNSUPPORTED` instead of
+  silently degrading to another backend.
+- **Billing guard for automatic routing** (`integration/model-policy.js`):
+  `harnesses.<id>.billing` (`subscription | api | unknown`), plus
+  `routing.allowPaidApi`, `routing.allowUnknownBilling` and a per-role
+  `authorizeBilling`. Only subscription routes are eligible by default; unknown
+  billing is never treated as free. Blocked routes are reported with a reason.
+- **`harnesses.<id>.adapter`** protocol field, kept separate from
+  `harnesses.<id>.transport` (native vs WSL CLI process).
+- **Settings schema** for `routing` and `sessions`; the OMD preset now forwards
+  `routing` and `harnesses` to the role tool so the policy applies at dispatch,
+  not only in the status card.
+- `test/integration/adapters.test.mjs`, wired into `npm test`.
+
+### Changed
+- **Routing is applied at dispatch** when `routing.enabled` is true and the role
+  has no explicit `execution`. An explicit `role.execution` still wins, and only
+  external-capable roles are eligible. `/coharness status` shows the applied
+  `policy` per role and renders `api allowed|blocked` / `unknown allowed|blocked`.
+- **Presets**: `balanced` and `quality` now run Designer on Codex (quality falls
+  back to Antigravity); Kimi is no longer the default Designer backend.
+- **`codex exec resume` no longer passes `-s`**: the resumed turn has no sandbox
+  flag and inherits the policy recorded on the session. Never resume a session
+  created writable. Codex session support is now `verified` (2026-10-30,
+  two-round check); Claude remains `documented`.
+- Role status rows report the effective execution (`omc:<harness>`) instead of
+  the raw configuration, and expose `adapter` / `billing` per harness.
+
+### Notes
+- Verification: `138 tests / 0 fail`, `scripts/check.mjs` reports `13 modules`,
+  and `docs/V0.5.md` §8 records the Codex two-round result plus remaining gaps.
+- MCP and app-server adapters are contract placeholders only. They fail loudly by
+  design; no MCP server or app-server endpoint is shipped or probed.
 
 ## [0.5.0-alpha.1] — 2026-10-30
 

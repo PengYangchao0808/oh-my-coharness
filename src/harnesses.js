@@ -17,6 +17,7 @@
  *   authProbe: { argv: string[], okExit: number } | null,
  *   capabilities: { write: boolean, model: boolean, resume: boolean, json: boolean, stdin: boolean },
  *   readOnly: 'enforced' | 'advisory' | 'unsupported',
+ *   billing: 'subscription' | 'api' | 'unknown',
  *   install: string, verified: boolean, notes?: string,
  *   defaultEnv?: Record<string, string>,
  *   session?: {
@@ -47,6 +48,7 @@ export const HARNESSES = [
     // No read-only switch exists in `opencode run`; the prompt can ask, but the
     // CLI keeps its default permission model.
     readOnly: 'advisory',
+    billing: 'unknown',
     install: 'curl -fsSL https://opencode.ai/install | bash   (inside WSL/Linux)',
     verified: true, // real read-only dispatch on this machine (2.1.4, 2026-10-29)
     notes:
@@ -87,14 +89,18 @@ export const HARNESSES = [
     authProbe: { argv: ['login', 'status'], okExit: 0 },
     capabilities: { write: true, model: true, resume: true, json: true, stdin: true },
     readOnly: 'enforced', // `-s read-only` is Codex's own sandbox
+    billing: 'subscription', // ChatGPT plan; set `harnesses.codex.billing=api` for API keys
     install: 'npm i -g @openai/codex   (Node >=16)',
     verified: true,
     notes:
       'Needs a trusted git repository as cwd. `codex exec resume <id>` continues a native session; ' +
-      'the session id arrives in the `thread.started` JSON event.',
+      'the session id arrives in the `thread.started` JSON event. Verified 2026-10-30: the resumed ' +
+      'turn keeps the original read-only sandbox and reuses cached input.',
     session: {
       format: 'codex-jsonl',
-      confidence: 'documented',
+      confidence: 'verified',
+      // `codex exec resume` exposes no `-s` flag; it inherits the sandbox policy
+      // recorded on the session. Never resume a session created writable.
       resumeArgs: (sessionId, task, opts) => [
         'exec',
         'resume',
@@ -102,8 +108,6 @@ export const HARNESSES = [
         ...(opts.json ? ['--json'] : []),
         '--skip-git-repo-check',
         ...(opts.model ? ['-m', opts.model] : []),
-        '-s',
-        opts.mode === READ_ONLY ? 'read-only' : 'workspace-write',
         task,
       ],
     },
@@ -126,6 +130,7 @@ export const HARNESSES = [
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
     // Headless `-p` has no verified sandbox/approval flag in the recorded argv.
     readOnly: 'advisory',
+    billing: 'subscription',
     install: 'npm i -g @anthropic-ai/claude-code   (Node >=22)',
     verified: true,
     notes:
@@ -164,6 +169,7 @@ export const HARNESSES = [
     authProbe: { argv: ['models'], okExit: 0 },
     capabilities: { write: true, model: true, resume: true, json: true, stdin: true },
     readOnly: 'enforced', // `--sandbox` is the documented restriction switch
+    billing: 'subscription',
     install: 'curl -fsSL https://antigravity.google/cli/install.sh | bash   (binary: ~/.local/bin/agy)',
     verified: true, // 2026-10-29: AGY-LIVE 10.9s, and a sandboxed README read 13.2s on 1.4.10
     notes:
@@ -188,6 +194,7 @@ export const HARNESSES = [
     authProbe: null, // the remote endpoint answers; there is no local status command
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
     readOnly: 'advisory', // same claude binary; the endpoint does not add a sandbox
+    billing: 'subscription', // GLM Coding Plan; use `billing=api` for a metered endpoint
     install: 'install Claude Code, then put ANTHROPIC_AUTH_TOKEN in the env file',
     verified: true, // 2026-10-29: GLM-LIVE in 3.9 s through Z.ai's Anthropic endpoint
     // Z.ai serves GLM over the Anthropic Messages protocol, so any Anthropic client
@@ -232,6 +239,7 @@ export const HARNESSES = [
     authProbe: null, // no status command; auth comes from env/config or first-run OAuth
     capabilities: { write: true, model: true, resume: true, json: true, stdin: true },
     readOnly: 'enforced', // `--approval-mode plan` + `--skip-trust`
+    billing: 'subscription',
     install: 'npm i -g @google/gemini-cli   (Node >=20)',
     verified: true,
     notes:
@@ -267,6 +275,7 @@ export const HARNESSES = [
     authProbe: null, // `kimi login` is a device-code flow with no status subcommand
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
     readOnly: 'advisory', // no verified sandbox flag in the recorded argv
+    billing: 'subscription',
     install: 'npm i -g @moonshot-ai/kimi-code   (Node >=22.19)',
     verified: true,
     notes:
@@ -294,6 +303,7 @@ export const HARNESSES = [
     authProbe: null,
     capabilities: { write: true, model: false, resume: false, json: false, stdin: false },
     readOnly: 'unsupported', // argv shape never verified
+    billing: 'unknown',
     install: 'npm i -g @qwen-code/qwen-code',
     verified: false,
   },

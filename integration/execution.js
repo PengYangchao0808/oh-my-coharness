@@ -14,11 +14,13 @@
 
 import { HARNESSES, harnessDef } from '../src/harnesses.js'
 import {
+  canUseExternal,
   describeExecution,
   executionError,
   normalizeExecution,
   validateExecution,
 } from './compatibility.js'
+import { recommendRoute } from './model-policy.js'
 
 /** Conventional provider name for an external harness. */
 export function executionProviderName(harness) {
@@ -34,7 +36,7 @@ export function harnessReadOnlyClass(harness) {
   return harnessDef(harness)?.readOnly ?? 'unsupported'
 }
 
-function nativeResult() {
+function nativeResult(policy) {
   return {
     backend: 'native',
     provider: 'spawn',
@@ -45,6 +47,7 @@ function nativeResult() {
     mode: null,
     available: true,
     blocked: false,
+    ...(policy ? { policy } : {}),
   }
 }
 
@@ -54,16 +57,32 @@ function nativeResult() {
  * @param roleId - roster id.
  * @param roleConfig - one merged role entry from the effective configuration.
  * @param availableProviders - exact names from `ctx.subagents.list()`.
+ * @param options - `{ routing, billing }`: when routing is enabled and the role
+ *   has no explicit `execution`, the policy may supply the external route.
  * @returns {{
  *   backend: 'native'|'omc', provider: string, backgroundMode: 'continuable'|'one-shot',
  *   external: boolean, harness?: string, readOnly?: string, mode: 'read-only'|'patch'|null,
  *   available: boolean, blocked: boolean, code?: string, reason?: string,
- *   fallbackReason?: string, requested?: object,
+ *   fallbackReason?: string, requested?: object, policy?: object,
  * }}
  */
-export function resolveExecution(roleId, roleConfig, availableProviders = []) {
-  const execution = validateExecution(roleId, roleConfig)
-  if (execution.backend === 'native') return nativeResult()
+export function resolveExecution(roleId, roleConfig, availableProviders = [], options = {}) {
+  // An explicit role.execution always wins. Policy only fills a missing choice,
+  // and only for roles that are allowed to run externally.
+  let effective = roleConfig
+  let policy = null
+  if (options.routing?.enabled === true && roleConfig?.execution === undefined && canUseExternal(roleId)) {
+    policy = recommendRoute(roleId, options.routing, availableProviders, { billing: options.billing })
+    if (policy?.backend === 'omc') {
+      effective = {
+        ...roleConfig,
+        execution: { backend: 'omc', harness: policy.harness, fallback: 'fail' },
+      }
+    }
+  }
+
+  const execution = validateExecution(roleId, effective)
+  if (execution.backend === 'native') return nativeResult(policy)
 
   const harness = execution.harness
   const provider = executionProviderName(harness)
@@ -78,13 +97,14 @@ export function resolveExecution(roleId, roleConfig, availableProviders = []) {
     mode,
     fallback: execution.fallback,
     allowAdvisory: execution.allowAdvisory,
+    ...(policy ? { policy } : {}),
   }
 
   /** Build a blocked external result, or fall back to native when configured. */
   const blocked = (code, reason) => {
     if (execution.fallback === 'native') {
       return {
-        ...nativeResult(),
+        ...nativeResult(policy),
         fallbackReason: `${code}: ${reason}; fell back to native by role configuration`,
         requested,
       }
@@ -102,6 +122,7 @@ export function resolveExecution(roleId, roleConfig, availableProviders = []) {
       code,
       reason,
       requested,
+      ...(policy ? { policy } : {}),
     }
   }
 
@@ -142,6 +163,7 @@ export function resolveExecution(roleId, roleConfig, availableProviders = []) {
     blocked: false,
     fallbackReason: undefined,
     requested,
+    ...(policy ? { policy } : {}),
   }
 }
 

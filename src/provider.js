@@ -17,10 +17,11 @@ import { statSync } from 'node:fs'
 
 import { handoffFromPrompt, normalizeWorkspace } from '../integration/handoff.js'
 import { sessionKeyFor } from '../integration/sessions.js'
+import { adapterFor } from './adapters.js'
 import { harnessConfig } from './config.js'
 import { mintRunId } from './ids.js'
-import { maskSessionId, parseSessionOutput } from './session-adapters.js'
-import { clip, harnessEnv, launch, planTransport, readCollected, statusOf } from './transport.js'
+import { maskSessionId } from './session-adapters.js'
+import { clip, harnessEnv, planTransport } from './transport.js'
 
 /** Prompt content blocks → plain task text. Never invents capabilities. */
 export function blocksToText(blocks) {
@@ -114,9 +115,16 @@ export function makeProvider(ctx, def, cfg, options = {}) {
       const hcfg = harnessConfig(cfg, def.id)
       const plan = await planTransport(ctx, def, cfg, request.signal)
       const env = harnessEnv(def, hcfg)
+      const harnessAdapter = adapterFor(def, cfg)
+      if (harnessAdapter.supported !== true) {
+        throw providerError(
+          'OMC/ADAPTER-UNSUPPORTED',
+          `${def.id}: ${harnessAdapter.reason ?? 'this transport is not available'}`,
+        )
+      }
 
-      const adapter = def.session
-      const confidence = adapter?.confidence ?? 'unverified'
+      const sessionAdapter = def.session
+      const confidence = sessionAdapter?.confidence ?? 'unverified'
       const adapterAllowed = confidence === 'verified'
         || confidence === 'documented'
         || sessionCfg.allowUnverified === true
@@ -128,7 +136,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
       // Only a signed marker built by this Host process may name a lane. A
       // legacy v0.4 brief or a direct dispatch prompt never resumes a session.
       const capture = Boolean(
-        sessionsOn && adapter && adapterAllowed && handoff && identity.source === 'marker' && hasWorkspace && registry,
+        sessionsOn && sessionAdapter && adapterAllowed && handoff && identity.source === 'marker' && hasWorkspace && registry,
       )
       const workspace = normalizeWorkspace(request.cwd ?? process.cwd())
       const key = capture
@@ -187,7 +195,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
         : cfg.dispatch.maxOutputBytes
       let launched
       try {
-        launched = await launch(ctx, def, {
+        const optionsForRun = {
           task,
           cwd: request.cwd,
           model: hcfg.model || undefined,
@@ -204,7 +212,10 @@ export function makeProvider(ctx, def, cfg, options = {}) {
           timeoutMs: hcfg.timeoutMs || cfg.dispatch.timeoutMs,
           maxOutputBytes: collectBytes,
           signal: request.signal,
-        })
+        }
+        launched = resumeId
+          ? await harnessAdapter.resume(ctx, optionsForRun)
+          : await harnessAdapter.start(ctx, optionsForRun)
       } catch (error) {
         if (lease) {
           try {
@@ -220,17 +231,17 @@ export function makeProvider(ctx, def, cfg, options = {}) {
       const result = (async () => {
         try {
           const outcome = await launched.handle.done
-          const captured = readCollected(launched.handle, collectBytes)
-          const status = statusOf(outcome, launched.deadline, request.signal)
+          const captured = harnessAdapter.collect(launched.handle, collectBytes)
+          const status = harnessAdapter.status(outcome, launched.deadline, request.signal)
           const ok = status === 'completed'
-          const parsed = capture ? parseSessionOutput(adapter.format, captured.stdout) : null
+          const parsed = capture ? harnessAdapter.parse(captured.stdout) : null
           const answer = clip(parsed?.text ?? captured.stdout ?? '', cfg.dispatch.maxOutputBytes).text
           const meta = [`omc:${def.id}`]
 
           if (capture) {
             if (resumeId) meta.push(`session resumed ${maskSessionId(resumeId)} (turn ${(lease?.record?.turns ?? 0) + 1})`)
             else meta.push('session new')
-          } else if (adapter) {
+          } else if (sessionAdapter) {
             meta.push('session reuse off')
           }
           if (handoff?.taskId) meta.push(`task ${handoff.taskId}`)
@@ -247,7 +258,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
                 if (parsed?.sessionId) {
                   registry.complete(lease, {
                     sessionId: parsed.sessionId,
-                    format: adapter.format,
+                    format: sessionAdapter.format,
                     usage,
                     taskId: handoff.taskId,
                   })
@@ -294,10 +305,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
         id: mintRunId(),
         result,
         dispose: async () => {
-          launched.handle.terminate()
-          // Release only after the process is really gone, otherwise the host's
-          // capacity slot is returned while the CLI is still running.
-          await launched.handle.waitForExit()
+          await harnessAdapter.cancel(launched.handle)
         },
       }
     },

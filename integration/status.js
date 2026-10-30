@@ -50,12 +50,18 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
   const registry = options.registry ?? createSessionRegistry(cfg.sessions)
   const providers = liveProviders(ctx)
   const loaded = await readRoleConfiguration(ctx)
+  const billing = Object.fromEntries(
+    HARNESSES.map((def) => [def.id, cfg.harnesses[def.id]?.billing ?? def.billing ?? 'unknown']),
+  )
   const roles = []
   if (loaded.ok) {
     for (const [roleId, roleConfig] of Object.entries(loaded.config.roles)) {
       let resolved
       try {
-        resolved = resolveExecution(roleId, roleConfig, providers)
+        resolved = resolveExecution(roleId, roleConfig, providers, {
+          routing: cfg.routing,
+          billing,
+        })
       } catch (error) {
         roles.push({
           roleId,
@@ -71,7 +77,7 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
       roles.push({
         roleId,
         enabled: roleConfig.enabled !== false,
-        execution: describeExecution(roleConfig),
+        execution: resolved.external ? `omc:${resolved.harness}` : describeExecution(roleConfig),
         backend: resolved.backend,
         harness: resolved.harness,
         provider: resolved.provider,
@@ -83,6 +89,7 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
         code: resolved.code,
         reason: resolved.reason,
         fallbackReason: resolved.fallbackReason,
+        policy: resolved.policy,
         externalCapable: EXTERNAL_ROLE_IDS.includes(roleId),
       })
     }
@@ -90,7 +97,7 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
 
   const policy = policySummary(cfg.routing)
   policy.recommendations = Object.fromEntries(
-    roles.map((row) => [row.roleId, recommendRoute(row.roleId, cfg.routing, providers)]),
+    roles.map((row) => [row.roleId, recommendRoute(row.roleId, cfg.routing, providers, { billing })]),
   )
 
   return {
@@ -110,6 +117,8 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
       // directly and a missing key would read as a lost setting.
       model: cfg.harnesses[def.id]?.model ?? '',
       readOnly: harnessReadOnlyClass(def.id),
+      adapter: cfg.harnesses[def.id]?.adapter ?? 'cli',
+      billing: cfg.harnesses[def.id]?.billing ?? def.billing ?? 'unknown',
       provider: `omc:${def.id}`,
       providerAvailable: providers.includes(`omc:${def.id}`),
       verified: def.verified === true,
@@ -178,12 +187,14 @@ export function renderExecutionStatus(status, { legacy } = {}) {
   if (status.routing) {
     lines.push(
       `routing: ${status.routing.preset} (${status.routing.label}) · ` +
-        `${status.routing.enabled ? 'advisory recommendations on' : 'advisory only, not applied'}`,
+        `${status.routing.enabled ? 'advisory recommendations on' : 'advisory only, not applied'} · ` +
+        `api ${status.routing.allowPaidApi ? 'allowed' : 'blocked'} · ` +
+        `unknown ${status.routing.allowUnknownBilling ? 'allowed' : 'blocked'}`,
     )
     if (status.routing.enabled) {
       const recommended = Object.entries(status.routing.recommendations ?? {})
         .filter(([, route]) => route?.backend === 'omc')
-        .map(([role, route]) => `${role}→omc:${route.harness}`)
+        .map(([role, route]) => `${role}→omc:${route.harness}${route.billing ? ` (${route.billing})` : ''}`)
       if (recommended.length) lines.push(`  recommended: ${recommended.join(' · ')}`)
     }
   }

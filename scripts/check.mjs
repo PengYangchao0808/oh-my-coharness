@@ -75,7 +75,7 @@ try {
 }
 
 // ── modules load ─────────────────────────────────────────────────────────────
-const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry', 'session-adapters']
+const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry', 'session-adapters', 'adapters']
 for (const name of modules) {
   try {
     await import(pathToFileURL(join(root, 'src', `${name}.js`)).href)
