@@ -27,8 +27,8 @@ const DESCRIPTION = [
   'or when another toolchain/model should do the work.',
   '',
   "Actions: `list` shows what is installed (free, no model calls); `status` shows role → execution backend and which",
-  '`omc:<id>` providers are registered (free); `doctor` returns a copyable diagnostic report (free); `dispatch` runs real',
-  'work and costs that CLI’s own quota.',
+  '`omc:<id>` providers are registered (free); `doctor` returns a copyable diagnostic report (free); `migrate` previews the',
+  'pre-0.4 configuration migration (pass `apply: true` to write it); `dispatch` runs real work and costs that CLI’s own quota.',
   '',
   'The specialist roles (`subagent_oracle`, `subagent_explorer`, council seats) may be configured to run on one of these',
   'providers. That provider surface is fixed read-only; `dispatch` with `mode: "in-place"` uses the direct surface.',
@@ -79,8 +79,8 @@ function renderDispatch(payload) {
 }
 
 /** Role execution + provider state, without probing any CLI. */
-async function executionStatusText(ctx) {
-  const [status, legacy] = await Promise.all([buildExecutionStatus(ctx), detectLegacyCompanion(ctx)])
+async function executionStatusText(ctx, cfg) {
+  const [status, legacy] = await Promise.all([buildExecutionStatus(ctx, cfg), detectLegacyCompanion(ctx)])
   return renderExecutionStatus(status, { legacy }).join('\n')
 }
 
@@ -96,8 +96,8 @@ function coharnessTool(rt) {
       properties: {
         action: {
           type: 'string',
-          enum: ['dispatch', 'list', 'status', 'doctor'],
-          description: 'dispatch = run work; list = who is available (free); status = role execution backends and provider state (free); doctor = full diagnostic report (free).',
+          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate'],
+          description: 'dispatch = run work; list = who is available (free); status = role execution backends and provider state (free); doctor = full diagnostic report (free); migrate = preview the pre-0.4 configuration migration (pass apply:true to write).',
         },
         harness: {
           type: 'string',
@@ -132,6 +132,9 @@ function coharnessTool(rt) {
           description: 'await returns the result in this call; background returns a child id and reports later.',
         },
         timeoutMs: { type: 'number', description: 'Deadline for this run in milliseconds.' },
+        apply: { type: 'boolean', description: 'For action migrate: write the migrated configuration. Omit/false = preview only.' },
+        force: { type: 'boolean', description: 'For action migrate: overwrite conflicting current values (a backup is always written first).' },
+        rollback: { type: 'boolean', description: 'For action migrate: restore the latest migration backup.' },
       },
       required: ['action'],
       additionalProperties: false,
@@ -167,11 +170,18 @@ function coharnessTool(rt) {
       }
 
       if (action === 'status') {
-        return { text: await executionStatusText(rt.ctx) }
+        return { text: await executionStatusText(rt.ctx, rt.cfg) }
+      }
+
+      if (action === 'migrate') {
+        const result = await applyMigrationCommand(rt.ctx, args.rollback === true
+          ? { rollback: true }
+          : { apply: args.apply === true, force: args.force === true })
+        return { text: result.text }
       }
 
       if (action !== 'dispatch') {
-        return { text: `unknown action "${action}"; use dispatch, list, or doctor` }
+        return { text: `unknown action "${action}"; use dispatch, list, status, doctor, or migrate` }
       }
 
       if (args.mode === 'worktree') {
@@ -218,7 +228,7 @@ function coharnessCommand(rt) {
       }
 
       if (topic === 'status') {
-        return { kind: 'success', text: await executionStatusText(rt.ctx) }
+        return { kind: 'success', text: await executionStatusText(rt.ctx, rt.cfg) }
       }
 
       if (topic === 'migrate') {
