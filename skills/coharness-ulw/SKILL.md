@@ -58,6 +58,14 @@ whenToUse: The user asks for the whole thing — "做完整", "实现并审查",
 - 只读任务可以并行（`tasks[]`，默认 2–3 个）；写入永远串行。
 - 写之前先 `git status` 记录基线；写之后再看一次，确认只改了声明的文件。
 
+## Lane 与 Session 复用
+
+- 一个长期工作方向 = 一个 Lane，例如 `backend-router`、`settings-card`。同一个 Lane 的连续 Builder 任务应**串行**，并尽量让 OMC 续接同一个 Native Session；不同 Lane 才可以并行。
+- 不要为了并行而同时启动两个 Builder 改同一个模块：这既增加总用量，也会重复读取相同文件。
+- 续接是自动的，但**不是保证**。派发后检查完成通知里的 `session resumed` / `task ...` 行；没有续接就按新会话处理，不要把“应该续接了”写进报告。
+- 跨执行者只交接 `taskId / laneId / 已改文件 / 验收证据`；不把整个对话塞给下一个 Agent。
+- 外部 CLI 的 Session 属于 CLI 自己的存储。清除 OMC 引用（`/coharness sessions --clear`）不会删除 CLI 历史。
+
 ## 调研：唯一可以真并行的阶段
 
 Explore 适合一次调用派 2–3 个**只读**任务，例如：

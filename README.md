@@ -1,8 +1,8 @@
 # Oh My CoHarness
 
-> **v0.4.0-alpha.1** — OMD 的成熟 Agent 工作流 + OMC 的原生多 Harness 执行 + DSH 的官方运行时。
+> **v0.5.0-alpha.1** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”。
 > 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
-> 开发分支另含未发布改动：designer 外部只读 patch 模式、设置卡 Harness 启用/模型编辑（见 [CHANGELOG 的 Unreleased](CHANGELOG.md#unreleased)）。
+> 第一批完成 Handoff Contract、Native Session Registry，以及 Codex / Claude 的续接适配；Kimi / OpenCode / Gemini 的适配器需显式开启未验证开关。详见 [docs/V0.5.md](docs/V0.5.md)。
 
 Oh My CoHarness（OMC）把两件过去分开的事合成一个产品：
 
@@ -98,6 +98,99 @@ Oh My CoHarness  ·  一个 Bundle · 一个 Preset
 
 ---
 
+## v0.5：任务交接与原生会话复用
+
+v0.5 不新建 Agent 消息总线。所有交接仍由主控发起，跨执行者只传**必要事实**，不传完整对话。
+
+### Handoff：一次委派的身份与最小上下文
+
+外部角色 Brief 现在带一段 `Handoff:`：
+
+```
+Handoff:
+- Task: task-m3k2-9f1c2a
+- Project: proj-4a91c02e77
+- Lane: lane-oracle-proj-4a91c02e77
+- Changed files: src/provider.js
+- Acceptance:
+  - Report evidence for every claim.
+```
+
+- `taskId` 标识这一次委派；`projectId` 来自工作区；`laneId` 标识长期工作方向，默认是“角色 × 项目”。
+- 交接内容只包含目标、已改文件、产物引用和验收条件；不包含另一个 Agent 的完整对话。
+- Brief 末尾有一个**进程内 HMAC 签名**的机器标记。Provider 在把任务交给 CLI 前会剥离并校验它；直接 `coharness` dispatch 的 prompt 无法伪造标记来续接别人的会话。
+- 产物路径必须是工作区相对路径；绝对路径和 `..` 会在签名前被拒绝。
+
+### Session Registry：续接 CLI 的原生会话
+
+OMC 只保存 CLI 返回的 **Native Session ID** 和少量元数据，不保存对话、Prompt 或凭据：
+
+```
+~/.dsh/oh-my-coharness-sessions.json
+```
+
+会话键由以下字段共同决定，任一不同都不会复用：
+
+```
+projectId · laneId · role · harness · model · environment · workspace · endpoint
+```
+
+因此 GLM（Z.ai 端点）和 Claude（Anthropic 端点）即使共用 `claude` 二进制，也不会串用会话。
+
+```json
+{
+  "sessions": {
+    "enabled": true,
+    "resumePolicy": "auto",
+    "maxTurns": 24,
+    "idleTtlMs": 604800000,
+    "allowUnverified": false
+  }
+}
+```
+
+- `resumePolicy`：`auto`（有匹配就续接）/ `new`（每次新开）/ `require-resume`（没有可续接会话就直接失败）。
+- Session Resume 只在角色调用带**显式 `cwd`** 时启用；没有 `cwd` 时 CLI 继承 Host 进程目录，不能用来标识用户项目。
+- 同一个 Native Session 同时只允许一个运行：Registry 用进程内 lease 排队，超时后明确报 `OMC/SESSION-BUSY`，不会并发写同一个会话。
+- 失败、身份未确认、用户清除的会话都不会自动续接；TTL 或 `maxTurns` 到期后新建。
+- 用户可以随时清除 OMC 引用，但**不会删除 CLI 自己的历史**：
+
+```bash
+/coharness sessions          # 查看引用（session id 已掩码）
+/coharness sessions --clear  # 只清除 OMC 的引用
+```
+
+CLI 支持矩阵（`confidence` 决定默认是否启用）：
+
+| Harness | 续接形态 | 置信度 | 默认 |
+|---|---|---|---|
+| codex | `codex exec resume <id>` + `--json` | documented | ✅ |
+| claude | `claude -p ... --resume <id> --output-format json` | documented | ✅ |
+| kimi | `kimi ... --session <id>` | unverified | ⚠️ 需 `allowUnverified` |
+| opencode | `opencode run --session <id>` | unverified | ⚠️ 需 `allowUnverified` |
+| gemini | `gemini --resume <id>` | unverified | ⚠️ 需 `allowUnverified` |
+| glm | 复用 Claude 的 `--resume`，Z.ai 端点兼容性未验证 | unverified | ⚠️ 需 `allowUnverified` |
+| antigravity | 恢复命令未验证 | — | ❌ |
+
+> **尚未完成真实两轮验收。** 上表的 `documented` 表示命令形态有官方文档依据，不代表本机已经跑通“同一 Lane 第二轮续接”。在真实环境验证前，不要把它当作稳定能力发布。
+
+### 模型策略：先做可解释的建议，不做自动选举
+
+`routing` 提供 `economy / balanced / quality` 三套**建议**，默认不改变执行配置：
+
+```json
+{
+  "routing": {
+    "enabled": false,
+    "preset": "balanced"
+  }
+}
+```
+
+显式的 `role.execution` 永远优先；策略只推荐可用的 `omc:<harness>`，Provider 未注册时回落到 native。`/coharness status` 会显示当前策略和建议，但不会偷偷改路由。
+
+---
+
 ## Council：同一套编排，混合执行后端
 
 ```
@@ -135,7 +228,7 @@ Council 保留 OMD 的原有编排逻辑：最多三个独立席位、同一条�
 | 场景 | 做法 |
 |---|---|
 | Desktop | Plugins 界面安装 `oh-my-coharness`，或本地安装本目录 |
-| 有 dsh CLI | `dsh plugin --profile <profile> add oh-my-coharness@0.4.0-alpha.1` |
+| 有 dsh CLI | `dsh plugin --profile <profile> add oh-my-coharness@0.5.0-alpha.1` |
 | 本地开发 | 用 `plugin_manager` 的 `install_bundle`，`target` = 本目录绝对路径 |
 
 装完**必须重启 DSH**：插件代码每个宿主进程只加载一次。
@@ -208,6 +301,7 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 - 外部执行只开放给 **Oracle / Explorer / Council 席位**，以及 **Designer 的只读 patch 模式**（产出 diff，由原生 Fixer 应用）。Fixer、Librarian、Observer、Council 合成器保持原生。
 - 任务文本会发给该 CLI 自己的服务商。不要把密钥或无关私有内容放进 prompt。
 - OMC 不读取 `~/.codex`、`~/.claude`、`~/.gemini` 的凭证，也不写它们。
+- Session Registry 只保存 Native Session ID 与会话键（项目 / Lane / 角色 / Harness / 模型 / 工作区 / 端点哈希），不保存 Prompt、对话或凭据；文件按当前用户权限创建（POSIX 下 `0600`）。`/coharness sessions --clear` 只删 OMC 引用，不动 CLI 历史。
 
 ---
 
@@ -223,17 +317,18 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 
 ---
 
-## 能力与限制（v0.4.0-alpha.1）
+## 能力与限制（v0.5.0-alpha.1）
 
 | 已有 | 暂不提供 |
 |---|---|
-| 单 Preset、单安装入口、Native 角色完整回归 | 外部 CLI 原生 Session Resume |
-| Oracle / Explorer / Council 席位切换外部只读 CLI；Designer 外部只读产 patch | 外部角色直接写工作区（Designer 只产 patch） |
-| 外部 Persona 自包含 Brief（含 patch 输出契约） | Agent 间点对点通信 / 消息总线 |
-| Council 混合后端 + 原生合成器 | 自动模型能力评分 |
-| 设置卡后端选择、Provider 状态、只读风险确认 | 新的多 Agent Dashboard |
-| 配置预览 / 备份 / 回滚迁移 | 自研 Git Worktree 调度器 |
-| CLI 超时、取消、进程树终止、输出裁剪 | worktree 模式（仍返回明确的 not implemented） |
+| 单 Preset、单安装入口、Native 角色完整回归 | 所有外部 CLI 的 Resume 都经过真实验证 |
+| 签名 Handoff：task / project / lane + 最小上下文 | 外部角色直接写工作区（Designer 只产 patch） |
+| Native Session Registry：Codex / Claude 默认续接 | Agent 间点对点通信 / 消息总线 |
+| Oracle / Explorer / Council 席位切换外部只读 CLI；Designer 外部只读产 patch | 自动模型能力评分 |
+| 外部 Persona 自包含 Brief（含 patch 输出契约） | 设置卡中的 Session / routing 控件 |
+| Council 混合后端 + 原生合成器 | 新的多 Agent Dashboard |
+| CLI 超时、取消、进程树终止、输出裁剪、Usage 元数据 | 自研 Git Worktree 调度器 |
+| 配置预览 / 备份 / 回滚迁移 | worktree 模式（仍返回明确的 not implemented） |
 
 ---
 
@@ -241,11 +336,20 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 
 ```bash
 # 全部测试（Node 20+；DSH Desktop 自带 Node 也能跑）
+npm test
+
+# 也可以逐套跑：
 node test/smoke.test.mjs
 node test/integration/contracts.test.mjs
 node test/integration/preset.test.mjs
 node test/integration/client.test.mjs
 node test/integration/migration.test.mjs
+node test/integration/golden.test.mjs
+node test/integration/handoff.test.mjs
+node test/integration/session-adapters.test.mjs
+node test/integration/sessions.test.mjs
+node test/integration/provider-session.test.mjs
+node test/integration/model-policy.test.mjs
 
 # 包自检：manifest、patch、locales、模块、skills、导出
 node scripts/check.mjs
@@ -262,6 +366,7 @@ node scripts/pack-check.mjs
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/V0.5.md`](docs/V0.5.md) | v0.5：Handoff、Session Registry、适配器、策略与验收边界 |
 | [`docs/ARCHITECTURE.zh-CN.md`](docs/ARCHITECTURE.zh-CN.md) | 合并后的分层、契约与关键决策 |
 | [`docs/MIGRATION.md`](docs/MIGRATION.md) | 从 OMC 0.3.0 + OMD 0.8.6 升级 |
 | [`docs/INTEGRATION-ACCEPTANCE.md`](docs/INTEGRATION-ACCEPTANCE.md) | 验收矩阵与证据 |

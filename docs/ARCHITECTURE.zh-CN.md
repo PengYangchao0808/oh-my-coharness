@@ -1,4 +1,4 @@
-# Oh My CoHarness 架构（v0.4.0-alpha.1）
+# Oh My CoHarness 架构（v0.5.0-alpha.1）
 
 > 基线：OMC v0.3.0（`b2f0d39`）+ OMD v0.8.6（`537d4c7`），目标运行时 DSH 0.2.1。
 > 本文描述合并后的实际结构；不是未来设想。
@@ -103,6 +103,17 @@ resolveExecution(roleId, roleConfig, availableProviders)
 - 可外部但固定 `patch`：designer —— 产出 unified diff，由原生 fixer 落地；
 - 必须原生：fixer、librarian、observer、council。
 
+### 4.1 Handoff 与 Lane
+
+`integration/handoff.js` 是纯函数：不读文件、不碰 Cordis。外部 Brief 携带
+`taskId / projectId / laneId / workspace / context / acceptance / constraints`，
+末尾追加一个进程内 HMAC 签名标记。Provider 剥离并校验标记后才可能启用 Resume：
+
+- `projectId` 来自工作区路径哈希；`laneId` 默认是角色 × 项目。
+- 产物引用必须是工作区相对路径；绝对路径与 `..` 在签名前被拒绝。
+- 直接 `coharness` dispatch 的 prompt 没有签名，不能命名或续接角色会话。
+- v0.4 的旧 Brief 仍能解析角色，但不会启用 Resume。
+
 ## 5. Native 路径
 
 与 OMD 0.8.6 完全一致：
@@ -135,6 +146,28 @@ resolveExecution(roleId, roleConfig, availableProviders)
 4. **一次性**：外部 Provider 没有 `prepareContinuable`，因此没有后续 `send_message`；结果通过完成通知返回。
 5. **失败可见**：Provider 未注册 → blocked；CLI 退出非 0 / 超时 / 取消 → `SubagentResult.stopReason` 与诊断进入主控，Council 如实汇总。
 
+### 6.1 Native Session Resume
+
+外部角色一次运行有两个独立身份：
+
+- **DSH Child ID**：本次激活的 id，由 DSH 生成；用于容量、取消和完成通知。
+- **Native Session ID**：CLI 自己的会话 id；可跨多次 DSH 运行。
+
+`integration/sessions.js` 只保存 Native ID 和会话键。Provider 在启动前按
+`projectId / laneId / role / harness / model / environment / workspace / endpoint`
+查找可续接记录，取到后调用 `def.session.resumeArgs()`；否则走 `def.argv()`。
+同一个 key 用进程内 lease 串行化，避免两个任务同时续接同一个会话。没有显式
+`cwd` 的调用不启用 Resume：此时 CLI 继承 Host 进程目录，无法标识用户项目。
+
+适配器能力与置信度是数据，不是分支：
+
+- `codex` / `claude`：`documented`，默认启用；
+- `kimi` / `opencode` / `gemini` / `glm`：`unverified`，需 `sessions.allowUnverified`；
+- 没有 `def.session` 的 harness（如 antigravity）不参与 Resume。
+
+失败、身份未确认、TTL/轮次到期的记录不再续接；`require-resume` 在没有可用
+记录时于启动 CLI 前失败。Registry 不保存 Prompt、对话或凭据。
+
 ## 7. Council
 
 保留 OMD 的编排：最多三席、同一条消息并行派发、全部结算后调用原生 synthesizer。
@@ -153,6 +186,7 @@ resolveExecution(roleId, roleConfig, availableProviders)
 - `role.execution` 的读、校验、保存、重新加载都走原有 `configForms` / revision 流程；
 - Harness 区可编辑 `harnesses.<id>.enabled` 与 `.model`；写计划按字段 path-scoped，不重建整个 entry；
 - Harness 状态通过 Host RPC `/coharness` 的 `execution-status` 获取；
+- `execution-status` 还返回 session 与 routing 摘要；v0.5 暂不提供设置卡修改入口；
 - 浏览器端不实现 CLI Doctor；
 - Native 仍是缺省值，未改动的角色不会因为打开设置卡而写入 `execution` 字段。
 
@@ -166,11 +200,12 @@ resolveExecution(roleId, roleConfig, availableProviders)
 
 ## 10. 明确不做
 
-- 外部 CLI 原生 Session Resume；
+- 默认开启未验证的 Resume 适配器（`allowUnverified` 必须显式）；
+- 在设置卡中修改 session / routing（v0.5 只读展示）；
 - Agent 间点对点通信 / 消息总线 / 任务数据库；
 - 外部角色直接写工作区（Designer 的外部模式只产 patch，不直接写）；
 - 自研 worktree 调度器；
-- 自动模型能力评分；
+- 自动模型能力评分 / 自动模型选举；
 - 第二套 Dashboard 或第二套角色注册表。
 
 这些不是永久拒绝，而是 v0.4 不引入未经联合验证的新运行时。

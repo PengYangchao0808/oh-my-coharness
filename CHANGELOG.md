@@ -6,35 +6,73 @@ project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.5.0-alpha.1] — 2026-10-30
+
+**Task handoff and native session reuse.** v0.5 keeps the v0.4 topology — one
+Orchestrator, no agent-to-agent bus — and adds the missing efficiency layer:
+a signed handoff identity, a local native-session registry, and resume adapters
+for the CLIs that expose a session id. The DSH child id remains per-run; it is
+never reused as a CLI session id.
+
 ### Added
-- **Designer as an external read-only patch producer.** `designer` may now
-  select an `omc` backend, but its external mode is fixed to `patch`: the CLI
-  inspects the workspace, designs the change and returns a unified diff, and the
-  native fixer applies it. No writable provider is introduced; `omc:*` stays
-  read-only.
-- **Patch output contract** in `integration/external-brief.js`: exactly one
-  fenced diff block, repository-relative paths, `git apply -p1`, and a report
-  that never claims the patch was applied or verified.
-- **Settings card harness editor.** `harnesses.<id>.enabled` and `.model` are
-  editable. Writes are path-scoped, so `command`, `env`, `envFile`, `transport`,
-  `distro` and `timeoutMs` are preserved.
-- `execution-status` rows and doctor now carry the resolved external `mode`, so a
-  patch producer is visible without changing its read-only class.
+- **Handoff contract** (`integration/handoff.js`): `taskId`, `projectId`,
+  `laneId`, workspace, changed files, artifact refs, acceptance and constraints.
+  Artifact paths must stay workspace-relative; absolute paths and `..` are
+  rejected before signing.
+- **Signed handoff marker** in the external brief. The marker is HMAC-signed with
+  a per-process key, stripped before the CLI sees the prompt, and ignored when an
+  unsigned copy is injected into a direct `coharness` prompt.
+- **Native Session Registry** (`integration/sessions.js`): one user-scoped JSON
+  file, atomic writes, `0600` on POSIX, a single-writer lease per key, turn cap,
+  idle TTL, failure/unconfirmed invalidation, and redacted listing.
+- **Resume adapters** (`src/session-adapters.js`, `src/harnesses.js`):
+  Codex JSONL (`thread.started` / `item.completed` / usage) and Claude JSON
+  (`session_id` / `result` / usage) are enabled by default as `documented`.
+  Kimi, OpenCode, Gemini and GLM adapters exist but are `unverified` and require
+  `sessions.allowUnverified: true`.
+- **Usage metadata** on provider results and session records. Missing token or
+  cost fields stay `null`, never zero.
+- **Transport plan cache** (60 s) so repeated role turns do not re-run WSL
+  discovery; failures are never cached.
+- **`/coharness sessions`** and the `coharness` tool's `sessions` action
+  (`clear: true` forgets OMC references without deleting CLI history).
+- **Advisory routing policy** (`integration/model-policy.js`): economy /
+  balanced / quality recommendations, explicit `role.execution` always wins,
+  unavailable providers degrade to native. Disabled by default.
+- **Designer external patch mode** and the settings-card harness editor from the
+  post-alpha.1 work: designer still only produces a diff, and a native fixer
+  applies it.
 
 ### Changed
-- `validateExecution` returns the role's external mode; `resolveExecution` and
-  `buildExecutionStatus` forward it.
-- The role capability whitelist includes `designer`; `fixer`, `librarian`,
-  `observer` and `council` stay native-only.
-- Contract tests cover the patch brief, the status/doctor mode rows and the
-  designer-only patch classification (14 → 21 tests).
-- Client tests cover the harness editor rows, the path-scoped write plan,
-  clearing the model and the reset plan (8 → 12 tests).
+- `role.execution` external rows now also carry `mode` (`read-only` | `patch`)
+  through resolution, status, doctor and the external brief.
+- `provider.start` computes project/lane/role identity, acquires a session lease,
+  captures the CLI's native id and usage, and reports a compact session line in
+  the completion diagnostic.
+- External role wording no longer claims the CLI can never be resumed; it states
+  that a later call in the same lane may continue the native session when reuse
+  is enabled.
+- `execution-status` includes `sessions` and `routing` blocks; the harness rows
+  include `session.format` / `session.confidence`.
+- Test suite grows to 134 tests across the v0.4 regression, golden contracts,
+  handoff, adapters, registry, provider resume and routing policy.
+
+### Security
+- Session reuse requires a signed marker; a v0.4 brief or a direct dispatch
+  prompt never resumes a session.
+- Session keys include endpoint and env-file epoch, so GLM and Claude — same
+  binary, different endpoints — cannot share a native session.
+- The registry stores no prompt, conversation or credential.
 
 ### Notes
-- Designer's external run is still read-only. A native writer must apply the
-  diff, and a CLI that only offers advisory read-only still needs the explicit
-  `allowAdvisory` consent.
+- `documented` means the CLI command shape is documented, **not** that a real
+  two-turn resume has been verified in this installation. Codex/Claude need that
+  live acceptance before v0.5 can call resume a stable feature.
+- Not in this release: a writable external provider, worktree isolation,
+  settings-card session controls, automatic model selection, and a real
+  performance A/B. See `docs/V0.5.md` for the remaining gates.
 
 ## [0.4.0-alpha.1] — 2026-10-30
 

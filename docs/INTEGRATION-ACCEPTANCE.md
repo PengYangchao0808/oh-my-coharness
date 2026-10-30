@@ -5,7 +5,9 @@
 
 > 原则：只记录真实执行过的证据。**没有跑过的项明确标为未验证**，不用“应该可以”代替。
 >
-> 后续未发布改动：designer 外部只读 patch 模式与设置卡 Harness 编辑在 alpha.1 之后加入，尚未做真实宿主验收；自动化计数已变为 contracts 21 / client 12 / pack 69 files。
+> 后续未发布改动：designer 外部只读 patch 模式与设置卡 Harness 编辑在 alpha.1 之后加入，尚未做真实宿主验收；自动化计数已变为 134 tests / pack 74 files。
+>
+> **v0.5 注意**：docs/V0.5.md 的 Session Resume 只经过单测与 fake-provider 验证；真实 Codex/Claude 两轮续接、Kimi/OpenCode/Gemini/GLM 适配、以及 Session Registry 在真实 DSH 重启后的读写都**未验收**。不要把本文的 ✅ 复用到 v0.5 的会话能力上。
 
 ## 1. 自动化门禁
 
