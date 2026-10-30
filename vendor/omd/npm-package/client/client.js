@@ -60,9 +60,11 @@ window.__ModuleLoader__.load({
     const MIN_COUNCIL_SEATS = 2;
     const ROLE_IDS = [...UPSTREAM_ROLE_IDS, ...COUNCILLOR_ROLE_IDS, COUNCIL_ROLE_ID];
     const DERIVED_ENABLED_ROLES = new Set([COUNCIL_ROLE_ID]);
-    // Keep in sync with integration/compatibility.js. Read-only roles only:
-    // external writers wait for isolated workspaces.
-    const EXTERNAL_ROLE_IDS = ['oracle', 'explorer', 'councillor-alpha', 'councillor-beta', 'councillor-gamma'];
+    // Keep in sync with integration/compatibility.js (same ids, same order):
+    // every external role is read-only toward the workspace. designer is a
+    // patch producer — on an external CLI it designs the change and returns a
+    // diff, and a native fixer applies it — so the CLI still never writes.
+    const EXTERNAL_ROLE_IDS = ['oracle', 'explorer', 'councillor-alpha', 'councillor-beta', 'councillor-gamma', 'designer'];
     // Fallback labels when the RPC status is unavailable; the Live status is
     // authoritative for provider registration and the read-only class.
     const HARNESS_CATALOG = [
@@ -342,6 +344,14 @@ window.__ModuleLoader__.load({
       executionAllowAdvisory: '接受 advisory 只读风险',
       executionAdvisoryAccepted: 'advisory 只读：CLI 仍可能写入，已由你显式接受。',
       executionModelOwnedByCli: '外部运行时，模型由该 CLI 自己的配置决定；这里的 DSH 模型/强度设置不生效。',
+      executionDesignerPatchNote: '只读运行：产出补丁，由原生 fixer 应用；它的模型在上面的外部 CLI 设置里选择。',
+      executionHarnessGroup: '外部 CLI 设置',
+      executionHarnessReloadHint: '启用状态与模型在插件启动时读取；已注册的 CLI 需要重载会话后才生效。',
+      executionHarnessModel: 'CLI 模型',
+      executionHarnessDefaultModel: 'CLI 默认',
+      executionHarnessProviderMissing: 'Provider 未注册',
+      executionHarnessUnverified: '调用方式未验证',
+      executionReadOnlyNone: '无只读调用方式',
       orchestratorNote: 'orchestrator 即当前会话主模型：在对话输入框的模型选择器中更换，默认模型在 设置-模型 维护。未单独选模型/档位的角色跟随它；固定档位不被主模型支持时会在委派时退回会话档位。',
       enabled: '启用',
       model: '模型',
@@ -462,6 +472,14 @@ window.__ModuleLoader__.load({
       executionAllowAdvisory: 'Accept advisory read-only risk',
       executionAdvisoryAccepted: 'Advisory read-only: the CLI may still write; you explicitly accepted that.',
       executionModelOwnedByCli: 'For external runs the CLI owns model selection; the DSH model/effort settings here do not apply.',
+      executionDesignerPatchNote: 'Runs read-only: it returns a patch that the native fixer applies; its model is set in the External CLI section above.',
+      executionHarnessGroup: 'External CLI settings',
+      executionHarnessReloadHint: 'Enabled and model are read when the plugin starts; a registered CLI picks them up after a session reload.',
+      executionHarnessModel: 'CLI model',
+      executionHarnessDefaultModel: 'CLI default',
+      executionHarnessProviderMissing: 'provider not registered',
+      executionHarnessUnverified: 'invocation not verified',
+      executionReadOnlyNone: 'no read-only mode',
       orchestratorNote: 'The orchestrator is the session\u2019s main model: change it in the composer\u2019s model picker; defaults live in Settings \u2192 Models. Roles without their own model or level follow it; a fixed level the model does not offer falls back to the session\u2019s level.',
       enabled: 'Enabled',
       model: 'Model',
@@ -628,6 +646,123 @@ window.__ModuleLoader__.load({
       return row?.providerAvailable !== false;
     }
 
+    // The two harness fields the card edits. Everything else in a
+    // `harnesses.<id>` entry (command, env, envFile, transport, distro,
+    // timeoutMs) belongs to the user's own CLI setup and is never rewritten:
+    // the write plan addresses `<entry>.<field>` paths only.
+    const HARNESS_FIELDS = ['enabled', 'model'];
+
+    /**
+     * The editable face of one harness entry.
+     *
+     * `enabled` defaults to true and an absent model means "let the CLI decide"
+     * — the normalization the Host itself applies (src/config.js), so a row
+     * built from a payload without `model` (an older host) still renders as
+     * "no model set" instead of crashing the card.
+     */
+    function harnessEntryValue(entry) {
+      return {
+        enabled: entry?.enabled !== false,
+        model: typeof entry?.model === 'string' ? entry.model : '',
+      };
+    }
+
+    /**
+     * One row per harness the card edits: the live status (label, read-only
+     * class, provider registration, verified argv) plus the value it shows.
+     *
+     * Harness values live in the HOST settings document (`harnesses.<id>`), not
+     * in a role profile, so they are read from the effective settings value.
+     * Where the document carries no value the live row fills the gap: it is the
+     * Host's own resolution, and the shipped defaults that disable glm and qwen
+     * live in the Host (src/config.js), not in the card's base layer.
+     */
+    function harnessEditorRows(effective, status) {
+      const rows = [...harnessOptions(status)];
+      const seen = new Set(rows.map((row) => row.id));
+      // A stored id the Host does not report still gets an editor: otherwise a
+      // value written by hand, or by a host that no longer lists the CLI, could
+      // never be seen or cleared.
+      for (const harnessId of Object.keys(effective?.harnesses ?? {})) {
+        if (seen.has(harnessId)) continue;
+        seen.add(harnessId);
+        rows.push({ id: harnessId, label: harnessId });
+      }
+      return rows.map((row) => {
+        const stored = effective?.harnesses?.[row.id];
+        const resolved = harnessEntryValue(row);
+        return {
+          ...row,
+          value: {
+            enabled: typeof stored?.enabled === 'boolean' ? stored.enabled : resolved.enabled,
+            model: typeof stored?.model === 'string' ? stored.model : resolved.model,
+          },
+        };
+      });
+    }
+
+    /** One harness field in the shape the settings document stores, or undefined for "unset". */
+    function harnessWriteValue(entry, field) {
+      if (field === 'enabled') return entry.enabled !== false;
+      const model = typeof entry.model === 'string' ? entry.model : '';
+      // A cleared box means "let the CLI decide": write no model at all rather
+      // than an empty string that would have to be cleared again later.
+      return model.trim() === '' ? undefined : model;
+    }
+
+    /**
+     * Write plan for the staged harness edits.
+     *
+     * One PATH-SCOPED op per edited field, so a harness entry keeps every
+     * sibling key (`command`, `env`, `envFile`, `transport`, `distro`,
+     * `timeoutMs`): the document is never rebuilt entry by entry.
+     *
+     * A field the row already showed before the edit is left alone — that is an
+     * undone edit, or a value the Host resolved as its own default, and writing
+     * it back would only pin a default as if it were a choice. Clearing the
+     * model UNSETS it for the same reason.
+     *
+     * @param shown - value each row displayed before the edit, per harness id.
+     * @param user - the settings user layer (`snap.user`).
+     * @param patch - staged fields, per harness id.
+     * @returns ops shaped like the settings mutate contract.
+     */
+    function planHarnessOps(shown, user, patch) {
+      const ops = [];
+      for (const harnessId of Object.keys(patch ?? {})) {
+        const staged = patch[harnessId] ?? {};
+        const before = harnessEntryValue(shown?.[harnessId]);
+        for (const field of HARNESS_FIELDS) {
+          if (staged[field] === undefined) continue;
+          const desired = harnessWriteValue(harnessEntryValue(staged), field);
+          if (deepEqualJson(desired, harnessWriteValue(before, field))) continue;
+          const path = ['harnesses', harnessId, field];
+          const current = getPath(user, path);
+          if (desired === undefined) {
+            if (current !== undefined) ops.push({ op: 'unset', path });
+          } else if (!deepEqualJson(current, desired)) {
+            ops.push({ op: 'set', path, value: desired });
+          }
+        }
+      }
+      return ops;
+    }
+
+    /**
+     * Reset plan: drop the stored `enabled`/`model` overrides so every CLI falls
+     * back to the Host's own defaults. The rest of each entry stays.
+     */
+    function planHarnessReset(user) {
+      const ops = [];
+      for (const harnessId of Object.keys(user?.harnesses ?? {})) {
+        for (const field of HARNESS_FIELDS) {
+          const path = ['harnesses', harnessId, field];
+          if (getPath(user, path) !== undefined) ops.push({ op: 'unset', path });
+        }
+      }
+      return ops;
+    }
+
     function parseAdvancedNumber(raw, kind) {
       if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
       const n = Number(raw);
@@ -668,6 +803,9 @@ window.__ModuleLoader__.load({
           temperature: adv.temperature,
           personaAppend: adv.personaAppend,
           execution: normalizeExecution(presetRole.execution ?? baseRole.execution),
+          // A role that declares it produces patches (designer's external
+          // consultant mode). Display only: no write plan ever emits it.
+          ...((presetRole.mode ?? baseRole.mode) === 'patch' ? { mode: 'patch' } : {}),
         };
       }
       return { preset: presetName, roles };
@@ -1228,6 +1366,69 @@ window.__ModuleLoader__.load({
         + (row.providerAvailable === false ? ` · ${t('executionProviderMissing')}` : '');
     }
 
+    /**
+     * One external CLI row: the enable switch, what the CLI is (label, id), how
+     * strongly its read-only mode holds, whether its provider is registered,
+     * whether its headless invocation was verified, and the model passed to it.
+     *
+     * `value` is what the card stages (`enabled` + `model`); `row` keeps the
+     * live status untouched so the read-only class, provider state and binary
+     * stay Host-reported facts rather than client guesses.
+     */
+    function HarnessRow({ row, value, onChange, t }) {
+      const enabled = value?.enabled !== false;
+      const model = typeof value?.model === 'string' ? value.model : '';
+      const readOnlyKey = row.readOnly === 'enforced'
+        ? 'executionReadOnlyEnforced'
+        : row.readOnly === 'advisory' ? 'executionReadOnlyAdvisory' : 'executionReadOnlyNone';
+      // `verified` means the headless argv shape was confirmed against the CLI's
+      // own help output; `bin` is what the Host resolved for it (never a
+      // browser-side probe). Both are facts, printed as one tertiary line.
+      const facts = [
+        typeof row.bin === 'string' && row.bin !== '' ? row.bin : undefined,
+        row.verified === false ? t('executionHarnessUnverified') : undefined,
+      ].filter((part) => part !== undefined).join(' · ');
+      return React.createElement('div', {
+        style: { border: `1px solid ${color.border}`, borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 },
+      },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
+          React.createElement(Switch, {
+            checked: enabled, onChange: () => onChange(row.id, { enabled: !enabled }),
+            label: `${row.id} ${t('enabled')}`,
+          }),
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, row.label ?? row.id),
+          React.createElement('span', {
+            style: { fontSize: 11, lineHeight: '16px', color: color.tertiary, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+          }, row.id),
+          React.createElement('span', {
+            style: { fontSize: 11, lineHeight: '16px', padding: '2px 8px', borderRadius: 999, border: `1px solid ${color.border}`, color: color.secondary, flex: 'none' },
+          }, t(readOnlyKey)),
+          row.providerAvailable === false
+            ? React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.warn, flex: 'none' } }, t('executionHarnessProviderMissing'))
+            : null,
+        ),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' } },
+          React.createElement('span', { style: { fontSize: 11, color: color.tertiary, flex: 'none' } }, t('executionHarnessModel')),
+          React.createElement('div', { style: { flex: '1 1 200px', minWidth: 0 } },
+            React.createElement(ui.Input, {
+              value: model,
+              // An empty box is "let the CLI decide": the placeholder names the
+              // model the Host resolved for this row, else the CLI's own default.
+              placeholder: typeof row.model === 'string' && row.model !== ''
+                ? row.model
+                : t('executionHarnessDefaultModel'),
+              onChange: (e) => onChange(row.id, { model: e.target.value }), style: controlStyle,
+            }),
+          ),
+          facts !== ''
+            ? React.createElement('span', {
+              style: { fontSize: 11, lineHeight: '16px', color: color.tertiary, flex: '0 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+            }, facts)
+            : null,
+        ),
+      );
+    }
+
     function RoleRow({ roleId, draft, groups, modelsStatus, advOpen, onAdvancedToggle, onChange, t, showSwitch = true, statusText, executionStatus, onRefreshExecution }) {
       const role = draft.roles[roleId];
       const locked = roleId === 'observer';
@@ -1239,6 +1440,14 @@ window.__ModuleLoader__.load({
       const readOnly = external ? harnessReadOnly(executionStatus, harness) : undefined;
       const providerAvailable = external ? harnessProviderAvailable(executionStatus, harness) : true;
       const advisoryBlocked = external && readOnly === 'advisory' && execution.allowAdvisory !== true;
+      // designer's external backend is a read-only design consultant: it returns
+      // a patch instead of writing, so the row states that contract wherever it
+      // applies. Newer status rows may carry `mode: 'patch'` themselves; older
+      // hosts omit both, and nothing renders.
+      const statusRole = Array.isArray(executionStatus?.execution?.roles)
+        ? executionStatus.execution.roles.find((row) => row?.roleId === roleId)
+        : undefined;
+      const patchMode = role.mode === 'patch' || statusRole?.mode === 'patch';
       const effortOptions = effortOptionsFor(groups, role.provider, role.model);
       // A switched-off role is never dispatched, so a stale effort its model
       // cannot take is not an error: observer ships disabled, and letting it
@@ -1383,6 +1592,12 @@ window.__ModuleLoader__.load({
           ? React.createElement('div', { style: { fontSize: 11, lineHeight: '16px', color: color.warn } }, t('executionAdvisoryAccepted'))
           : null,
         external ? React.createElement('div', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('executionModelOwnedByCli')) : null,
+        // One line, same size and colour as the other hints: the contract and
+        // where the model comes from. Only designer (on a CLI) and any role the
+        // status marks `mode: 'patch'` show it.
+        (roleId === 'designer' && external) || patchMode
+          ? React.createElement('div', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('executionDesignerPatchNote'))
+          : null,
         !externalCapable && execution.backend === 'omc'
           ? React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' } }, t('executionRoleUnsupported'))
           : null,
@@ -1456,6 +1671,10 @@ window.__ModuleLoader__.load({
       // draft === undefined → clean (mirror the snapshot / profile config);
       // object → staged edits.
       const [draft, setDraft] = React.useState(undefined);
+      // Harness rows are HOST settings (`harnesses.<id>`), not part of any role
+      // profile, so their staged edits live beside the role draft and are
+      // written to the same settings document.
+      const [harnessDraft, setHarnessDraft] = React.useState(undefined);
       const [roster, setRoster] = React.useState(() => initialProfileRoster({}));
       const [selectedId, setSelectedId] = React.useState(BUNDLED_PROFILE_ID);
       // The in-place draft profile opened by the "new configuration" item.
@@ -1592,10 +1811,23 @@ window.__ModuleLoader__.load({
           : mergeProfileConfig(base, selectedProfile?.config ?? {});
       const current = draft ?? buildDraft(editEffective, editEffective?.advanced, base);
       const baseline = buildDraft(editEffective, editEffective?.advanced, base);
+      // Harness rows and their staged values. `effective` is the settings
+      // document itself, so these rows read the same on every profile: a CLI
+      // setting does not belong to a delegation profile.
+      const harnessList = harnessEditorRows(effective, executionStatus);
+      const harnessShown = Object.fromEntries(harnessList.map((row) => [row.id, row.value]));
+      const currentHarness = Object.fromEntries(harnessList.map((row) => [
+        row.id,
+        { ...row.value, ...(harnessDraft?.[row.id] ?? {}) },
+      ]));
+      const harnessOps = harnessDraft === undefined
+        ? []
+        : planHarnessOps(harnessShown, user, harnessDraft);
       const ops = isBundledProfile && draft !== undefined ? planUserOps(base, user, draft) : [];
-      const dirty = isBundledProfile
+      const dirty = (isBundledProfile
         ? ops.length > 0
-        : draft !== undefined && !deepEqualJson(draft, baseline);
+        : draft !== undefined && !deepEqualJson(draft, baseline))
+        || harnessOps.length > 0;
       const invalid = ROLE_IDS.some((roleId) => {
         const role = current.roles[roleId];
         return parseAdvancedNumber(role.maxTokens, 'maxTokens') === null
@@ -1615,10 +1847,18 @@ window.__ModuleLoader__.load({
           return { ...next, roles: { ...next.roles, [roleId]: { ...next.roles[roleId], ...patch } } };
         });
       };
+      // Stage one harness field. Only the touched fields are staged: the write
+      // plan must not pin a switch or a model the user never edited.
+      const changeHarness = (harnessId, patch) => {
+        setHarnessDraft((previous) => ({
+          ...previous,
+          [harnessId]: { ...(previous?.[harnessId] ?? {}), ...patch },
+        }));
+      };
       const toggleAdvanced = (roleId) => {
         setExpanded((previous) => ({ ...previous, [roleId]: !previous[roleId] }));
       };
-      const run = async (writeOps, doneText) => {
+      const run = async (writeOps, doneText, { keepRoleDraft = false } = {}) => {
         setSaving(true);
         setProfileError(undefined);
         try {
@@ -1645,7 +1885,11 @@ window.__ModuleLoader__.load({
             return false;
           }
           setSnap(scope.getSnapshot());
-          setDraft(undefined);
+          // The harness rows were part of this write whenever they had staged
+          // edits; a caller that keeps the role draft (a custom profile's
+          // profile.json is written next) still clears them here.
+          if (!keepRoleDraft) setDraft(undefined);
+          setHarnessDraft(undefined);
           setToast({ text: doneText, icon: renderIcon(ui, ICON_CHECK, { size: 14 }) });
           return true;
         } finally {
@@ -1695,21 +1939,42 @@ window.__ModuleLoader__.load({
         }
       };
 
-      // The bundled profile saves through the settings namespace (hot, fenced
-      // by the host per op). Saving a new-profile draft opens the naming
-      // dialog; the create RPC itself is confirmed from the dialog.
-      const save = () => {
-        if (!dirty || invalid || saving) return;
-        if (saveMode === 'bundled') { void run(ops, t('saved')); return; }
+      /**
+       * Persist everything staged in the card. The bundled profile saves
+       * through the settings namespace (hot, fenced by the host per op); saving
+       * a new-profile draft opens the naming dialog, and the create RPC itself
+       * is confirmed from the dialog.
+       *
+       * Role edits belong to the selected profile (the settings document for
+       * the bundled one, profile.json for a custom profile). Harness rows are
+       * Host settings, so their `harnesses.<id>.<field>` ops always travel
+       * through the settings document — the same mutate/revision path the
+       * bundled save uses — whichever profile carries the roles.
+       * @returns {Promise<boolean>} true when the staged writes were accepted.
+       */
+      const persistDraft = async () => {
+        if (saveMode === 'bundled') {
+          // One atomic mutate for the role and harness ops together.
+          return run([...ops, ...harnessOps], t('saved'));
+        }
+        if (harnessOps.length > 0 && !(await run(harnessOps, t('saved'), { keepRoleDraft: true }))) return false;
         if (saveMode === 'create') {
-          setNameModal({ open: true, input: '', error: undefined });
-          return;
+          // Only a role edit has a profile document to create; the naming
+          // dialog finishes the job (confirmCreate performs the switch).
+          if (draft !== undefined) setNameModal({ open: true, input: '', error: undefined });
+          return true;
         }
         if (saveMode !== 'custom' || !selectedProfile) {
           setProfileError(t('profileSaveFailed'));
-          return;
+          return false;
         }
-        void saveCustom(selectedProfile, draftToConfig(draft, selectedProfile.config, defaultsBaseline));
+        // Harness rows alone leave no profile document to rewrite.
+        if (draft === undefined) return true;
+        return saveCustom(selectedProfile, draftToConfig(draft, selectedProfile.config, defaultsBaseline));
+      };
+      const save = () => {
+        if (!dirty || invalid || saving) return;
+        void persistDraft();
       };
 
       const confirmCreate = async () => {
@@ -1867,6 +2132,9 @@ window.__ModuleLoader__.load({
 
       const commitSelect = (nextId) => {
         setDraft(undefined);
+        // Staged harness edits are discarded with the profile switch: they are
+        // Host settings that a "discard" decision must not apply.
+        setHarnessDraft(undefined);
         setProfileError(undefined);
         if (nextId === NEW_PROFILE_SENTINEL) {
           setNewDraft(createNewProfileDraft(editEffective));
@@ -1889,18 +2157,13 @@ window.__ModuleLoader__.load({
       // hides — both would stack on screen otherwise.
       const guard = pendingSwitch !== undefined && !nameModal.open;
       const confirmGuardSave = async () => {
-        if (saveMode === 'bundled') {
-          if (!(await run(ops, t('saved')))) return;
-        } else if (saveMode === 'create') {
-          setNameModal({ open: true, input: '', error: undefined });
-          return; // confirmCreate performs the switch
-        } else if (saveMode === 'custom' && selectedProfile) {
-          const ok = await saveCustom(selectedProfile, draftToConfig(draft, selectedProfile.config, defaultsBaseline));
-          if (!ok) return;
-        } else {
-          setProfileError(t('profileSaveFailed'));
+        // A new-profile draft is finished by the naming dialog, which performs
+        // the switch itself (confirmCreate).
+        if (saveMode === 'create' && draft !== undefined) {
+          await persistDraft();
           return;
         }
+        if (!(await persistDraft())) return;
         const next = pendingSwitch;
         setPendingSwitch(undefined);
         commitSelect(next);
@@ -1916,8 +2179,15 @@ window.__ModuleLoader__.load({
         if (isBundledProfile) {
           const resetDraft = buildDraft(base, base?.advanced, base);
           const resetOps = planUserOps(base, user, resetDraft);
-          if (resetOps.length === 0) { setDraft(undefined); return; }
-          await run(resetOps, t('resetDone'));
+          // Harness rows reset too: their stored `enabled`/`model` overrides
+          // are unset while the rest of the entry (command, env, …) stays.
+          const resetHarness = planHarnessReset(user);
+          if (resetOps.length === 0 && resetHarness.length === 0) {
+            setDraft(undefined);
+            setHarnessDraft(undefined);
+            return;
+          }
+          await run([...resetOps, ...resetHarness], t('resetDone'));
           return;
         }
         // Custom profiles: restore the LOCAL edit to the bundled defaults;
@@ -1925,6 +2195,7 @@ window.__ModuleLoader__.load({
         // what is being edited).
         const defaultsDraft = buildDraft(base, base?.advanced, base);
         if (!deepEqualJson(defaultsDraft, baseline)) setDraft(defaultsDraft);
+        setHarnessDraft(undefined);
       };
       // Expanded by default: on DSH 0.2 the card is a settings page (the
       // `settings.section` slot), so the content should be visible on entry
@@ -2004,6 +2275,20 @@ window.__ModuleLoader__.load({
         ...councilRows,
       );
       const roleRows = [...upstreamRows, councilGroup, observerRow];
+
+      // External CLI rows sit ABOVE the roles: a role sent to `omc` reads its
+      // model from here (the designer note points at this section), and the
+      // enabled bit decides whether that CLI's provider is registered at all.
+      const harnessSection = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', minWidth: 0 } },
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, t('executionHarnessGroup')),
+          // One short line, once: these values are read at plugin start.
+          React.createElement('span', { style: { fontSize: 11, color: color.tertiary, lineHeight: '16px', minWidth: 0 } }, t('executionHarnessReloadHint')),
+        ),
+        ...harnessList.map((row) => React.createElement(HarnessRow, {
+          key: row.id, row, value: currentHarness[row.id], onChange: changeHarness, t,
+        })),
+      );
 
       // The profile strip lives at the top of the expanded card: choosing a
       // profile only changes WHAT is edited; the session is untouched.
@@ -2152,6 +2437,7 @@ window.__ModuleLoader__.load({
         actions,
         React.createElement('div', { style: { display: 'flex', gap: 6, fontSize: 12, color: color.secondary, background: color.hover, borderRadius: 8, padding: '6px 8px' } },
           t('orchestratorNote')),
+        harnessSection,
         roleRows,
         !writable ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: color.warn, fontSize: 12 } },
           renderIcon(ui, ICON_WARNING, { size: 14 }), t('readOnly')) : null,
@@ -2214,6 +2500,10 @@ window.__ModuleLoader__.load({
     exports.externalRoleAllowed = externalRoleAllowed;
     exports.harnessOptions = harnessOptions;
     exports.harnessLabel = harnessLabel;
+    exports.harnessEntryValue = harnessEntryValue;
+    exports.harnessEditorRows = harnessEditorRows;
+    exports.planHarnessOps = planHarnessOps;
+    exports.planHarnessReset = planHarnessReset;
     exports.effortOptionsFor = effortOptionsFor;
     exports.effortLabel = effortLabel;
     exports.effortSelectValue = effortSelectValue;

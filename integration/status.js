@@ -72,6 +72,8 @@ export async function buildExecutionStatus(ctx, rowConfig = {}) {
         provider: resolved.provider,
         providerAvailable: resolved.external ? providers.includes(resolved.provider) : true,
         readOnly: resolved.readOnly,
+        // What an external run of this role may do; native rows have no mode.
+        mode: resolved.mode,
         blocked: resolved.blocked === true,
         code: resolved.code,
         reason: resolved.reason,
@@ -92,6 +94,9 @@ export async function buildExecutionStatus(ctx, rowConfig = {}) {
       label: def.label,
       bin: def.bin,
       enabled: cfg.harnesses[def.id]?.enabled !== false,
+      // Empty string, never undefined: the settings card renders this field
+      // directly and a missing key would read as a lost setting.
+      model: cfg.harnesses[def.id]?.model ?? '',
       readOnly: harnessReadOnlyClass(def.id),
       provider: `omc:${def.id}`,
       providerAvailable: providers.includes(`omc:${def.id}`),
@@ -133,6 +138,9 @@ export function renderExecutionStatus(status, { legacy } = {}) {
     if (row.blocked) flags.push(`${row.code}: ${row.reason}`)
     if (row.fallbackReason) flags.push(row.fallbackReason)
     if (row.readOnly) flags.push(`read-only ${row.readOnly}`)
+    // A patch producer is read-only toward the tree but returns a diff a native
+    // implementer applies; the flag keeps that distinction visible in doctor.
+    if (row.mode === 'patch') flags.push('patch producer')
     if (row.external && row.providerAvailable === false) flags.push('provider unavailable')
     lines.push(
       `  ${row.roleId.padEnd(18)}${String(row.enabled === false ? 'off' : 'on').padEnd(4)}` +

@@ -5,15 +5,19 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import {
+  EXTERNAL_MODES,
   EXTERNAL_ROLE_IDS,
   NATIVE_ONLY_ROLE_IDS,
+  PATCH_ONLY_ROLE_IDS,
   canUseExternal,
+  externalModeFor,
+  isReadOnlyRole,
   normalizeExecution,
   validateExecution,
 } from '../../integration/compatibility.js'
 import { harnessReadOnlyClass, resolveExecution } from '../../integration/execution.js'
-import { adaptPersonaForExternal, buildExternalBrief } from '../../integration/external-brief.js'
-import { buildExecutionStatus, detectLegacyCompanion } from '../../integration/status.js'
+import { adaptPersonaForExternal, buildExternalBrief, defaultExternalConstraints } from '../../integration/external-brief.js'
+import { buildExecutionStatus, detectLegacyCompanion, renderExecutionStatus } from '../../integration/status.js'
 import { HARNESSES, harnessDef } from '../../src/harnesses.js'
 import { resolveConfig } from '../../src/config.js'
 import { makeProvider } from '../../src/provider.js'
@@ -83,11 +87,60 @@ test('an unknown harness fails with a structured reason', () => {
 
 test('structural execution errors throw and name the role', () => {
   assert.throws(() => validateExecution('fixer', { execution: { backend: 'omc', harness: 'codex' } }), /cannot use an external backend/)
-  assert.throws(() => validateExecution('designer', { execution: { backend: 'omc', harness: 'codex' } }), /native path/)
   assert.throws(() => validateExecution('council', { execution: { backend: 'omc', harness: 'codex' } }), /synthesizer must stay native/)
   assert.throws(() => validateExecution('oracle', { execution: { backend: 'nope' } }), /unknown execution backend/)
   assert.throws(() => validateExecution('oracle', { execution: { backend: 'omc' } }), /without a harness/)
   assert.throws(() => validateExecution('oracle', { execution: { backend: 'omc', harness: 'codex', fallback: 'nope' } }), /unknown fallback/)
+})
+
+test('designer may run external, but only as a patch producer', () => {
+  const validated = validateExecution('designer', { execution: { backend: 'omc', harness: 'codex' } })
+  assert.equal(validated.backend, 'omc')
+  assert.equal(validated.mode, 'patch')
+
+  const resolved = resolveExecution('designer', { execution: { backend: 'omc', harness: 'codex' } }, ['omc:codex'])
+  assert.equal(resolved.backend, 'omc')
+  assert.equal(resolved.provider, 'omc:codex')
+  assert.equal(resolved.blocked, false)
+  assert.equal(resolved.mode, 'patch')
+  // Patch mode is still read-only toward the workspace: the CLI never writes.
+  assert.equal(resolved.readOnly, 'enforced')
+  assert.equal(isReadOnlyRole('designer'), true)
+  assert.equal(canUseExternal('designer'), true)
+
+  // A CLI that may still write cannot back a patch producer either.
+  const advisory = resolveExecution('designer', { execution: { backend: 'omc', harness: 'opencode' } }, ['omc:opencode'])
+  assert.equal(advisory.blocked, true)
+  assert.equal(advisory.code, 'OMC/EXECUTION-READONLY-ADVISORY')
+})
+
+test('fixer and the council synthesizer still refuse the omc backend', () => {
+  const codeFor = (roleId) => {
+    try {
+      validateExecution(roleId, { execution: { backend: 'omc', harness: 'codex' } })
+      return undefined
+    } catch (error) {
+      return error.code
+    }
+  }
+  assert.equal(codeFor('fixer'), 'OMC/EXECUTION-ROLE-UNSUPPORTED')
+  assert.equal(codeFor('council'), 'OMC/EXECUTION-ROLE-UNSUPPORTED')
+  assert.equal(codeFor('librarian'), 'OMC/EXECUTION-ROLE-UNSUPPORTED')
+  assert.equal(codeFor('observer'), 'OMC/EXECUTION-ROLE-UNSUPPORTED')
+})
+
+test('every other external role stays in read-only mode', () => {
+  assert.deepEqual([...EXTERNAL_MODES], ['read-only', 'patch'])
+  assert.deepEqual([...PATCH_ONLY_ROLE_IDS], ['designer'])
+  for (const roleId of EXTERNAL_ROLE_IDS) {
+    assert.equal(externalModeFor(roleId), roleId === 'designer' ? 'patch' : 'read-only', roleId)
+  }
+  for (const roleId of NATIVE_ONLY_ROLE_IDS) assert.equal(externalModeFor(roleId), 'read-only', roleId)
+
+  const oracle = resolveExecution('oracle', { execution: { backend: 'omc', harness: 'codex' } }, ['omc:codex'])
+  assert.equal(oracle.mode, 'read-only')
+  // A native child has DSH tools; no external mode applies to it.
+  assert.equal(resolveExecution('oracle', {}, []).mode, null)
 })
 
 test('the role capability table is the single source of which roles may go external', () => {
@@ -140,6 +193,72 @@ test('the external persona keeps role responsibilities and drops DSH tool instru
   assert.match(brief, /Workspace: E:\\repo/)
   assert.match(brief, /Return:\n- Summary/)
   assert.match(brief, /Read-only level: enforced/)
+})
+
+test('the default brief keeps the read-only contract word for word', () => {
+  const input = {
+    roleId: 'oracle',
+    roleTitle: 'oracle',
+    persona: 'You are Oracle - a strategic technical advisor.',
+    task: 'Review PR #12',
+    harness: 'codex',
+    readOnly: 'enforced',
+    cwd: 'E:\\repo',
+  }
+  const implicit = buildExternalBrief(input)
+  // Omitting mode must reproduce today's output exactly, not merely resemble it.
+  assert.equal(implicit, buildExternalBrief({ ...input, mode: 'read-only' }))
+  assert.match(implicit, /Do not modify files, create commits, or run mutating commands\./)
+  assert.match(implicit, /Read-only is enforced by this CLI's own sandbox\/approval flag\./)
+  assert.match(implicit, /Return:\n- Summary\n- Evidence/)
+  assert.doesNotMatch(implicit, /```diff/)
+  assert.doesNotMatch(implicit, /External mode/)
+})
+
+test('the patch brief replaces the read-only instruction with a patch contract', () => {
+  const brief = buildExternalBrief({
+    roleId: 'designer',
+    roleTitle: 'designer',
+    persona: 'You are Designer - a UI implementation specialist.',
+    task: 'Add a focus ring to the settings card.',
+    harness: 'codex',
+    readOnly: 'enforced',
+    cwd: 'E:\\repo',
+    mode: 'patch',
+    constraints: defaultExternalConstraints('designer'),
+  })
+  // Boundary: still read-only, but the deliverable is a patch.
+  assert.match(brief, /External mode: patch/)
+  assert.match(brief, /Design the change and return it as a patch instead\./)
+  // Exactly one fenced diff block, repo-relative paths, git apply -p1.
+  assert.match(brief, /exactly ONE fenced ```diff block/)
+  assert.match(brief, /unified diff/)
+  assert.match(brief, /relative to the repository root/)
+  assert.match(brief, /git apply -p1/)
+  // The report must say what to apply and must not claim the work is done.
+  assert.match(brief, /Files read:/)
+  assert.match(brief, /Apply and verify:/)
+  assert.match(brief, /Assumptions:/)
+  assert.match(brief, /Do not claim it was applied, committed, merged, or verified/)
+  // The designer constraint travels with the brief; shared constraints survive.
+  assert.match(brief, /read-only design consultant/)
+  assert.match(brief, /Do not modify files, configuration, or git state\./)
+  // Neither the read-only-only instruction nor the old return list survives.
+  assert.doesNotMatch(brief, /Do not modify files, create commits, or run mutating commands/)
+  assert.doesNotMatch(brief, /Return:\n- Summary\n- Evidence/)
+  // The environment paragraph and the one-report rule are common to both modes.
+  assert.match(brief, /\*\*Execution environment\*\*/)
+  assert.match(brief, /cannot resume this run/)
+  // The designer entry is appended to the shared constraints, never instead of them.
+  const consultant = defaultExternalConstraints('designer')
+  for (const sharedLine of [
+    'Do not modify files, configuration, or git state.',
+    'Do not spawn or delegate to other agents.',
+    'If the task needs information you cannot access, say so; do not invent it.',
+  ]) {
+    assert.ok(consultant.includes(sharedLine), sharedLine)
+  }
+  assert.equal(consultant.length, 4)
 })
 
 test('the provider surface is fixed read-only even when the global default is in-place', async () => {
@@ -207,6 +326,82 @@ test('execution status reports roles, providers and read-only classes', async ()
     if (previous === undefined) delete process.env.OH_MY_COHARNESS_CONFIG
     else process.env.OH_MY_COHARNESS_CONFIG = previous
   }
+})
+
+test('status rows carry the external mode and the per-harness model', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omc-status-mode-'))
+  const file = join(dir, 'config.json')
+  await writeFile(file, JSON.stringify({
+    preset: 'my-dsh-normal',
+    roles: {
+      designer: { execution: { backend: 'omc', harness: 'codex' } },
+    },
+  }), 'utf8')
+  const previous = process.env.OH_MY_COHARNESS_CONFIG
+  process.env.OH_MY_COHARNESS_CONFIG = file
+  try {
+    const ctx = {
+      get(name) {
+        if (name === 'subagents') return { list: () => ['spawn', 'omc:codex'] }
+        if (name === 'agentPresets') return { list: async () => [{ id: 'oh-my-coharness' }] }
+        return undefined
+      },
+    }
+    const status = await buildExecutionStatus(ctx, { harnesses: { codex: { model: 'gpt-5.4-codex' } } })
+    assert.equal(status.configError, undefined)
+
+    const designer = status.roles.find((row) => row.roleId === 'designer')
+    assert.equal(designer.backend, 'omc')
+    assert.equal(designer.blocked, false)
+    assert.equal(designer.mode, 'patch')
+    assert.equal(designer.externalCapable, true)
+    assert.equal(designer.readOnly, 'enforced')
+
+    // Native rows keep the same fields and have no external mode to report.
+    const oracle = status.roles.find((row) => row.roleId === 'oracle')
+    assert.equal(oracle.backend, 'native')
+    assert.equal(oracle.mode, null)
+    const fixer = status.roles.find((row) => row.roleId === 'fixer')
+    assert.equal(fixer.backend, 'native')
+    assert.equal(fixer.externalCapable, false)
+
+    // Every harness row carries `model` so the card never reads a missing key.
+    const codex = status.harnesses.find((row) => row.id === 'codex')
+    assert.equal(codex.model, 'gpt-5.4-codex')
+    assert.equal(codex.enabled, true)
+    assert.equal(codex.provider, 'omc:codex')
+    assert.equal(status.harnesses.find((row) => row.id === 'gemini').model, '')
+    for (const row of status.harnesses) assert.equal(typeof row.model, 'string', row.id)
+  } finally {
+    if (previous === undefined) delete process.env.OH_MY_COHARNESS_CONFIG
+    else process.env.OH_MY_COHARNESS_CONFIG = previous
+  }
+})
+
+test('doctor marks a patch producer without touching the read-only role lines', () => {
+  const row = {
+    enabled: true,
+    execution: 'omc:codex',
+    backend: 'omc',
+    providerAvailable: true,
+    readOnly: 'enforced',
+  }
+  const lines = renderExecutionStatus({
+    presetId: 'oh-my-coharness',
+    providers: ['omc:codex'],
+    roles: [
+      { ...row, roleId: 'oracle', mode: 'read-only' },
+      { ...row, roleId: 'designer', mode: 'patch' },
+      { ...row, roleId: 'fixer', backend: 'native', execution: 'native', readOnly: null, mode: null },
+    ],
+    harnesses: [],
+  })
+  const lineFor = (roleId) => lines.find((line) => line.startsWith(`  ${roleId} `))
+  // A plain read-only external role keeps exactly the old flags text.
+  assert.match(lineFor('oracle'), /omc\s+omc:codex\s+\(read-only enforced\)$/)
+  // The patch producer is still read-only, but the deliverable is a diff.
+  assert.match(lineFor('designer'), /omc\s+omc:codex\s+\(read-only enforced; patch producer\)$/)
+  assert.match(lineFor('fixer'), /native\s+native\s*$/)
 })
 
 test('legacy companion detection is a read-only claim', async () => {

@@ -41,6 +41,8 @@ function nativeResult() {
     backgroundMode: 'continuable',
     external: false,
     readOnly: null,
+    // No external mode applies to a native child: it has real DSH tools.
+    mode: null,
     available: true,
     blocked: false,
   }
@@ -54,9 +56,9 @@ function nativeResult() {
  * @param availableProviders - exact names from `ctx.subagents.list()`.
  * @returns {{
  *   backend: 'native'|'omc', provider: string, backgroundMode: 'continuable'|'one-shot',
- *   external: boolean, harness?: string, readOnly?: string, available: boolean,
- *   blocked: boolean, code?: string, reason?: string, fallbackReason?: string,
- *   requested?: object,
+ *   external: boolean, harness?: string, readOnly?: string, mode: 'read-only'|'patch'|null,
+ *   available: boolean, blocked: boolean, code?: string, reason?: string,
+ *   fallbackReason?: string, requested?: object,
  * }}
  */
 export function resolveExecution(roleId, roleConfig, availableProviders = []) {
@@ -66,12 +68,14 @@ export function resolveExecution(roleId, roleConfig, availableProviders = []) {
   const harness = execution.harness
   const provider = executionProviderName(harness)
   const readOnly = harnessReadOnlyClass(harness)
+  const mode = execution.mode
   const registered = Array.isArray(availableProviders) && availableProviders.includes(provider)
   const requested = {
     backend: 'omc',
     harness,
     provider,
     readOnly,
+    mode,
     fallback: execution.fallback,
     allowAdvisory: execution.allowAdvisory,
   }
@@ -92,6 +96,7 @@ export function resolveExecution(roleId, roleConfig, availableProviders = []) {
       external: true,
       harness,
       readOnly,
+      mode,
       available: false,
       blocked: true,
       code,
@@ -132,6 +137,7 @@ export function resolveExecution(roleId, roleConfig, availableProviders = []) {
     external: true,
     harness,
     readOnly,
+    mode,
     available: true,
     blocked: false,
     fallbackReason: undefined,

@@ -32,12 +32,29 @@ export const FALLBACKS = Object.freeze(['fail', 'native'])
 export const READ_ONLY_CLASSES = Object.freeze(['enforced', 'advisory', 'unsupported'])
 
 /**
+ * What an external run of a role is allowed to do.
+ *
+ * Both modes leave the workspace untouched, so the external CLI stays read-only
+ * either way:
+ *   - `read-only`: inspect and report.
+ *   - `patch`: inspect, design the change and return it as a unified diff. A
+ *     native role applies that diff; the external CLI still never writes.
+ */
+export const EXTERNAL_MODES = Object.freeze(['read-only', 'patch'])
+
+/** External roles that must return a patch instead of an implementation. */
+export const PATCH_ONLY_ROLE_IDS = Object.freeze(['designer'])
+
+/**
  * Roles that may execute on an external CLI in this release.
  *
- * All of them are read-only roles by contract. Fixer and Designer keep the DSH
- * native write path until external workspaces are isolated; Librarian keeps its
- * native MCP tools; Observer needs a vision-capable DSH route; the Council
- * synthesizer must stay native so that synthesis never depends on another CLI.
+ * Every external role is read-only toward the workspace. Oracle, Explorer and
+ * the council seats report only; Designer may run external as a patch producer
+ * only (`externalModeFor('designer') === 'patch'`), so a native Fixer still
+ * lands every write. Fixer therefore keeps the DSH native write path until
+ * external workspaces are isolated; Librarian keeps its native MCP tools;
+ * Observer needs a vision-capable DSH route; the Council synthesizer must stay
+ * native so that synthesis never depends on another CLI.
  */
 export const EXTERNAL_ROLE_IDS = Object.freeze([
   'oracle',
@@ -45,12 +62,12 @@ export const EXTERNAL_ROLE_IDS = Object.freeze([
   'councillor-alpha',
   'councillor-beta',
   'councillor-gamma',
+  'designer',
 ])
 
 /** Roles that must stay on the DSH native backend in this release. */
 export const NATIVE_ONLY_ROLE_IDS = Object.freeze([
   'fixer',
-  'designer',
   'librarian',
   'observer',
   'council',
@@ -102,6 +119,17 @@ export function canUseExternal(roleId) {
 }
 
 /**
+ * What an external run of this role may do. Native-only roles never reach an
+ * external run, but they classify as `read-only` so callers never have to
+ * branch on role ids themselves.
+ * @param roleId - roster id.
+ * @returns {'read-only'|'patch'}
+ */
+export function externalModeFor(roleId) {
+  return PATCH_ONLY_ROLE_IDS.includes(roleId) ? 'patch' : 'read-only'
+}
+
+/**
  * Validate one role's execution block against the release contract.
  *
  * Structural errors throw: they describe a configuration no run can honour.
@@ -111,7 +139,7 @@ export function canUseExternal(roleId) {
  *
  * @param roleId - roster id.
  * @param roleConfig - one merged role entry.
- * @returns the normalized execution block.
+ * @returns the normalized execution block, carrying the resolved external mode.
  */
 export function validateExecution(roleId, roleConfig) {
   const execution = normalizeExecution(roleConfig?.execution)
@@ -146,6 +174,7 @@ export function validateExecution(roleId, roleConfig) {
     harness: execution.harness,
     fallback,
     allowAdvisory: execution.allowAdvisory === true,
+    mode: externalModeFor(roleId),
   }
 }
 
@@ -163,6 +192,10 @@ export function describeExecution(execution) {
 /**
  * Whether a role is read-only by contract, using the role roster this module
  * knows. Kept here so both the Host and the preset classify the same way.
+ *
+ * Every external role is read-only toward the workspace, including the patch
+ * producers: a `patch` role designs a diff instead of writing one, so it cannot
+ * modify the tree either.
  */
 export function isReadOnlyRole(roleId) {
   return EXTERNAL_ROLE_IDS.includes(roleId)

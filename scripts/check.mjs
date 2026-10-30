@@ -129,7 +129,8 @@ ok(presetRows.some((row) => row.id === 'tool-subagent-councillor-alpha'), 'the p
 
 const { EXTERNAL_ROLE_IDS, validateExecution } = await import(pathToFileURL(join(root, 'integration', 'compatibility.js')).href)
 ok(EXTERNAL_ROLE_IDS.includes('oracle') && EXTERNAL_ROLE_IDS.includes('councillor-alpha'), 'oracle and council seats must allow external backends')
-for (const nativeOnly of ['fixer', 'designer', 'librarian', 'observer', 'council']) {
+ok(EXTERNAL_ROLE_IDS.includes('designer'), 'designer may run external as a read-only patch producer')
+for (const nativeOnly of ['fixer', 'librarian', 'observer', 'council']) {
   let threw = false
   try {
     validateExecution(nativeOnly, { execution: { backend: 'omc', harness: 'codex' } })

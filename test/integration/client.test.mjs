@@ -82,11 +82,11 @@ test('defaults are omitted from the stored execution block', () => {
   assert.deepEqual(exports.normalizeExecution({ backend: 'omc' }), { backend: 'omc', harness: 'codex' })
 })
 
-test('only read-only roles may select an external backend', () => {
-  for (const roleId of ['oracle', 'explorer', 'councillor-alpha', 'councillor-beta', 'councillor-gamma']) {
+test('only external-capable roles may select an external backend', () => {
+  for (const roleId of ['oracle', 'explorer', 'designer', 'councillor-alpha', 'councillor-beta', 'councillor-gamma']) {
     assert.equal(exports.externalRoleAllowed(roleId), true, roleId)
   }
-  for (const roleId of ['fixer', 'designer', 'librarian', 'observer', 'council']) {
+  for (const roleId of ['fixer', 'librarian', 'observer', 'council']) {
     assert.equal(exports.externalRoleAllowed(roleId), false, roleId)
   }
 })
@@ -107,4 +107,75 @@ test('the live harness list falls back to the static catalog', () => {
   assert.ok(exports.harnessOptions({ status: 'error' }).some((row) => row.id === 'codex'))
   const live = exports.harnessOptions({ execution: { harnesses: [{ id: 'codex', readOnly: 'enforced' }] } })
   assert.equal(live.length, 1)
+})
+
+test('harness editor rows merge live facts with the stored settings', () => {
+  const status = {
+    execution: {
+      harnesses: [
+        { id: 'codex', label: 'Codex', readOnly: 'enforced', providerAvailable: true, model: 'gpt-5' },
+        { id: 'kimi', label: 'Kimi', readOnly: 'advisory', providerAvailable: false },
+      ],
+    },
+  }
+  const effective = { harnesses: { kimi: { enabled: false, model: 'k2' }, 'custom-cli': { model: 'x' } } }
+  const rows = exports.harnessEditorRows(effective, status)
+
+  // A stored id the live status omits still gets an editor, so it can be cleared.
+  assert.deepEqual(rows.map((row) => row.id), ['codex', 'kimi', 'custom-cli'])
+  // A live resolution fills a missing stored value; a stored value wins over it.
+  assert.deepEqual(rows[0].value, { enabled: true, model: 'gpt-5' })
+  assert.deepEqual(rows[1].value, { enabled: false, model: 'k2' })
+  assert.deepEqual(rows[2].value, { enabled: true, model: 'x' })
+  // Live facts are not rewritten by the editor.
+  assert.equal(rows[0].readOnly, 'enforced')
+  assert.equal(rows[1].providerAvailable, false)
+})
+
+test('the harness write plan is path-scoped and only writes staged changes', () => {
+  const user = {
+    harnesses: {
+      codex: { command: 'codex', env: { A: '1' }, enabled: true, model: 'gpt-5' },
+      kimi: { enabled: false },
+    },
+  }
+  const shown = {
+    codex: { enabled: true, model: 'gpt-5' },
+    kimi: { enabled: false, model: '' },
+  }
+  const ops = exports.planHarnessOps(shown, user, {
+    codex: { model: 'gpt-5-codex' },
+    kimi: { enabled: true },
+  })
+  assert.deepEqual(ops, [
+    { op: 'set', path: ['harnesses', 'codex', 'model'], value: 'gpt-5-codex' },
+    { op: 'set', path: ['harnesses', 'kimi', 'enabled'], value: true },
+  ])
+
+  // An untouched or reverted field is not a write.
+  assert.deepEqual(exports.planHarnessOps(shown, user, { codex: { enabled: true, model: 'gpt-5' } }), [])
+})
+
+test('clearing a harness model unsets it instead of pinning an empty string', () => {
+  const user = { harnesses: { codex: { enabled: true, model: 'gpt-5' } } }
+  const shown = { codex: { enabled: true, model: 'gpt-5' } }
+  assert.deepEqual(exports.planHarnessOps(shown, user, { codex: { model: '  ' } }), [
+    { op: 'unset', path: ['harnesses', 'codex', 'model'] },
+  ])
+})
+
+test('resetting harness overrides keeps every non-editable sibling key', () => {
+  const user = {
+    harnesses: {
+      codex: { command: 'codex', enabled: true, model: 'gpt-5' },
+      kimi: { model: 'k2' },
+      glm: { command: 'claude' },
+    },
+  }
+  assert.deepEqual(exports.planHarnessReset(user), [
+    { op: 'unset', path: ['harnesses', 'codex', 'enabled'] },
+    { op: 'unset', path: ['harnesses', 'codex', 'model'] },
+    { op: 'unset', path: ['harnesses', 'kimi', 'model'] },
+  ])
+  assert.deepEqual(exports.planHarnessReset({}), [])
 })

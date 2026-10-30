@@ -509,6 +509,7 @@ export function externalRoleArgs(role, args) {
       task: args.prompt,
       harness: role.execution.harness,
       readOnly: role.execution.readOnly,
+      mode: role.execution.mode,
       cwd: args.cwd,
       constraints: defaultExternalConstraints(role.roleId),
     }),
