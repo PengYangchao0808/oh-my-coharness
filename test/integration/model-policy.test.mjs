@@ -33,15 +33,43 @@ test('balanced recommends Codex for Oracle only when its provider exists', () =>
 
   const missing = recommendRoute('oracle', routing, ['spawn', 'fork'])
   assert.equal(missing.backend, 'native')
-  assert.match(missing.reason, /none of the preferred external providers/)
+  assert.match(missing.reason, /native is the safe fallback/)
 })
 
 test('a role fallback is used before giving up on external execution', () => {
-  const routing = { enabled: true, preset: 'balanced' }
+  const routing = { enabled: true, preset: 'quality' }
   const route = recommendRoute('designer', routing, ['omc:antigravity'])
   assert.equal(route.backend, 'omc')
   assert.equal(route.harness, 'antigravity')
   assert.equal(route.source, 'fallback')
+})
+
+test('API and unknown billing are blocked unless explicitly authorized', () => {
+  const routing = { enabled: true, preset: 'balanced' }
+  const api = recommendRoute('oracle', routing, providers, { billing: { codex: 'api' } })
+  assert.equal(api.backend, 'native')
+  assert.match(api.reason, /api billing is not authorized/)
+
+  const apiAllowed = recommendRoute('oracle', { ...routing, allowPaidApi: true }, providers, {
+    billing: { codex: 'api' },
+  })
+  assert.equal(apiAllowed.backend, 'omc')
+  assert.equal(apiAllowed.billing, 'api')
+
+  const unknown = recommendRoute('oracle', routing, providers, { billing: { codex: 'unknown' } })
+  assert.equal(unknown.backend, 'native')
+  assert.match(unknown.reason, /unknown billing is not authorized/)
+  const unknownAllowed = recommendRoute('oracle', { ...routing, allowUnknownBilling: true }, providers, {
+    billing: { codex: 'unknown' },
+  })
+  assert.equal(unknownAllowed.backend, 'omc')
+
+  const override = {
+    enabled: true,
+    preset: 'balanced',
+    roles: { oracle: { preferred: { backend: 'omc', harness: 'codex', authorizeBilling: true } } },
+  }
+  assert.equal(recommendRoute('oracle', override, providers, { billing: { codex: 'api' } }).backend, 'omc')
 })
 
 test('an explicit user preference outranks the preset', () => {

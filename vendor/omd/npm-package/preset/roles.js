@@ -420,7 +420,15 @@ export function resolveRole(config, ctx) {
   const preset = loadConfig(ctx);
   const roleConfig = preset.roles[row.roleId] ?? {};
   const shipped = roleConfig;
-  const execution = resolveExecution(row.roleId, roleConfig, liveProviders(ctx));
+  const billing = Object.fromEntries(
+    Object.entries(preset.harnesses ?? {})
+      .map(([id, entry]) => [id, entry?.billing])
+      .filter(([, value]) => typeof value === 'string'),
+  );
+  const execution = resolveExecution(row.roleId, roleConfig, liveProviders(ctx), {
+    routing: preset.routing,
+    billing,
+  });
   if (execution.fallbackReason !== undefined) {
     ctx?.logger?.warn?.('oh-my-coharness: role "' + row.roleId + '": ' + execution.fallbackReason);
   }

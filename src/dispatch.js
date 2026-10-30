@@ -9,9 +9,10 @@
 
 import { harnessDef, normalizeId } from './harnesses.js'
 import { harnessConfig, isEnabled } from './config.js'
-import { harnessEnv, launch, planTransport, readCollected, statusOf, withTimeout } from './transport.js'
+import { adapterFor } from './adapters.js'
+import { harnessEnv, planTransport, withTimeout } from './transport.js'
 import { blocksToText } from './provider.js'
-import { maskSessionId, parseSessionOutput } from './session-adapters.js'
+import { maskSessionId } from './session-adapters.js'
 
 function omcError(code, message) {
   const error = new Error(`${code}: ${message}`)
@@ -100,13 +101,25 @@ async function resolveTarget(rt, raw) {
 async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, notes = []) {
   const { ctx, cfg } = rt
   const hcfg = harnessConfig(cfg, def.id)
+  const harnessAdapter = adapterFor(def, cfg)
+  if (harnessAdapter.supported !== true) {
+    return {
+      status: 'failed',
+      harnessId: def.id,
+      surface: 'direct',
+      downgradeReason: reason || 'direct runs have no child session or host capacity',
+      output: '',
+      elapsedMs: Date.now() - started,
+      diagnostics: [...notes, `OMC/ADAPTER-UNSUPPORTED: ${harnessAdapter.reason ?? 'transport unavailable'}`],
+    }
+  }
   // The direct surface has no child session and no host capacity slot; saying so on
   // every result is what keeps a degraded run from being read as full support.
   const surface = { surface: 'direct', downgradeReason: reason || 'direct runs have no child session or host capacity' }
   let deadline
   try {
     const plan = await planTransport(ctx, def, cfg, exec.signal)
-    const launched = await launch(ctx, def, {
+    const launched = await harnessAdapter.start(ctx, {
       task: prompt,
       cwd,
       model: hcfg.model || undefined,
@@ -119,11 +132,11 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
     })
     deadline = launched.deadline
     const outcome = await launched.handle.done
-    const captured = readCollected(launched.handle, cfg.dispatch.maxOutputBytes)
-    const status = statusOf(outcome, deadline, exec.signal)
+    const captured = harnessAdapter.collect(launched.handle, cfg.dispatch.maxOutputBytes)
+    const status = harnessAdapter.status(outcome, deadline, exec.signal)
     // Direct runs do not resume (no lane identity), but reporting the session id
     // and usage the CLI already returned makes the cost observable.
-    const parsed = def.session ? parseSessionOutput(def.session.format, captured.stdout) : null
+    const parsed = harnessAdapter.parse(captured.stdout)
 
     return withNotes(
       {
@@ -137,7 +150,7 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
         spillPath: captured.spillPath,
         elapsedMs: Date.now() - started,
         ...(parsed?.sessionId
-          ? { nativeSession: { id: maskSessionId(parsed.sessionId), format: def.session.format } }
+          ? { nativeSession: { id: maskSessionId(parsed.sessionId), format: harnessAdapter.session?.format } }
           : {}),
         ...(parsed?.usage ? { usage: parsed.usage } : {}),
       },

@@ -65,6 +65,18 @@ export function buildConfigSchema(z) {
     execution: execution(),
   });
   const orchestrator = () => z.object({ effort: effort(), mcps: z.array(z.string()) });
+  const route = () => z.object({
+    backend: z.union(['native', 'omc']),
+    harness: z.string(),
+    model: z.string(),
+    billing: z.union(['subscription', 'api', 'unknown']),
+  });
+  const preference = () => z.object({
+    preferred: route(),
+    fallback: route(),
+    authorizeBilling: z.boolean(),
+    trigger: z.string(),
+  });
   const preset = () => z.object({
     orchestrator: orchestrator(),
     ...Object.fromEntries(ROLE_IDS.map(id => [id, role()])),
@@ -88,10 +100,30 @@ export function buildConfigSchema(z) {
     transport: z.union(['auto', 'native', 'wsl']),
     harnesses: z.dict(z.object({
       enabled: z.boolean(), command: z.string(), model: z.string(),
+      adapter: z.union(['cli', 'mcp', 'app-server']),
+      billing: z.union(['subscription', 'api', 'unknown']),
       transport: z.union(['auto', 'native', 'wsl']), distro: z.string(),
       timeoutMs: z.number().min(0).step(1), env: z.dict(z.string()), envFile: z.string(),
     })),
     wsl: z.object({ distro: z.string() }),
+    sessions: z.object({
+      enabled: z.boolean(), path: z.string(),
+      resumePolicy: z.union(['auto', 'new', 'require-resume']),
+      maxTurns: z.number().min(1).max(200).step(1),
+      idleTtlMs: z.number().min(60000).step(1),
+      lockTimeoutMs: z.number().min(1000).max(1800000).step(1),
+      allowUnverified: z.boolean(), captureUsage: z.boolean(), maxEntries: z.number().min(1).step(1),
+    }),
+    routing: z.object({
+      enabled: z.boolean(), preset: z.union(['economy', 'balanced', 'quality']),
+      roles: z.dict(preference()),
+      allowPaidApi: z.boolean(), allowUnknownBilling: z.boolean(),
+      limits: z.object({
+        maxParallelExternal: z.number().min(1).max(8).step(1),
+        maxOracleCallsPerTask: z.number().min(0).max(8).step(1),
+        maxReviewRounds: z.number().min(0).max(5).step(1),
+      }),
+    }),
     dispatch: z.object({
       maxParallel: z.number().min(1).max(8).step(1),
       defaultMode: z.union(['read-only', 'in-place', 'worktree']),

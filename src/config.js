@@ -54,6 +54,8 @@ export const DEFAULTS = Object.freeze({
     enabled: false,
     preset: 'balanced',
     roles: {},
+    allowPaidApi: false,
+    allowUnknownBilling: false,
     limits: {
       maxParallelExternal: 3,
       maxOracleCallsPerTask: 1,
@@ -131,6 +133,8 @@ export function resolveConfig(input) {
     merged.routing.preset = 'balanced'
   }
   merged.routing.roles = isObject(merged.routing.roles) ? merged.routing.roles : {}
+  merged.routing.allowPaidApi = merged.routing.allowPaidApi === true
+  merged.routing.allowUnknownBilling = merged.routing.allowUnknownBilling === true
   merged.routing.limits.maxParallelExternal = intIn(
     merged.routing.limits.maxParallelExternal,
     1,
@@ -154,6 +158,11 @@ export function resolveConfig(input) {
     const value = isObject(entry) ? entry : {}
     merged.harnesses[id] = {
       enabled: value.enabled !== false,
+      // Execution protocol, distinct from `transport` (native vs WSL process).
+      adapter: ['cli', 'mcp', 'app-server'].includes(value.adapter) ? value.adapter : 'cli',
+      // Subscription / API distinction for the cost guard. Unknown is not
+      // treated as free: policy will not auto-select it.
+      billing: ['subscription', 'api', 'unknown'].includes(value.billing) ? value.billing : 'unknown',
       command: typeof value.command === 'string' ? value.command : '',
       model: typeof value.model === 'string' ? value.model : '',
       transport: ['auto', 'native', 'wsl'].includes(value.transport) ? value.transport : 'auto',
