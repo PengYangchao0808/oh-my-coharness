@@ -16,7 +16,7 @@ whenToUse: The user asks for the whole thing — "做完整", "实现并审查",
 |---|---|---|
 | Plan | 主控自己 | 必要时 `subagent_oracle` 做架构判断 |
 | Explore | `subagent_explorer` | 只读；外部后端也可，但一次性 |
-| Build | `subagent_fixer` / `subagent_designer` | **默认 DSH 原生**，可续接、可写入；本版不允许外部写角色 |
+| Build | `subagent_fixer` / `subagent_designer` | **默认 DSH 原生**，可续接、可写入；designer 可切外部只读产 patch，由原生 fixer 应用 |
 | Review | `subagent_oracle`（独立时） | 外部 Oracle 也可，只读；不把 Review 交给 Build 的执行者 |
 | Verify | 主控直接跑命令 | 真实退出码；不让子 Agent 自己宣布通过 |
 
@@ -52,6 +52,7 @@ whenToUse: The user asks for the whole thing — "做完整", "实现并审查",
 
 - **单写者**：同一时刻只有一个执行者能写。**不做并行写入。**
 - 正常写路径是 DSH 原生的 `subagent_fixer` / `subagent_designer`：它们受 DSH 工具权限约束，可续接。
+- designer 的外部后端只产 patch，不直接写：把 patch 交给原生 fixer 应用；**不要把“已产出 patch”报告成“已改动工作区”。**
 - 只有用户明确要求某个 CLI 写入时，才用 `coharness` 的 `mode: 'in-place'`；派发前告诉用户：「这会用该 CLI 自己的权限写文件，不受 DSH 的文件策略约束。」
 - 外部写入走 `surface: 'direct'`：**没有 childId、没有宿主容量槽、没有子会话面板**。报告里要说明这一点，不要假装它有子会话。
 - 只读任务可以并行（`tasks[]`，默认 2–3 个）；写入永远串行。

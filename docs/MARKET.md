@@ -18,9 +18,9 @@ npm publish --access public --tag alpha
 | 包自检 | `node scripts/check.mjs` | `check ok: oh-my-coharness@0.4.0-alpha.1 … 5 skills` |
 | 打包内容 | `node scripts/pack-check.mjs` | 文件清单符合预期，vendor/omd 与 integration 都在 |
 | OMC 回归 | `node test/smoke.test.mjs` | `pass 36` |
-| 执行契约 | `node test/integration/contracts.test.mjs` | `pass 14` |
+| 执行契约 | `node test/integration/contracts.test.mjs` | `pass 21` |
 | Preset/角色 | `node test/integration/preset.test.mjs` | `pass 10` |
-| 设置卡 | `node test/integration/client.test.mjs` | `pass 8` |
+| 设置卡 | `node test/integration/client.test.mjs` | `pass 12` |
 | 迁移 | `node test/integration/migration.test.mjs` | `pass 10` |
 | 真实冒烟 | `node scripts/live-check.mjs` | `live check ok`（两个不同 Harness、只读、工作区不变） |
 | 版本号 | 手工 | `package.json`、客户端 `VERSION`、CHANGELOG 顶部一致 |
@@ -50,11 +50,13 @@ npm publish --access public --tag alpha
 
 ### 发布说明要点（0.4.0-alpha.1）
 
+> 0.4.0-alpha.1 之后工作区新增了 designer 外部只读 patch 模式与 Harness 编辑；发布下一个 alpha 时按本节同样结构补上。
+
 发布说明必须写清这几句，否则用户会把边界当成能力：
 
 1. **合并，不是新增第二个插件**：OMD 的角色/Council/设置卡已经进入 `oh-my-coharness`；不要再同时安装 `oh-my-dsh-slim`。
 2. **一个默认 Preset**：`Oh My CoHarness`；旧会话绑定的 `oh-my-dsh-slim` / `omc-harness` 不能恢复原组合，需要新建会话。
-3. **角色可切后端**：Oracle / Explorer / Council 席位支持 native 或外部 CLI；Fixer / Designer / Librarian / Observer / Council Synthesizer 本版保持 native。
+3. **角色可切后端**：Oracle / Explorer / Council 席位支持 native 或外部 CLI；Designer 可切外部只读 patch 模式（产出 diff，由原生 Fixer 应用）；Fixer / Librarian / Observer / Council Synthesizer 保持 native。
 4. **外部角色只读且一次性**：`omc:*` Provider 固定只读；advisory-only CLI 默认拒绝，需显式 `allowAdvisory`。
 5. **写路径**：只有 `coharness({mode:'in-place'})`，走 `surface: direct`——没有 `childId`、没有宿主容量、没有子会话面板。
 6. **迁移**：`/coharness migrate` 预览 → `--apply` → 卸载 OMD → 重启；备份与 `--rollback` 已实现。

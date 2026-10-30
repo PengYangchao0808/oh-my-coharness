@@ -93,14 +93,15 @@ resolveExecution(roleId, roleConfig, availableProviders)
 ```
 
 - `availableProviders` 必须来自 `ctx.subagents.list()` 的实时结果，不能来自静态注册表。
-- 返回 native 或 external 的 stock 参数；external 额外返回 harness、readOnly、provider。
+- 返回 native 或 external 的 stock 参数；external 额外返回 harness、readOnly、provider、mode（`read-only` | `patch`）。
 - 环境性失败（Provider 未注册、advisory 只读、只读不可验证）返回 `blocked`，不抛异常；结构性错误（未知 backend、写角色配外部、Council 合成器配外部）抛错。
 - `blocked` 的角色仍注册同名工具，但调用即失败，原因写入工具描述与错误。**不会静默改成 native。**
 
 `integration/compatibility.js` 是唯一角色能力表：
 
-- 可外部：oracle、explorer、councillor-alpha/beta/gamma；
-- 必须原生：fixer、designer、librarian、observer、council。
+- 可外部只读：oracle、explorer、councillor-alpha/beta/gamma；
+- 可外部但固定 `patch`：designer —— 产出 unified diff，由原生 fixer 落地；
+- 必须原生：fixer、librarian、observer、council。
 
 ## 5. Native 路径
 
@@ -124,6 +125,7 @@ resolveExecution(roleId, roleConfig, availableProviders)
    - 只读等级与约束；
    - 工作目录；
    - 固定返回格式（Summary / Evidence / Files / Verification / Uncertainty）。
+   - patch 模式（目前仅 designer）把返回格式换成 patch 契约：一个 unified diff、仓库相对路径、可由 `git apply -p1` 应用；仍然不写文件。
 2. **Provider 配置必须是 external-safe 的**：
    - `provider: omc:<harness>`；
    - `maxDepth: 'provider-managed'`（OMC provider 没有 depthLimit）；
@@ -149,6 +151,7 @@ resolveExecution(roleId, roleConfig, availableProviders)
 保留 OMD 的设置卡，只增加执行后端控件：
 
 - `role.execution` 的读、校验、保存、重新加载都走原有 `configForms` / revision 流程；
+- Harness 区可编辑 `harnesses.<id>.enabled` 与 `.model`；写计划按字段 path-scoped，不重建整个 entry；
 - Harness 状态通过 Host RPC `/coharness` 的 `execution-status` 获取；
 - 浏览器端不实现 CLI Doctor；
 - Native 仍是缺省值，未改动的角色不会因为打开设置卡而写入 `execution` 字段。
@@ -165,7 +168,7 @@ resolveExecution(roleId, roleConfig, availableProviders)
 
 - 外部 CLI 原生 Session Resume；
 - Agent 间点对点通信 / 消息总线 / 任务数据库；
-- 外部 Fixer / Designer 默认可写；
+- 外部角色直接写工作区（Designer 的外部模式只产 patch，不直接写）；
 - 自研 worktree 调度器；
 - 自动模型能力评分；
 - 第二套 Dashboard 或第二套角色注册表。

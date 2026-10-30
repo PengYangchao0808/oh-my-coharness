@@ -6,7 +6,35 @@ project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- **Designer as an external read-only patch producer.** `designer` may now
+  select an `omc` backend, but its external mode is fixed to `patch`: the CLI
+  inspects the workspace, designs the change and returns a unified diff, and the
+  native fixer applies it. No writable provider is introduced; `omc:*` stays
+  read-only.
+- **Patch output contract** in `integration/external-brief.js`: exactly one
+  fenced diff block, repository-relative paths, `git apply -p1`, and a report
+  that never claims the patch was applied or verified.
+- **Settings card harness editor.** `harnesses.<id>.enabled` and `.model` are
+  editable. Writes are path-scoped, so `command`, `env`, `envFile`, `transport`,
+  `distro` and `timeoutMs` are preserved.
+- `execution-status` rows and doctor now carry the resolved external `mode`, so a
+  patch producer is visible without changing its read-only class.
+
+### Changed
+- `validateExecution` returns the role's external mode; `resolveExecution` and
+  `buildExecutionStatus` forward it.
+- The role capability whitelist includes `designer`; `fixer`, `librarian`,
+  `observer` and `council` stay native-only.
+- Contract tests cover the patch brief, the status/doctor mode rows and the
+  designer-only patch classification (14 → 21 tests).
+- Client tests cover the harness editor rows, the path-scoped write plan,
+  clearing the model and the reset plan (8 → 12 tests).
+
+### Notes
+- Designer's external run is still read-only. A native writer must apply the
+  diff, and a CLI that only offers advisory read-only still needs the explicit
+  `allowAdvisory` consent.
 
 ## [0.4.0-alpha.1] — 2026-10-30
 

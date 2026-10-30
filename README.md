@@ -2,6 +2,7 @@
 
 > **v0.4.0-alpha.1** — OMD 的成熟 Agent 工作流 + OMC 的原生多 Harness 执行 + DSH 的官方运行时。
 > 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
+> 开发分支另含未发布改动：designer 外部只读 patch 模式、设置卡 Harness 启用/模型编辑（见 [CHANGELOG 的 Unreleased](CHANGELOG.md#unreleased)）。
 
 Oh My CoHarness（OMC）把两件过去分开的事合成一个产品：
 
@@ -51,7 +52,7 @@ Oh My CoHarness  ·  一个 Bundle · 一个 Preset
 | explorer | `subagent_explorer` | native | ✅ | 代码库侦察；只读 |
 | councillor-alpha/beta/gamma | `subagent_councillor_*` | native（默认关闭） | ✅ | Council 独立席位；只读 |
 | fixer | `subagent_fixer` | native | ❌ | 写入角色；本版必须留在 DSH 原生 |
-| designer | `subagent_designer` | native | ❌ | UI/UX 写入角色；本版必须留在 DSH 原生 |
+| designer | `subagent_designer` | native | ✅（仅 patch） | UI/UX；外部运行时只读产出 unified diff，由原生 fixer 落地 |
 | librarian | `subagent_librarian` | native | ❌ | 依赖 context7 / gh_grep MCP；本版保持原生 |
 | observer | `subagent_observer` | 本版锁定 | ❌ | 需要视觉模型与附件转发 |
 | council | `subagent_council` | native | ❌ | 合成器永远原生，汇总不依赖另一套 CLI |
@@ -69,6 +70,9 @@ Oh My CoHarness  ·  一个 Bundle · 一个 Preset
     },
     "fixer": {
       "execution": { "backend": "native" }
+    },
+    "designer": {
+      "execution": { "backend": "omc", "harness": "antigravity" }
     }
   }
 }
@@ -78,6 +82,7 @@ Oh My CoHarness  ·  一个 Bundle · 一个 Preset
 - `harness` 是 OMC 的 CLI id（`codex`、`gemini`、`antigravity`、`opencode`、`kimi`、`claude`、`glm`）。
 - `fallback` 默认 `fail`：Provider 缺失时角色工具**显式失败**并给出原因，绝不静默改回 native。
 - `allowAdvisory: true` 才允许只有 advisory 只读的 CLI 承担只读角色（见下节）。
+- designer 的外部模式由角色固定为 `patch`，配置里没有 `mode` 字段；其他外部角色固定 `read-only`。
 
 ### 只读不是一个词，而是三个等级
 
@@ -86,6 +91,8 @@ Oh My CoHarness  ·  一个 Bundle · 一个 Preset
 | `enforced` | CLI 自己的沙箱/审批开关确实拒绝写入（codex `-s read-only`、gemini `--approval-mode plan`、antigravity `--sandbox`） | ✅ |
 | `advisory` | 只是 Prompt 要求不要写，CLI 仍可能按默认权限写入（opencode、kimi、claude、glm） | 默认拒绝；需显式 `allowAdvisory: true` |
 | `unsupported` | 调用形态未经验证 | ❌ |
+
+`patch` 是 designer 专用的外部只读模式：CLI 仍然不写工作区，而是返回一份可用 `git apply -p1` 应用的 unified diff，由原生 fixer 落地。它不会新增可写 provider，`omc:*` 依旧固定只读。
 
 **`omc:<id>` Provider 固定只读。** 无论全局 `dispatch.defaultMode` 是什么，角色 Provider 都不会升级成可写；`coharness` 工具需要写入时走 `surface: direct` 并在结果里明确标注降级。
 
@@ -116,7 +123,8 @@ Council 保留 OMD 的原有编排逻辑：最多三个独立席位、同一条�
 
 - 每个角色一行：启用、模型、思考强度、执行后端；
 - 选择「外部 CLI」后出现 Harness 下拉、Provider 缺失回退策略、只读等级与风险确认；
-- 外部运行时 DSH 模型/强度控件自动禁用，因为模型由该 CLI 自己的配置决定；
+- 外部运行时 DSH 模型/强度控件自动禁用；该 CLI 自己的模型在 Harness 区编辑；
+- 外部 CLI 区可编辑每个 Harness 的启用状态与模型，只写 `harnesses.<id>.enabled` / `.model`，不重写 `command` / `env` / `envFile` 等字段；
 - Harness 状态由 Host 的 `/coharness` RPC 提供，**不在浏览器里重跑 CLI Doctor**；
 - 保存仍走 OMD 原有的 revision 冲突保护与 profile 保存流程。
 
@@ -197,7 +205,7 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 
 - 外部 CLI **运行在 DSH sandbox/approval 之外**。文件策略管不到它们；`enforced` 只读来自 CLI 自己的沙箱，`advisory` 只读只是约定。
 - 角色的 `omc:*` Provider 固定只读；`coharness` 的写入必须显式 `mode: "in-place"`，且走 `surface: direct`（无 childId、无宿主容量、无子会话面板）。
-- 第一版只开放 **Oracle / Explorer / Council 席位**的外部执行。Fixer、Designer、Librarian、Observer、Council 合成器保持原生。
+- 外部执行只开放给 **Oracle / Explorer / Council 席位**，以及 **Designer 的只读 patch 模式**（产出 diff，由原生 Fixer 应用）。Fixer、Librarian、Observer、Council 合成器保持原生。
 - 任务文本会发给该 CLI 自己的服务商。不要把密钥或无关私有内容放进 prompt。
 - OMC 不读取 `~/.codex`、`~/.claude`、`~/.gemini` 的凭证，也不写它们。
 
@@ -220,8 +228,8 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 | 已有 | 暂不提供 |
 |---|---|
 | 单 Preset、单安装入口、Native 角色完整回归 | 外部 CLI 原生 Session Resume |
-| Oracle / Explorer / Council 席位切换外部只读 CLI | 外部 Fixer / Designer 默认可写 |
-| 外部 Persona 自包含 Brief（不是只发原始 prompt） | Agent 间点对点通信 / 消息总线 |
+| Oracle / Explorer / Council 席位切换外部只读 CLI；Designer 外部只读产 patch | 外部角色直接写工作区（Designer 只产 patch） |
+| 外部 Persona 自包含 Brief（含 patch 输出契约） | Agent 间点对点通信 / 消息总线 |
 | Council 混合后端 + 原生合成器 | 自动模型能力评分 |
 | 设置卡后端选择、Provider 状态、只读风险确认 | 新的多 Agent Dashboard |
 | 配置预览 / 备份 / 回滚迁移 | 自研 Git Worktree 调度器 |
