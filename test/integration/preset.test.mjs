@@ -153,7 +153,8 @@ test('the external role wording describes a one-shot, persona-wrapped CLI run', 
     execution: { provider: 'omc:codex', readOnly: 'enforced' },
   })
   assert.match(description, /external CLI provider \(omc:codex\)/)
-  assert.match(description, /cannot be asked a follow-up/)
+  assert.match(description, /returns exactly one result/)
+  assert.match(description, /same lane may continue the CLI's own native session/)
   assert.match(description, /wrapped in this role's persona/)
   assert.match(description, /enforced by that CLI's own sandbox/)
 

@@ -11,6 +11,7 @@ import { harnessDef, normalizeId } from './harnesses.js'
 import { harnessConfig, isEnabled } from './config.js'
 import { harnessEnv, launch, planTransport, readCollected, statusOf, withTimeout } from './transport.js'
 import { blocksToText } from './provider.js'
+import { maskSessionId, parseSessionOutput } from './session-adapters.js'
 
 function omcError(code, message) {
   const error = new Error(`${code}: ${message}`)
@@ -120,18 +121,25 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
     const outcome = await launched.handle.done
     const captured = readCollected(launched.handle, cfg.dispatch.maxOutputBytes)
     const status = statusOf(outcome, deadline, exec.signal)
+    // Direct runs do not resume (no lane identity), but reporting the session id
+    // and usage the CLI already returned makes the cost observable.
+    const parsed = def.session ? parseSessionOutput(def.session.format, captured.stdout) : null
 
     return withNotes(
       {
         status,
         harnessId: def.id,
         ...surface,
-        output: captured.stdout || captured.stderr,
+        output: parsed?.text || captured.stdout || captured.stderr,
         exitCode: outcome.exitCode,
         signal: outcome.signal,
         truncated: captured.truncated,
         spillPath: captured.spillPath,
         elapsedMs: Date.now() - started,
+        ...(parsed?.sessionId
+          ? { nativeSession: { id: maskSessionId(parsed.sessionId), format: def.session.format } }
+          : {}),
+        ...(parsed?.usage ? { usage: parsed.usage } : {}),
       },
       [...notes, status === 'failed' ? `OMC/CLI-EXIT: ${def.id} exited ${outcome.exitCode ?? outcome.signal}` : ''],
     )

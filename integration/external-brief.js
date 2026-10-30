@@ -18,6 +18,7 @@
  * without ever touching the tree.
  */
 
+import { encodeHandoffMarker, renderHandoff } from './handoff.js'
 import { executionProviderName } from './execution.js'
 
 /** Persona sections that describe DSH tools rather than the role itself. */
@@ -123,7 +124,7 @@ export function adaptPersonaForExternal(persona, { harness, readOnly, mode = 're
  * @param {{
  *   roleId: string, roleTitle?: string, persona: string, task: string,
  *   harness: string, readOnly?: 'enforced'|'advisory', cwd?: string,
- *   mode?: 'read-only'|'patch', constraints?: string[],
+ *   mode?: 'read-only'|'patch', constraints?: string[], handoff?: object,
  * }} input
  * @returns the external brief.
  */
@@ -137,6 +138,7 @@ export function buildExternalBrief({
   mode = 'read-only',
   cwd,
   constraints = [],
+  handoff,
 }) {
   const externalMode = normalizeMode(mode)
   const adapted = adaptPersonaForExternal(persona, { harness, readOnly, mode: externalMode })
@@ -160,8 +162,10 @@ export function buildExternalBrief({
     '',
     `Workspace: ${cwd ?? 'the working directory the orchestrator launched this CLI in'}`,
     '',
+    ...(handoff ? [renderHandoff(handoff), ''] : []),
     ...(patch ? PATCH_OUTPUT_CONTRACT : []),
     ...(patch ? ['', ...PATCH_RETURN_LINES] : READ_ONLY_RETURN_LINES),
+    ...(handoff ? ['', encodeHandoffMarker(handoff)] : []),
   ]
   return blocks.join('\n')
 }

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Oh My CoHarness",
-    "description": "一个 Agent Preset：专业角色可在 DSH 原生或你已安装的 AI 编程 CLI 上执行，统一 Orchestrator、Council、只读外部角色与设置卡。"
+    "description": "一个 Agent Preset：专业角色可在 DSH 原生或你已安装的 AI 编程 CLI 上执行，统一 Orchestrator、Council、只读外部角色、原生会话续接与设置卡。"
   }
 }

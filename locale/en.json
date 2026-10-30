@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Oh My CoHarness",
-    "description": "One agent preset with specialist roles that run natively in DSH or on the AI coding CLIs you already installed — orchestration, Council, read-only external execution, and one settings card."
+    "description": "One agent preset with specialist roles that run natively in DSH or on the AI coding CLIs you already installed — orchestration, Council, read-only external execution, native session reuse, and one settings card."
   }
 }

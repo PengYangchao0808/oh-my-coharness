@@ -3,7 +3,7 @@
  *
  * Surfaces, in order of importance (PLAN §3.1):
  *   provider  omc:<id>   → external CLI as a real DSH child session
- *   tool      coharness  → one tool, three actions, stable schema
+ *   tool      coharness  → one tool, stable actions/schema
  *   command   /coharness → free, model-free diagnostics
  *   skills    coharness* → routing discipline the model can load on demand
  *
@@ -18,6 +18,7 @@ import { detect, renderReport } from './doctor.js'
 import { registerSkills } from './skills.js'
 import { applyMigrationCommand } from './migrate.js'
 import { buildExecutionStatus, detectLegacyCompanion, renderExecutionStatus } from '../integration/status.js'
+import { createSessionRegistry } from '../integration/sessions.js'
 
 export const inject = ['tools', 'subprocess']
 
@@ -27,8 +28,10 @@ const DESCRIPTION = [
   'or when another toolchain/model should do the work.',
   '',
   "Actions: `list` shows what is installed (free, no model calls); `status` shows role → execution backend and which",
-  '`omc:<id>` providers are registered (free); `doctor` returns a copyable diagnostic report (free); `migrate` previews the',
-  'pre-0.4 configuration migration (pass `apply: true` to write it); `dispatch` runs real work and costs that CLI’s own quota.',
+  '`omc:<id>` providers are registered (free); `doctor` returns a copyable diagnostic report (free); `sessions` lists the',
+  'native CLI session references OMC may reuse (free; pass `clear: true` to forget them, which never deletes CLI history);',
+  '`migrate` previews the pre-0.4 configuration migration (pass `apply: true` to write it); `dispatch` runs real work and',
+  'costs that CLI’s own quota.',
   '',
   'The specialist roles (`subagent_oracle`, `subagent_explorer`, council seats) may be configured to run on one of these',
   'providers. That provider surface is fixed read-only; `dispatch` with `mode: "in-place"` uses the direct surface.',
@@ -78,9 +81,35 @@ function renderDispatch(payload) {
   return lines.join('\n').trim()
 }
 
+/** Session references are metadata, never a conversation or a credential. */
+function renderSessions(registry) {
+  const stats = registry.stats()
+  const lines = [
+    `session registry: ${stats.entries} entries · ${stats.resumable} resumable · reuse ${stats.enabled ? 'on' : 'off'} · policy ${stats.resumePolicy}`,
+  ]
+  if (stats.loadError) lines.push(`  unreadable registry: ${stats.loadError}`)
+  const rows = registry.list({ limit: 20 })
+  if (!rows.length) {
+    lines.push('  no native session references stored')
+  } else {
+    lines.push('  lane / role / harness / state / turns / last used / session')
+    for (const row of rows) {
+      lines.push(
+        `  ${String(row.laneId).padEnd(28)}${String(row.role).padEnd(18)}${String(row.harness).padEnd(12)}` +
+        `${String(row.state).padEnd(13)}${String(row.turns ?? 0).padEnd(6)}${String(row.lastUsedAt ?? '-').padEnd(22)}${row.sessionId || '-'}`,
+      )
+    }
+  }
+  lines.push('note: clearing references never deletes the CLI provider\'s own history.')
+  return lines.join('\n')
+}
+
 /** Role execution + provider state, without probing any CLI. */
-async function executionStatusText(ctx, cfg) {
-  const [status, legacy] = await Promise.all([buildExecutionStatus(ctx, cfg), detectLegacyCompanion(ctx)])
+async function executionStatusText(ctx, cfg, registry) {
+  const [status, legacy] = await Promise.all([
+    buildExecutionStatus(ctx, cfg, { registry }),
+    detectLegacyCompanion(ctx),
+  ])
   return renderExecutionStatus(status, { legacy }).join('\n')
 }
 
@@ -96,8 +125,8 @@ function coharnessTool(rt) {
       properties: {
         action: {
           type: 'string',
-          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate'],
-          description: 'dispatch = run work; list = who is available (free); status = role execution backends and provider state (free); doctor = full diagnostic report (free); migrate = preview the pre-0.4 configuration migration (pass apply:true to write).',
+          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate', 'sessions'],
+          description: 'dispatch = run work; list = who is available (free); status = role execution backends, provider state and session reuse (free); doctor = full diagnostic report (free); sessions = OMC native-session references (free; clear:true forgets them); migrate = preview the pre-0.4 configuration migration (pass apply:true to write).',
         },
         harness: {
           type: 'string',
@@ -124,7 +153,7 @@ function coharnessTool(rt) {
         mode: {
           type: 'string',
           enum: ['read-only', 'in-place', 'worktree'],
-          description: 'read-only (default) forbids edits; in-place lets the CLI write here (direct surface only); worktree is not implemented in 0.4.0-alpha.1.',
+          description: 'read-only (default) forbids edits; in-place lets the CLI write here (direct surface only); worktree is not implemented in 0.5.0-alpha.1.',
         },
         delivery: {
           type: 'string',
@@ -135,6 +164,7 @@ function coharnessTool(rt) {
         apply: { type: 'boolean', description: 'For action migrate: write the migrated configuration. Omit/false = preview only.' },
         force: { type: 'boolean', description: 'For action migrate: overwrite conflicting current values (a backup is always written first).' },
         rollback: { type: 'boolean', description: 'For action migrate: restore the latest migration backup.' },
+        clear: { type: 'boolean', description: 'For action sessions: forget every OMC session reference. CLI-native histories are not deleted.' },
       },
       required: ['action'],
       additionalProperties: false,
@@ -170,7 +200,15 @@ function coharnessTool(rt) {
       }
 
       if (action === 'status') {
-        return { text: await executionStatusText(rt.ctx, rt.cfg) }
+        return { text: await executionStatusText(rt.ctx, rt.cfg, rt.sessions) }
+      }
+
+      if (action === 'sessions') {
+        if (args.clear === true) {
+          rt.sessions.clear()
+          return { text: 'cleared OMC session references; CLI-native histories were not touched' }
+        }
+        return { text: renderSessions(rt.sessions) }
       }
 
       if (action === 'migrate') {
@@ -181,11 +219,11 @@ function coharnessTool(rt) {
       }
 
       if (action !== 'dispatch') {
-        return { text: `unknown action "${action}"; use dispatch, list, status, doctor, or migrate` }
+        return { text: `unknown action "${action}"; use dispatch, list, status, doctor, sessions, or migrate` }
       }
 
       if (args.mode === 'worktree') {
-        return { text: 'worktree mode is not implemented in 0.4.0-alpha.1; use read-only or in-place' }
+        return { text: 'worktree mode is not implemented in 0.5.0-alpha.1; use read-only or in-place' }
       }
 
       const payload = await dispatchTasks(rt, args, {
@@ -200,8 +238,8 @@ function coharnessTool(rt) {
 function coharnessCommand(rt) {
   return {
     name: 'coharness',
-    description: 'Diagnose external CLIs, inspect role execution backends, and migrate the pre-0.4 configuration.',
-    input: { hint: 'doctor | status | migrate [--apply] [--force] | migrate --rollback' },
+    description: 'Diagnose external CLIs, inspect role execution backends and native-session reuse, and migrate the pre-0.4 configuration.',
+    input: { hint: 'doctor | status | sessions [--clear] | migrate [--apply] [--force] | migrate --rollback' },
     handler: async (invocation) => {
       rt.ensureProviders?.()
       const raw = String(invocation?.rawInput ?? '').trim()
@@ -215,7 +253,8 @@ function coharnessCommand(rt) {
             kind: 'success',
             text: [
               '/coharness doctor            full diagnostic report (CLIs, providers, role backends)',
-              '/coharness status            role → backend table and provider registration only',
+              '/coharness status            role → backend table, provider registration and session reuse',
+              '/coharness sessions          OMC native-session references (clear with --clear)',
               '/coharness migrate           preview the OMD → OMC configuration migration',
               '/coharness migrate --apply   back up, then write the migrated configuration',
               '/coharness migrate --force   overwrite conflicting values (backup is still written)',
@@ -228,7 +267,15 @@ function coharnessCommand(rt) {
       }
 
       if (topic === 'status') {
-        return { kind: 'success', text: await executionStatusText(rt.ctx, rt.cfg) }
+        return { kind: 'success', text: await executionStatusText(rt.ctx, rt.cfg, rt.sessions) }
+      }
+
+      if (topic === 'sessions') {
+        if (flags.has('--clear')) {
+          rt.sessions.clear()
+          return { kind: 'success', text: 'cleared OMC session references; CLI-native histories were not touched' }
+        }
+        return { kind: 'success', text: renderSessions(rt.sessions) }
       }
 
       if (topic === 'migrate') {
@@ -247,7 +294,7 @@ function coharnessCommand(rt) {
 
       return {
         kind: 'error',
-        text: `unknown /coharness topic "${topic}"; use doctor, status, or migrate`,
+        text: `unknown /coharness topic "${topic}"; use doctor, status, sessions, or migrate`,
       }
     },
   }
@@ -255,6 +302,7 @@ function coharnessCommand(rt) {
 
 export function apply(ctx, config) {
   const cfg = resolveConfig(config)
+  const sessions = createSessionRegistry(cfg.sessions)
 
   /** @type {Set<string>} */
   const registered = new Set()
@@ -267,6 +315,7 @@ export function apply(ctx, config) {
     ctx,
     cfg,
     registered,
+    sessions,
     /**
      * Registration is retried on every entry point. A Loader may apply this plugin
      * before the `subagents` row exists (row order is not ours to control), and a
@@ -302,7 +351,7 @@ export function apply(ctx, config) {
       const name = `omc:${def.id}`
       if (existing.has(name)) continue // another plugin already owns this name; never shadow it
       try {
-        const provider = makeProvider(ctx, def, cfg, { readOnly: true })
+        const provider = makeProvider(ctx, def, cfg, { readOnly: true, registry: sessions })
         ctx.effect(() => subagents.registerProvider(provider))
         registered.add(def.id)
       } catch (error) {

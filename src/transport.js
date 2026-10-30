@@ -222,18 +222,26 @@ export function buildArgv(def, plan, args, cwd, env) {
 /**
  * Start one harness process.
  *
+ * `sessionId` selects the CLI's native resume form when the harness declares
+ * one; `json` asks for the machine-readable output that carries the session id
+ * and usage. Neither changes the read-only contract of the role provider.
+ *
  * @param {{ subprocess: any }} ctx
  * @param {import('./harnesses.js').HarnessDef} def
  * @param {{
- *   task: string, cwd?: string, model?: string,
+ *   task: string, cwd?: string, model?: string, mode?: string,
+ *   sessionId?: string, json?: boolean,
  *   plan: { transport: 'native' | 'wsl', exe?: string, distro?: string },
  *   timeoutMs: number, maxOutputBytes: number, signal?: AbortSignal,
  * }} options
  */
 export async function launch(ctx, def, options) {
-  const { task, cwd, model, mode, plan, timeoutMs, maxOutputBytes, signal, env } = options
+  const { task, cwd, model, mode, sessionId, json, plan, timeoutMs, maxOutputBytes, signal, env } = options
   const deadline = withTimeout(signal, timeoutMs)
-  const { argv, cwd: spawnCwd } = buildArgv(def, plan, def.argv(task, { model, mode }), cwd, env)
+  const args = sessionId && typeof def.session?.resumeArgs === 'function'
+    ? def.session.resumeArgs(sessionId, task, { model, mode, json })
+    : def.argv(task, { model, mode, json })
+  const { argv, cwd: spawnCwd } = buildArgv(def, plan, args, cwd, env)
 
   const handle = ctx.subprocess.spawn({
     argv,
@@ -313,6 +321,51 @@ export async function probeWslCommand(ctx, bin, distro, signal) {
 }
 
 /**
+ * A successful transport plan is stable for a short window. CLI discovery can
+ * spend seconds in WSL (`wsl.exe -l -q` plus a login-shell lookup); repeating it
+ * for every role turn is pure latency. Failures are never cached, so installing
+ * a CLI still takes effect on the next attempt.
+ */
+const PLAN_CACHE = new WeakMap()
+const PLAN_TTL_MS = 60_000
+
+function planCacheKey(def, cfg, hcfg) {
+  return JSON.stringify([
+    def.id,
+    hcfg.command,
+    hcfg.transport,
+    hcfg.distro,
+    cfg.transport,
+    cfg.wsl.distro,
+    process.env.DSH_WSL_DISTRO ?? '',
+  ])
+}
+
+function cachedPlan(ctx, key) {
+  if (!ctx || typeof ctx !== 'object') return null
+  const entry = PLAN_CACHE.get(ctx)?.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.at > PLAN_TTL_MS) return null
+  return entry.plan
+}
+
+function rememberPlan(ctx, key, plan) {
+  if (!ctx || typeof ctx !== 'object') return
+  let map = PLAN_CACHE.get(ctx)
+  if (!map) {
+    map = new Map()
+    PLAN_CACHE.set(ctx, map)
+  }
+  map.set(key, { plan, at: Date.now() })
+}
+
+/** Tests and config reloads can force a fresh discovery pass. */
+export function clearTransportPlanCache(ctx) {
+  if (!ctx || typeof ctx !== 'object') return
+  PLAN_CACHE.delete(ctx)
+}
+
+/**
  * Choose an execution world for one harness.
  *
  * @returns {Promise<{ transport: 'native' | 'wsl', exe?: string, distro?: string, via: string }>}
@@ -320,6 +373,9 @@ export async function probeWslCommand(ctx, bin, distro, signal) {
 export async function planTransport(ctx, def, cfg, signal) {
   const hcfg = harnessConfig(cfg, def.id)
   const forced = hcfg.transport !== 'auto' ? hcfg.transport : cfg.transport
+  const cacheKey = planCacheKey(def, cfg, hcfg)
+  const cached = cachedPlan(ctx, cacheKey)
+  if (cached) return cached
   const nativeError = []
   const wslError = []
 
@@ -367,15 +423,17 @@ export async function planTransport(ctx, def, cfg, signal) {
     return null
   }
 
+  let found = null
   if (forced === 'wsl') {
-    const plan = await wsl()
-    if (plan) return plan
+    found = await wsl()
   } else if (forced === 'native') {
-    const plan = await native()
-    if (plan) return plan
+    found = await native()
   } else {
-    const plan = (await native()) ?? (await wsl())
-    if (plan) return plan
+    found = (await native()) ?? (await wsl())
+  }
+  if (found) {
+    rememberPlan(ctx, cacheKey, found)
+    return found
   }
 
   const error = new Error(

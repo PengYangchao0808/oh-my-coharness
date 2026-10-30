@@ -30,6 +30,36 @@ export const DEFAULTS = Object.freeze({
     timeoutMs: 600000,
     maxOutputBytes: 20000,
   },
+  /**
+   * Native Session Resume. OMC stores CLI session references, never prompts or
+   * credentials. `allowUnverified` is the explicit gate for adapters whose argv
+   * has not been exercised in this installation yet.
+   */
+  sessions: {
+    enabled: true,
+    path: '',
+    resumePolicy: 'auto', // auto | new | require-resume
+    maxTurns: 24,
+    idleTtlMs: 7 * 24 * 60 * 60 * 1000,
+    lockTimeoutMs: 120000,
+    allowUnverified: false,
+    captureUsage: true,
+    maxEntries: 200,
+  },
+  /**
+   * Advisory routing policy. Disabled by default: a policy may recommend an
+   * executor, but it never overrides an explicit role.execution choice.
+   */
+  routing: {
+    enabled: false,
+    preset: 'balanced',
+    roles: {},
+    limits: {
+      maxParallelExternal: 3,
+      maxOracleCallsPerTask: 1,
+      maxReviewRounds: 1,
+    },
+  },
   privacy: { reportBinaryPaths: false },
 })
 
@@ -73,6 +103,52 @@ export function resolveConfig(input) {
   }
   if (typeof merged.wsl.distro !== 'string') merged.wsl.distro = ''
   merged.privacy.reportBinaryPaths = Boolean(merged.privacy.reportBinaryPaths)
+
+  merged.sessions.enabled = merged.sessions.enabled !== false
+  merged.sessions.path = typeof merged.sessions.path === 'string' ? merged.sessions.path : ''
+  if (!['auto', 'new', 'require-resume'].includes(merged.sessions.resumePolicy)) {
+    merged.sessions.resumePolicy = 'auto'
+  }
+  merged.sessions.maxTurns = intIn(merged.sessions.maxTurns, 1, 200, DEFAULTS.sessions.maxTurns)
+  merged.sessions.idleTtlMs = intIn(
+    merged.sessions.idleTtlMs,
+    60_000,
+    365 * 24 * 60 * 60 * 1000,
+    DEFAULTS.sessions.idleTtlMs,
+  )
+  merged.sessions.lockTimeoutMs = intIn(
+    merged.sessions.lockTimeoutMs,
+    1_000,
+    30 * 60 * 1000,
+    DEFAULTS.sessions.lockTimeoutMs,
+  )
+  merged.sessions.maxEntries = intIn(merged.sessions.maxEntries, 1, 10_000, DEFAULTS.sessions.maxEntries)
+  merged.sessions.allowUnverified = merged.sessions.allowUnverified === true
+  merged.sessions.captureUsage = merged.sessions.captureUsage !== false
+
+  merged.routing.enabled = merged.routing.enabled === true
+  if (!['economy', 'balanced', 'quality'].includes(merged.routing.preset)) {
+    merged.routing.preset = 'balanced'
+  }
+  merged.routing.roles = isObject(merged.routing.roles) ? merged.routing.roles : {}
+  merged.routing.limits.maxParallelExternal = intIn(
+    merged.routing.limits.maxParallelExternal,
+    1,
+    8,
+    DEFAULTS.routing.limits.maxParallelExternal,
+  )
+  merged.routing.limits.maxOracleCallsPerTask = intIn(
+    merged.routing.limits.maxOracleCallsPerTask,
+    0,
+    8,
+    DEFAULTS.routing.limits.maxOracleCallsPerTask,
+  )
+  merged.routing.limits.maxReviewRounds = intIn(
+    merged.routing.limits.maxReviewRounds,
+    0,
+    5,
+    DEFAULTS.routing.limits.maxReviewRounds,
+  )
 
   for (const [id, entry] of Object.entries(merged.harnesses)) {
     const value = isObject(entry) ? entry : {}

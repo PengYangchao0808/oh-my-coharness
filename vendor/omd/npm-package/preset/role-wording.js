@@ -38,7 +38,7 @@ export function roleDescription(options) {
       wording.description,
       options.description,
       'Runs this role on an external CLI provider (' + (options.execution?.provider ?? 'omc:?') + '). ' +
-        'It does not see this conversation, cannot be asked a follow-up or resumed, and returns exactly one result. ' +
+        'It does not see this conversation and returns exactly one result; a later call in the same lane may continue the CLI\'s own native session when session reuse is enabled. ' +
         'Its task prompt is automatically wrapped in this role\'s persona and read-only brief; write the task itself, not the role instructions. ' +
         'Read-only is ' + (options.execution?.readOnly === 'enforced'
           ? 'enforced by that CLI\'s own sandbox.'

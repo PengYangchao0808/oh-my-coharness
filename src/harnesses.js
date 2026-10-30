@@ -12,13 +12,18 @@
 
 /** @typedef {{
  *   id: string, label: string, bin: string,
- *   argv: (task: string, opts: { model?: string, mode?: string }) => string[],
+ *   argv: (task: string, opts: { model?: string, mode?: string, json?: boolean }) => string[],
  *   versionArgs: string[],
  *   authProbe: { argv: string[], okExit: number } | null,
  *   capabilities: { write: boolean, model: boolean, resume: boolean, json: boolean, stdin: boolean },
  *   readOnly: 'enforced' | 'advisory' | 'unsupported',
  *   install: string, verified: boolean, notes?: string,
  *   defaultEnv?: Record<string, string>,
+ *   session?: {
+ *     format: 'codex-jsonl' | 'claude-json' | 'generic-json',
+ *     confidence: 'verified' | 'documented' | 'unverified',
+ *     resumeArgs: (sessionId: string, task: string, opts: { model?: string, mode?: string, json?: boolean }) => string[],
+ *   },
  * }} HarnessDef */
 
 const READ_ONLY = 'read-only'
@@ -29,25 +34,45 @@ export const HARNESSES = [
     id: 'opencode',
     label: 'opencode',
     bin: 'opencode',
-    // `opencode run [--model provider/model] "<task>"`
-    argv: (task, opts) => ['run', ...(opts.model ? ['--model', opts.model] : []), task],
+    // `opencode run [--model provider/model] [--session ID] "<task>"`
+    argv: (task, opts) => [
+      'run',
+      ...(opts.model ? ['--model', opts.model] : []),
+      ...(opts.json ? ['--format', 'json'] : []),
+      task,
+    ],
     versionArgs: ['--version'],
     authProbe: { argv: ['auth', 'list'], okExit: 0 },
-    capabilities: { write: true, model: true, resume: false, json: true, stdin: false },
+    capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
     // No read-only switch exists in `opencode run`; the prompt can ask, but the
     // CLI keeps its default permission model.
     readOnly: 'advisory',
     install: 'curl -fsSL https://opencode.ai/install | bash   (inside WSL/Linux)',
     verified: true, // real read-only dispatch on this machine (2.1.4, 2026-10-29)
-    notes: 'Model ids are "provider/model". Prefers a non-PATH install under WSL.',
+    notes:
+      'Model ids are "provider/model". Prefers a non-PATH install under WSL. ' +
+      '`run --session` resumes; the JSON event shape is unverified until a two-turn test is recorded.',
+    session: {
+      format: 'generic-json',
+      confidence: 'unverified',
+      resumeArgs: (sessionId, task, opts) => [
+        'run',
+        '--session',
+        sessionId,
+        ...(opts.model ? ['--model', opts.model] : []),
+        ...(opts.json ? ['--format', 'json'] : []),
+        task,
+      ],
+    },
   },
   {
     id: 'codex',
     label: 'Codex',
     bin: 'codex',
-    // `codex exec [-m MODEL] [-s SANDBOX] "<task>"` — confirmed by `codex exec --help` 0.165.0
+    // `codex exec [--json] [-m MODEL] [-s SANDBOX] "<task>"` — confirmed by `codex exec --help` 0.165.0
     argv: (task, opts) => [
       'exec',
+      ...(opts.json ? ['--json'] : []),
       // Headless runs cannot answer the interactive trust prompt, and the cwd is
       // chosen by the caller, so the repo check would only ever be a hard failure.
       '--skip-git-repo-check',
@@ -64,14 +89,37 @@ export const HARNESSES = [
     readOnly: 'enforced', // `-s read-only` is Codex's own sandbox
     install: 'npm i -g @openai/codex   (Node >=16)',
     verified: true,
-    notes: 'Needs a trusted git repository as cwd. `codex exec resume` exists for v0.3.',
+    notes:
+      'Needs a trusted git repository as cwd. `codex exec resume <id>` continues a native session; ' +
+      'the session id arrives in the `thread.started` JSON event.',
+    session: {
+      format: 'codex-jsonl',
+      confidence: 'documented',
+      resumeArgs: (sessionId, task, opts) => [
+        'exec',
+        'resume',
+        sessionId,
+        ...(opts.json ? ['--json'] : []),
+        '--skip-git-repo-check',
+        ...(opts.model ? ['-m', opts.model] : []),
+        '-s',
+        opts.mode === READ_ONLY ? 'read-only' : 'workspace-write',
+        task,
+      ],
+    },
   },
   {
     id: 'claude',
     label: 'Claude Code',
     bin: 'claude',
-    // `claude -p "<task>" --output-format text [--model M]` — confirmed by `claude --help` 2.1.312
-    argv: (task, opts) => ['-p', task, '--output-format', 'text', ...(opts.model ? ['--model', opts.model] : [])],
+    // `claude -p "<task>" --output-format text|json [--model M]` — confirmed by `claude --help` 2.1.312
+    argv: (task, opts) => [
+      '-p',
+      task,
+      '--output-format',
+      opts.json ? 'json' : 'text',
+      ...(opts.model ? ['--model', opts.model] : []),
+    ],
     versionArgs: ['--version'],
     // `claude auth status` prints JSON and exits 1 when logged out.
     authProbe: { argv: ['auth', 'status'], okExit: 0 },
@@ -80,7 +128,22 @@ export const HARNESSES = [
     readOnly: 'advisory',
     install: 'npm i -g @anthropic-ai/claude-code   (Node >=22)',
     verified: true,
-    notes: 'No Anthropic account? Point it at another Anthropic-compatible endpoint (see `glm`).',
+    notes:
+      'No Anthropic account? Point it at another Anthropic-compatible endpoint (see `glm`). ' +
+      '`--output-format json` carries `session_id`; `--resume` continues it.',
+    session: {
+      format: 'claude-json',
+      confidence: 'documented',
+      resumeArgs: (sessionId, task, opts) => [
+        '-p',
+        task,
+        '--resume',
+        sessionId,
+        '--output-format',
+        opts.json ? 'json' : 'text',
+        ...(opts.model ? ['--model', opts.model] : []),
+      ],
+    },
   },
   {
     id: 'antigravity',
@@ -114,7 +177,13 @@ export const HARNESSES = [
     label: 'GLM (via Claude Code)',
     bin: 'claude',
     // Same binary and argv as `claude`; only the endpoint and model differ.
-    argv: (task, opts) => ['-p', task, '--output-format', 'text', ...(opts.model ? ['--model', opts.model] : [])],
+    argv: (task, opts) => [
+      '-p',
+      task,
+      '--output-format',
+      opts.json ? 'json' : 'text',
+      ...(opts.model ? ['--model', opts.model] : []),
+    ],
     versionArgs: ['--version'],
     authProbe: null, // the remote endpoint answers; there is no local status command
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
@@ -127,17 +196,32 @@ export const HARNESSES = [
     defaultEnv: { ANTHROPIC_BASE_URL: 'https://api.z.ai/api/anthropic' },
     notes:
       'Disabled by default: needs a GLM Coding Plan key as ANTHROPIC_AUTH_TOKEN. ' +
-      'Enable with harnesses.glm.enabled=true and point harnesses.glm.envFile at the secret file.',
+      'Enable with harnesses.glm.enabled=true and point harnesses.glm.envFile at the secret file. ' +
+      'Resume reuses Claude Code\'s session flag, but the Z.ai endpoint compatibility is unverified.',
+    session: {
+      format: 'claude-json',
+      confidence: 'unverified',
+      resumeArgs: (sessionId, task, opts) => [
+        '-p',
+        task,
+        '--resume',
+        sessionId,
+        '--output-format',
+        opts.json ? 'json' : 'text',
+        ...(opts.model ? ['--model', opts.model] : []),
+      ],
+    },
   },
   {
     id: 'gemini',
     label: 'Gemini CLI',
     bin: 'gemini',
-    // `gemini -p "<task>" [--model M] [--approval-mode plan]` — confirmed by `gemini --help` 0.66.0
+    // `gemini -p "<task>" [--model M] [--approval-mode plan] [--output-format json]`
     argv: (task, opts) => [
       '-p',
       task,
       ...(opts.model ? ['-m', opts.model] : []),
+      ...(opts.json ? ['--output-format', 'json'] : []),
       // Without this the CLI overrides --approval-mode back to "default" because the
       // folder is untrusted, which silently undoes the read-only guarantee.
       '--skip-trust',
@@ -146,25 +230,60 @@ export const HARNESSES = [
     ],
     versionArgs: ['--version'],
     authProbe: null, // no status command; auth comes from env/config or first-run OAuth
-    capabilities: { write: true, model: true, resume: false, json: true, stdin: true },
+    capabilities: { write: true, model: true, resume: true, json: true, stdin: true },
     readOnly: 'enforced', // `--approval-mode plan` + `--skip-trust`
     install: 'npm i -g @google/gemini-cli   (Node >=20)',
     verified: true,
-    notes: 'Auth is GEMINI_API_KEY or an interactive Google login; doctor therefore reports `unknown`.',
+    notes:
+      'Auth is GEMINI_API_KEY or an interactive Google login; doctor therefore reports `unknown`. ' +
+      '`--resume` exists, but non-interactive restore and the JSON session id are unverified.',
+    session: {
+      format: 'generic-json',
+      confidence: 'unverified',
+      resumeArgs: (sessionId, task, opts) => [
+        '-p',
+        task,
+        '--resume',
+        sessionId,
+        ...(opts.model ? ['-m', opts.model] : []),
+        ...(opts.json ? ['--output-format', 'json'] : []),
+        '--skip-trust',
+        ...(opts.mode === READ_ONLY ? ['--approval-mode', 'plan'] : ['--approval-mode', 'auto_edit']),
+      ],
+    },
   },
   {
     id: 'kimi',
     label: 'Kimi CLI',
     bin: 'kimi',
-    // `kimi -p "<task>" [--model M]` — confirmed by `kimi --help` 2.4.0
-    argv: (task, opts) => ['-p', task, ...(opts.model ? ['-m', opts.model] : [])],
+    // `kimi -p "<task>" [--model M] [--session ID] [--output-format json]`
+    argv: (task, opts) => [
+      '-p',
+      task,
+      ...(opts.model ? ['-m', opts.model] : []),
+      ...(opts.json ? ['--output-format', 'json'] : []),
+    ],
     versionArgs: ['--version'],
     authProbe: null, // `kimi login` is a device-code flow with no status subcommand
     capabilities: { write: true, model: true, resume: true, json: true, stdin: false },
     readOnly: 'advisory', // no verified sandbox flag in the recorded argv
     install: 'npm i -g @moonshot-ai/kimi-code   (Node >=22.19)',
     verified: true,
-    notes: '`kimi-cli` on npm is an unrelated placeholder. `-S` resumes a session.',
+    notes:
+      '`kimi-cli` on npm is an unrelated placeholder. `--session` resumes; a missing id ' +
+      'may create a new session, so the result must be checked, not trusted from exit 0.',
+    session: {
+      format: 'generic-json',
+      confidence: 'unverified',
+      resumeArgs: (sessionId, task, opts) => [
+        '-p',
+        task,
+        '--session',
+        sessionId,
+        ...(opts.model ? ['-m', opts.model] : []),
+        ...(opts.json ? ['--output-format', 'json'] : []),
+      ],
+    },
   },
   {
     id: 'qwen',

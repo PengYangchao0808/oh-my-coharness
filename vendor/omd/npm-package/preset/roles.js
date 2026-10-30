@@ -37,6 +37,7 @@ import { loadConfig, roleDefaults, bindProfileContext } from './config.js';
 import { describeExecution } from '../../../../integration/compatibility.js';
 import { resolveExecution } from '../../../../integration/execution.js';
 import { buildExternalBrief, defaultExternalConstraints } from '../../../../integration/external-brief.js';
+import { createHandoff } from '../../../../integration/handoff.js';
 
 /** Cordis plugin name. */
 export const name = 'omds-role-subagent';
@@ -500,6 +501,16 @@ export function resolveRole(config, ctx) {
 export function externalRoleArgs(role, args) {
   if (role?.external !== true || role?.blocked === true) return args;
   if (!args || typeof args !== 'object' || typeof args.prompt !== 'string') return args;
+  const patch = role.execution.mode === 'patch';
+  const handoff = createHandoff({
+    roleId: role.roleId,
+    cwd: args.cwd,
+    laneId: typeof args.lane === 'string' ? args.lane : undefined,
+    acceptance: patch
+      ? ['Return exactly one unified diff that applies with git apply -p1.', 'Do not write files or touch git state.']
+      : ['Report evidence for every claim.', 'Do not modify files or git state.'],
+    constraints: { readOnly: true, maxReviewRounds: 1 },
+  });
   return {
     ...args,
     prompt: buildExternalBrief({
@@ -512,6 +523,7 @@ export function externalRoleArgs(role, args) {
       mode: role.execution.mode,
       cwd: args.cwd,
       constraints: defaultExternalConstraints(role.roleId),
+      handoff,
     }),
   };
 }

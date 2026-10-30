@@ -14,7 +14,7 @@
  * subagent provider, not an LLM provider.
  */
 
-/** Execution backends supported by 0.4.0-alpha.1. */
+/** Execution backends supported by 0.5.0-alpha.1. */
 export const BACKENDS = Object.freeze(['native', 'omc'])
 
 /** What to do when a configured external backend cannot run. */
@@ -153,7 +153,7 @@ export function validateExecution(roleId, roleConfig) {
   if (!canUseExternal(roleId)) {
     const why = roleId === 'council'
       ? 'the council synthesizer must stay native so synthesis never depends on another CLI'
-      : 'this role keeps the DSH native path in 0.4.0-alpha.1'
+      : 'this role keeps the DSH native path in 0.5.0-alpha.1'
     throw executionError('OMC/EXECUTION-ROLE-UNSUPPORTED', `role "${roleId}" cannot use an external backend: ${why}`)
   }
   if (!execution.harness) {

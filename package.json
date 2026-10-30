@@ -1,6 +1,6 @@
 {
   "name": "oh-my-coharness",
-  "version": "0.4.0-alpha.1",
+  "version": "0.5.0-alpha.1",
   "description": "Oh My CoHarness: one agent preset with specialist roles that run natively in DeepSeek Harness or on the AI coding CLIs you already installed. 一个 Preset，角色可原生或交给外部 CLI。",
   "type": "module",
   "license": "MIT",
@@ -70,7 +70,7 @@
   ],
   "scripts": {
     "check": "node scripts/check.mjs",
-    "test": "node test/smoke.test.mjs && node test/integration/contracts.test.mjs && node test/integration/preset.test.mjs && node test/integration/client.test.mjs && node test/integration/migration.test.mjs",
+    "test": "node test/smoke.test.mjs && node test/integration/contracts.test.mjs && node test/integration/preset.test.mjs && node test/integration/client.test.mjs && node test/integration/migration.test.mjs && node test/integration/golden.test.mjs && node test/integration/handoff.test.mjs && node test/integration/session-adapters.test.mjs && node test/integration/sessions.test.mjs && node test/integration/provider-session.test.mjs && node test/integration/model-policy.test.mjs",
     "live-check": "node scripts/live-check.mjs"
   },
   "peerDependencies": {

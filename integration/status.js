@@ -11,6 +11,8 @@ import { HARNESSES } from '../src/harnesses.js'
 import { resolveConfig } from '../src/config.js'
 import { describeExecution, EXTERNAL_ROLE_IDS } from './compatibility.js'
 import { harnessReadOnlyClass, resolveExecution } from './execution.js'
+import { createSessionRegistry } from './sessions.js'
+import { policySummary, recommendRoute } from './model-policy.js'
 
 /** The single public preset id of the merged bundle. */
 export const PRESET_ID = 'oh-my-coharness'
@@ -39,10 +41,13 @@ export function liveProviders(ctx) {
  * @param ctx - any context that can reach `subagents` and the settings service.
  * @param rowConfig - the Host row config, so default-disabled harnesses report
  *   their real enabled state instead of "available".
+ * @param options - `{ registry }` lets the Host reuse its live registry; status
+ *   otherwise opens the same file read-only.
  * @returns a JSON-serializable status object.
  */
-export async function buildExecutionStatus(ctx, rowConfig = {}) {
+export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
   const cfg = resolveConfig(rowConfig)
+  const registry = options.registry ?? createSessionRegistry(cfg.sessions)
   const providers = liveProviders(ctx)
   const loaded = await readRoleConfiguration(ctx)
   const roles = []
@@ -83,12 +88,19 @@ export async function buildExecutionStatus(ctx, rowConfig = {}) {
     }
   }
 
+  const policy = policySummary(cfg.routing)
+  policy.recommendations = Object.fromEntries(
+    roles.map((row) => [row.roleId, recommendRoute(row.roleId, cfg.routing, providers)]),
+  )
+
   return {
     presetId: PRESET_ID,
     source: loaded.ok ? loaded.config.source : undefined,
     configError: loaded.ok ? undefined : loaded.error,
     providers,
     roles,
+    sessions: registry.stats(),
+    routing: policy,
     harnesses: HARNESSES.map((def) => ({
       id: def.id,
       label: def.label,
@@ -101,6 +113,10 @@ export async function buildExecutionStatus(ctx, rowConfig = {}) {
       provider: `omc:${def.id}`,
       providerAvailable: providers.includes(`omc:${def.id}`),
       verified: def.verified === true,
+      // Session support is a fact of the adapter, separate from argv verification.
+      session: def.session
+        ? { format: def.session.format, confidence: def.session.confidence }
+        : null,
     })),
   }
 }
@@ -149,11 +165,36 @@ export function renderExecutionStatus(status, { legacy } = {}) {
     )
   }
   if (status.configError) lines.push(`  configuration error: ${status.configError}`)
+  if (status.sessions) {
+    const sessions = status.sessions
+    const states = sessions.states ?? {}
+    lines.push(
+      `session reuse: ${sessions.enabled === false ? 'off' : 'on'} · policy ${sessions.resumePolicy ?? 'auto'} · ` +
+        `${sessions.entries ?? 0} refs · ${sessions.resumable ?? 0} resumable · ` +
+        `idle ${states.idle ?? 0} / running ${states.running ?? 0} / failed ${states.failed ?? 0}`,
+    )
+    if (sessions.loadError) lines.push(`  session registry unreadable: ${sessions.loadError}`)
+  }
+  if (status.routing) {
+    lines.push(
+      `routing: ${status.routing.preset} (${status.routing.label}) · ` +
+        `${status.routing.enabled ? 'advisory recommendations on' : 'advisory only, not applied'}`,
+    )
+    if (status.routing.enabled) {
+      const recommended = Object.entries(status.routing.recommendations ?? {})
+        .filter(([, route]) => route?.backend === 'omc')
+        .map(([role, route]) => `${role}→omc:${route.harness}`)
+      if (recommended.length) lines.push(`  recommended: ${recommended.join(' · ')}`)
+    }
+  }
   lines.push('harness read-only class:')
   for (const row of status.harnesses) {
+    const resume = row.session
+      ? ` · resume ${row.session.confidence}`
+      : ''
     lines.push(
       `  ${row.id.padEnd(12)}${(row.enabled ? 'on' : 'off').padEnd(4)}${row.readOnly.padEnd(12)}` +
-        `${row.providerAvailable ? 'provider registered' : 'provider missing'}${row.verified ? '' : ' · argv unverified'}`,
+        `${row.providerAvailable ? 'provider registered' : 'provider missing'}${row.verified ? '' : ' · argv unverified'}${resume}`,
     )
   }
   if (legacy) {

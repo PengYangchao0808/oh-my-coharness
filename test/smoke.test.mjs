@@ -21,6 +21,7 @@ import { parseFrontmatter, SKILLS } from '../src/skills.js'
 import { dispatchTasks } from '../src/dispatch.js'
 import { probePlugins, renderReport } from '../src/doctor.js'
 import { apply } from '../src/index.js'
+import { createSessionRegistry, sessionKeyFor } from '../integration/sessions.js'
 
 /** A ctx shim: only the seams OMC actually touches. */
 function fakeCtx({
@@ -107,6 +108,16 @@ test('config bounds are enforced', () => {
   assert.equal(resolveConfig({ surface: 'nonsense' }).surface, 'auto')
   assert.equal(isEnabled(resolveConfig({}), 'codex'), true)
   assert.equal(isEnabled(resolveConfig({ harnesses: { codex: { enabled: false } } }), 'codex'), false)
+
+  const sessions = resolveConfig({
+    sessions: { resumePolicy: 'sometimes', maxTurns: 999, allowUnverified: 'yes' },
+    routing: { preset: 'turbo', limits: { maxReviewRounds: 99 } },
+  })
+  assert.equal(sessions.sessions.resumePolicy, 'auto')
+  assert.equal(sessions.sessions.maxTurns, 200)
+  assert.equal(sessions.sessions.allowUnverified, false)
+  assert.equal(sessions.routing.preset, 'balanced')
+  assert.equal(sessions.routing.limits.maxReviewRounds, 5)
 })
 
 test('harness ids normalize without guessing', () => {
@@ -499,6 +510,30 @@ test('two read-only tasks really overlap', async () => {
   assert.ok(elapsed < 220, `expected ~max(120,120), got ${elapsed}ms`)
 })
 
+test('a successful transport plan is cached for the next turn', async () => {
+  let resolutions = 0
+  const ctx = {
+    subprocess: {
+      async resolveExecutable() {
+        resolutions += 1
+        return 'C:\\fake\\codex.exe'
+      },
+    },
+  }
+  const def = harnessDef('codex')
+  const cfg = resolveConfig({ transport: 'native' })
+  const first = await planTransport(ctx, def, cfg)
+  const second = await planTransport(ctx, def, cfg)
+  assert.equal(first.exe, 'C:\\fake\\codex.exe')
+  assert.deepEqual(second, first)
+  assert.equal(resolutions, 1, 'the second turn must not re-run discovery')
+
+  // A changed command is a different plan and must invalidate the cache key.
+  const changed = resolveConfig({ transport: 'native', harnesses: { codex: { command: 'other-codex' } } })
+  await planTransport(ctx, def, changed)
+  assert.equal(resolutions, 2)
+})
+
 test('the bundle ships one preset and one Host row', async () => {
   const raw = await readFile(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
 
@@ -684,7 +719,36 @@ test('worktree mode is refused by the tool in this release', async () => {
     { action: 'dispatch', mode: 'worktree', prompt: 'go', harness: 'codex' },
     { agent: { id: 's' }, signal: new AbortController().signal },
   )
-  assert.match(value.text, /not implemented in 0\.4\.0-alpha\.1/)
+  assert.match(value.text, /not implemented in \d+\.\d+\.\d+/)
+})
+
+test('the tool lists and clears session references without exposing full ids', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'omc-sessions-tool-'))
+  const path = join(dir, 'sessions.json')
+  const registry = createSessionRegistry({ path })
+  const lease = await registry.acquire(sessionKeyFor({
+    projectId: 'proj-1',
+    laneId: 'lane-oracle-proj-1',
+    role: 'oracle',
+    harness: 'codex',
+    workspace: 'e:/repo',
+  }))
+  registry.complete(lease, { sessionId: 'thread-very-secret-id', format: 'codex-jsonl' })
+  lease.release()
+
+  const { ctx, registeredTools } = fakeCtx()
+  apply(ctx, { surface: 'direct', sessions: { path } })
+  const tool = registeredTools.find((entry) => entry.name === 'coharness')
+  const exec = { agent: { id: 's' }, signal: new AbortController().signal }
+
+  const listed = await tool.execute({ action: 'sessions' }, exec)
+  assert.match(listed.text, /thread…id/)
+  assert.doesNotMatch(listed.text, /thread-very-secret-id/)
+  assert.match(listed.text, /1 resumable/)
+
+  const cleared = await tool.execute({ action: 'sessions', clear: true }, exec)
+  assert.match(cleared.text, /cleared OMC session references/)
+  assert.equal(createSessionRegistry({ path }).stats().entries, 0)
 })
 
 test('provider registration survives being loaded before the subagents service', async () => {

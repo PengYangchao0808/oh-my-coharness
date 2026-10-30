@@ -27,7 +27,7 @@ async function readJson(relative) {
 // ── manifest ─────────────────────────────────────────────────────────────────
 const pkg = await readJson('package.json')
 ok(pkg.name === 'oh-my-coharness', 'package.json name must be oh-my-coharness')
-ok(pkg.version === '0.4.0-alpha.1', `package.json version must be 0.4.0-alpha.1 (got ${pkg.version})`)
+ok(pkg.version === '0.5.0-alpha.1', `package.json version must be 0.5.0-alpha.1 (got ${pkg.version})`)
 ok(pkg.type === 'module', 'package.json must declare "type": "module"')
 ok(Boolean(pkg.dsh?.bundle?.patch), 'package.json must declare dsh.bundle.patch')
 ok(Boolean(pkg.engines?.dsh), 'package.json must declare engines.dsh')
@@ -75,7 +75,7 @@ try {
 }
 
 // ── modules load ─────────────────────────────────────────────────────────────
-const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry']
+const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry', 'session-adapters']
 for (const name of modules) {
   try {
     await import(pathToFileURL(join(root, 'src', `${name}.js`)).href)
@@ -83,7 +83,7 @@ for (const name of modules) {
     failures.push(`src/${name}.js failed to load: ${error.message}`)
   }
 }
-for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status']) {
+for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy']) {
   try {
     await import(pathToFileURL(join(root, 'integration', `${name}.js`)).href)
   } catch (error) {
@@ -139,6 +139,21 @@ for (const nativeOnly of ['fixer', 'librarian', 'observer', 'council']) {
   }
   ok(threw, `${nativeOnly} must stay native-only in this release`)
 }
+
+// v0.5: native-session support is data, not an untyped claim.
+const { HARNESSES } = await import(pathToFileURL(join(root, 'src', 'harnesses.js')).href)
+const { SESSION_FORMATS } = await import(pathToFileURL(join(root, 'src', 'session-adapters.js')).href)
+for (const def of HARNESSES) {
+  if (!def.session) continue
+  ok(SESSION_FORMATS.includes(def.session.format), `${def.id} has an unknown session format`)
+  ok(['verified', 'documented', 'unverified'].includes(def.session.confidence), `${def.id} has an unknown session confidence`)
+  ok(typeof def.session.resumeArgs === 'function', `${def.id} must declare resumeArgs`)
+  ok(def.capabilities.resume === true, `${def.id} declares a session adapter but capabilities.resume is false`)
+}
+const sessions = await import(pathToFileURL(join(root, 'integration', 'sessions.js')).href)
+ok(typeof sessions.createSessionRegistry === 'function', 'integration/sessions.js must export createSessionRegistry')
+const handoff = await import(pathToFileURL(join(root, 'integration', 'handoff.js')).href)
+ok(typeof handoff.createHandoff === 'function', 'integration/handoff.js must export createHandoff')
 
 // ── skills ───────────────────────────────────────────────────────────────────
 for (const { dir } of SKILLS) {
