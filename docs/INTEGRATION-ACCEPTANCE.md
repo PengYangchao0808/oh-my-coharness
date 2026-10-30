@@ -75,7 +75,43 @@ dsh --profile omc-test --no-open --port 0
    没有 schema/解析错误。这证明升级不会在装载阶段直接破坏未迁移环境；但两套设置页与 Preset
    仍然并存，**迁移后必须卸载 OMD**。
 
-上述 7 项是本次最关键的“单 Bundle + 外部角色可装载”证据。
+8. **真实 Desktop 已加载 v0.4（2026-10-30 11:45）**：
+   - 重启后 `oh-my-coharness` 的 Config 状态为 `schema`（v0.3 时为 `absent`），
+     `coharness` 工具描述出现 `status` action 与 `0.4.0-alpha.1` 文案；
+   - `/coharness doctor` 真实输出：providers、WSL 六个 CLI、只读等级，并明确报告
+     `legacy preset: oh-my-dsh-slim is STILL mounted`；
+   - 通过插件管理器执行 `remove_bundle oh-my-dsh-slim`，返回
+     `application: applied`；桌面 profile 的 `bundles` 只剩
+     `@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-web-app`、`oh-my-coharness`；
+   - 再次 doctor：`legacy companion: preset not mounted`，CLI 与 Provider 全部保留。
+9. **真实 v0.4 Codex 执行**：
+   `coharness({action:'dispatch', harness:'codex', mode:'read-only'})` 返回：
+   ```
+   codex · completed · 38.5s · surface: provider · child omc-3e29ab82...
+   WSL_CODEX_OK
+   /mnt/e/Calculations/Plugins/Oh-My-CoHarness
+   ```
+   证明真实 Desktop 宿主 → WSL → Codex → provider 结果回传链路可用。
+10. **真实 Desktop 的 Oracle 外部配置**：在 desktop profile patch 的
+    `oh-my-coharness` row 写入
+    `roles.oracle.execution = {backend: omc, harness: codex}` 后，配置热加载生效；
+    `/coharness status` 返回：
+    ```
+    oracle  on  omc  omc:codex  (read-only enforced)
+    ```
+    说明 v0.4 的真实宿主读取了 `role.execution`，并将 Oracle 解析为外部只读 Codex。
+11. **真实 Desktop 的混合 Council 配置**：同一 row 再加入
+    `councillor-alpha = native`、`councillor-beta = omc:codex` 后，热加载生效：
+    ```
+    councillor-alpha  on  native native
+    councillor-beta   on  omc    omc:codex (read-only enforced)
+    council           on  native native
+    ```
+    当前会话仍是 `standard` preset（DSH 的会话组合在创建时固定，官方 UI 不提供
+    当前会话切换），因此 role 工具的实际调用必须在**新建的 Oh My CoHarness 会话**
+    中完成；这一项尚未执行。
+
+上述 10 项是本次最关键的“单 Bundle + 外部角色可装载”证据。
 
 ## 3. 用户 16 项验收清单
 
