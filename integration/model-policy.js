@@ -103,11 +103,39 @@ function billingFor(route, routing, options) {
   return DEFAULT_BILLING[route.harness] ?? harnessDef(route.harness)?.billing ?? 'unknown'
 }
 
-function billingAuthorized(route, billing, routing) {
+/**
+ * Whether automatic routing may spend this route's money.
+ *
+ * Exported so the connection model (`src/connection.js`) answers the cost
+ * question with exactly the same rule. Model policy must never import the
+ * connection module: the dependency runs one way only.
+ */
+export function billingAuthorized(route, billing, routing = {}) {
   if (billing === 'subscription') return true
-  if (route.authorizeBilling === true) return true
+  if (route?.authorizeBilling === true) return true
   if (billing === 'api') return routing.allowPaidApi === true
   return routing.allowUnknownBilling === true
+}
+
+/**
+ * Why a connection is not routing-eligible, in one specific sentence.
+ * The state is always named; the auth verdict explains it when that is the
+ * reason a human would act on.
+ */
+function notRoutableReason(route, connection, billing) {
+  const provider = `omc:${route.harness}`
+  if (connection === undefined || connection === null) {
+    return `${provider} is not routable (no connection record)`
+  }
+  const state = typeof connection.state === 'string' ? connection.state : 'unknown'
+  const auth = typeof connection.auth === 'string' ? connection.auth : 'unknown'
+  if (state === 'installed' && ['signed-out', 'unknown', 'missing'].includes(auth)) {
+    return `${provider} is not routable (${auth})`
+  }
+  if (state === 'verified') {
+    return `${provider} is not routable (${billing} billing is not authorized)`
+  }
+  return `${provider} is not routable (${state})`
 }
 
 /**
@@ -116,13 +144,20 @@ function billingAuthorized(route, billing, routing) {
  * @param {string} roleId
  * @param {object} routing - `cfg.routing`.
  * @param {string[]} availableProviders - exact names from `ctx.subagents.list()`.
- * @param {{ billing?: Record<string,string> }} [options]
+ * @param {{ billing?: Record<string,string>,
+ *   connections?: Record<string,{routable?: boolean, state?: string, auth?: string}> }} [options]
+ *   `connections` is the connection table (`src/connection.js`). When it is
+ *   supplied, registration alone is no longer enough: only a `routable`
+ *   harness may be picked. Omitting it keeps the pre-connection behaviour
+ *   (registered + billing authorized), which is what older callers rely on.
  * @returns {null|{backend:'native'|'omc', harness:string|null, model:string|null,
  *   source:string, reason:string, billing:string|null, authorized:boolean,
  *   blocked?: Array<{harness:string,billing:string,reason:string}>}}
  */
 export function recommendRoute(roleId, routing = {}, availableProviders = [], options = {}) {
   if (routing?.enabled !== true) return null
+  const connections = options.connections
+  const useConnections = connections !== undefined && connections !== null
   const chain = preferenceChain(roleId, routing)
   if (chain.length === 0) {
     return {
@@ -155,6 +190,14 @@ export function recommendRoute(roleId, routing = {}, availableProviders = [], op
     const billing = billingFor(route, routing, options)
     if (!availableProviders.includes(provider)) {
       blocked.push({ harness: route.harness, billing, reason: 'provider is not registered' })
+      continue
+    }
+    if (useConnections && connections[route.harness]?.routable !== true) {
+      blocked.push({
+        harness: route.harness,
+        billing,
+        reason: notRoutableReason(route, connections[route.harness], billing),
+      })
       continue
     }
     if (!billingAuthorized(route, billing, routing)) {

@@ -57,8 +57,10 @@ function nativeResult(policy) {
  * @param roleId - roster id.
  * @param roleConfig - one merged role entry from the effective configuration.
  * @param availableProviders - exact names from `ctx.subagents.list()`.
- * @param options - `{ routing, billing }`: when routing is enabled and the role
- *   has no explicit `execution`, the policy may supply the external route.
+ * @param options - `{ routing, billing, connections }`: when routing is enabled
+ *   and the role has no explicit `execution`, the policy may supply the external
+ *   route. `connections` is the connection table (`src/connection.js`): when it
+ *   is supplied, automatic routing only picks a `routable` harness.
  * @returns {{
  *   backend: 'native'|'omc', provider: string, backgroundMode: 'continuable'|'one-shot',
  *   external: boolean, harness?: string, readOnly?: string, mode: 'read-only'|'patch'|null,
@@ -72,7 +74,10 @@ export function resolveExecution(roleId, roleConfig, availableProviders = [], op
   let effective = roleConfig
   let policy = null
   if (options.routing?.enabled === true && roleConfig?.execution === undefined && canUseExternal(roleId)) {
-    policy = recommendRoute(roleId, options.routing, availableProviders, { billing: options.billing })
+    policy = recommendRoute(roleId, options.routing, availableProviders, {
+      billing: options.billing,
+      connections: options.connections,
+    })
     if (policy?.backend === 'omc') {
       effective = {
         ...roleConfig,
