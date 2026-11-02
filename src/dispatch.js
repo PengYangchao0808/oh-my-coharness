@@ -1,10 +1,14 @@
 /**
  * Dispatch: DispatchRequest → real execution → DispatchResult[].
  *
- * Provider first, direct only as a fallback. The difference matters: with a provider
- * the host owns capacity, cancellation and the completion notice; a direct run is a
- * degraded surface that doctor reports as such (ADAPTER §6.3). Every result therefore
- * says which surface produced it and, when it had to degrade, why (V0.2-PLAN §6.2).
+ * Provider first, and the direct surface only when it was asked for: `surface: 'direct'`
+ * or a non-read-only mode are explicit requests, and `dispatch.allowDirectFallback`
+ * unlocks the implicit one. A missing or rejecting provider never degrades silently —
+ * it fails and names both the reason and the switch (V0.2-PLAN §6.2). The difference
+ * matters: with a provider the host owns capacity, cancellation and the completion
+ * notice, while a direct run is a degraded surface that doctor reports as such
+ * (ADAPTER §6.3). Every result therefore names the surface it used — or, for a refusal,
+ * the one that was asked for — and, when it had to degrade, why.
  */
 
 import { harnessDef, normalizeId } from './harnesses.js'
@@ -65,6 +69,33 @@ function providerEligibility(rt, def, shared, exec) {
     return { ok: false, reason: `mode ${shared.mode} needs the direct surface: omc providers are fixed read-only` }
   }
   return { ok: true, reason: '' }
+}
+
+/**
+ * Direct is reached by asking for it. `surface: 'direct'` is the explicit request, and
+ * so is any non-read-only mode: a write mode cannot travel through the fixed read-only
+ * provider surface, so it was a request for the direct one. Neither depends on
+ * `dispatch.allowDirectFallback`; only the implicit fallback does.
+ */
+function explicitDirect(cfg, shared) {
+  return cfg.surface === 'direct' || shared.mode !== 'read-only'
+}
+
+/**
+ * A task that reached no surface at all. `surface` names the provider that was asked
+ * for, because that is the truthful intent and the only alternative the consumer knows:
+ * `renderDispatch` (src/index.js) maps every other value to `-`, so a new value would
+ * render as "no surface" next to work that did run. The reason and the disabled switch
+ * travel in the diagnostic, where the caller can act on them.
+ */
+function providerUnavailable(def, started, reason, notes = []) {
+  return withNotes(
+    { status: 'failed', harnessId: def.id, surface: 'provider', output: '', elapsedMs: Date.now() - started },
+    [
+      `OMC/PROVIDER-UNAVAILABLE: ${reason}; direct fallback is disabled by dispatch.allowDirectFallback=false; set it to true to opt in, or ask for the direct surface explicitly (surface: direct, or a non-read-only mode)`,
+      ...notes,
+    ],
+  )
 }
 
 /**
@@ -194,6 +225,14 @@ async function runOne(rt, def, task, shared, exec, warning) {
     }
   }
 
+  if (!eligibility.ok && !explicitDirect(rt.cfg, shared) && rt.cfg.dispatch.allowDirectFallback !== true) {
+    // A missing or rejecting provider used to become a direct run without a word. That
+    // hid a degraded surface (no child session, no host capacity slot) behind a
+    // normal-looking result, so the implicit fallback is opt-in now and a refusal is
+    // loud: the caller asked for a provider and must not be handed something else.
+    return providerUnavailable(def, started, eligibility.reason, notes)
+  }
+
   if (eligibility.ok) {
     // The provider cannot see per-call options, so a per-call deadline has to travel
     // as the activation signal. Without this the call would silently use the harness
@@ -290,8 +329,13 @@ async function runOne(rt, def, task, shared, exec, warning) {
           [...notes, code || String(error?.message ?? 'activation failed')],
         )
       }
-      // Fall through to a direct run only for capability/registration gaps, and say
-      // exactly why the surface changed.
+      // Explicit direct intent never reaches this branch — providerEligibility rejects it
+      // first — so only the flag can unlock the fallback here.
+      if (rt.cfg.dispatch.allowDirectFallback !== true) {
+        return providerUnavailable(def, started, `provider activation rejected the call (${code})`, notes)
+      }
+      // Opted into the fallback: a direct run for capability/registration gaps, and the
+      // downgradeReason says exactly why the surface changed.
       return directRun(
         rt,
         def,

@@ -29,6 +29,11 @@ export const DEFAULTS = Object.freeze({
     defaultMode: 'read-only',
     timeoutMs: 600000,
     maxOutputBytes: 20000,
+    // A missing or rejecting provider must not silently become a direct run: the
+    // direct surface has no child session and no host capacity slot. Direct is
+    // still reachable by asking for it (`surface: 'direct'`, a write mode), so
+    // only the *implicit* fallback is gated. Opt in to the old behaviour here.
+    allowDirectFallback: false,
   },
   /**
    * Native Session Resume. OMC stores CLI session references, never prompts or
@@ -103,6 +108,7 @@ export function resolveConfig(input) {
   if (!['read-only', 'in-place', 'worktree'].includes(merged.dispatch.defaultMode)) {
     merged.dispatch.defaultMode = 'read-only'
   }
+  merged.dispatch.allowDirectFallback = merged.dispatch.allowDirectFallback === true
   if (typeof merged.wsl.distro !== 'string') merged.wsl.distro = ''
   merged.privacy.reportBinaryPaths = Boolean(merged.privacy.reportBinaryPaths)
 
@@ -163,6 +169,18 @@ export function resolveConfig(input) {
       // Subscription / API distinction for the cost guard. Unknown is not
       // treated as free: policy will not auto-select it.
       billing: ['subscription', 'api', 'unknown'].includes(value.billing) ? value.billing : 'unknown',
+      // Manual acceptance record for a harness whose login cannot be probed without
+      // interaction. It is the *only* way `auth: unknown` becomes authenticated;
+      // the record is dated and names the mode it was validated in.
+      verify:
+        isObject(value.verify) && value.verify.accepted === true
+          ? {
+              accepted: true,
+              at: typeof value.verify.at === 'string' ? value.verify.at : '',
+              mode: ['read-only', 'patch'].includes(value.verify.mode) ? value.verify.mode : 'read-only',
+              note: typeof value.verify.note === 'string' ? value.verify.note : '',
+            }
+          : null,
       command: typeof value.command === 'string' ? value.command : '',
       model: typeof value.model === 'string' ? value.model : '',
       transport: ['auto', 'native', 'wsl'].includes(value.transport) ? value.transport : 'auto',
