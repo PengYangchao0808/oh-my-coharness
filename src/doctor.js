@@ -17,6 +17,14 @@ import { buildExecutionStatus, detectLegacyCompanion, renderExecutionStatus } fr
 
 const require_ = createRequire(import.meta.url)
 
+/**
+ * Error text that proves the *probe* failed rather than the binary being absent.
+ * A cold-start WSL service, a launch failure, a deadline or a permission error
+ * all leave the binary's presence unknown; `ENOENT` from a plain PATH lookup does
+ * not, so it is deliberately not listed here.
+ */
+const UNAVAILABLE_PROBE_EVIDENCE = /Wsl\/Service\/|Wsl\/E_|timeout|timed out|EACCES|EPERM|permission|access denied|spawn|launch failed/i
+
 function firstLine(text) {
   const line = String(text ?? '').trim().split(/\r?\n/)[0] ?? ''
   return line.length > 120 ? `${line.slice(0, 117)}…` : line
@@ -156,6 +164,15 @@ export async function detect(ctx, cfg, { signal } = {}) {
         verified: def.verified,
       })
     } catch (error) {
+      // A probe that could not run says nothing about the binary. The transport
+      // flattens "could not reach it" (cold-start WSL, launch failure, timeout)
+      // into the same `OMC/CLI-MISSING` code as a genuinely absent binary, so
+      // the code alone is not proof: only a message without launch evidence is a
+      // negative verdict. Everything else is an unavailable verdict, which is
+      // what `probeFailed` records for the connection model and the report cache.
+      const code = String(error?.code ?? '')
+      const message = String(error?.message ?? '')
+      const absent = code === 'OMC/CLI-MISSING' && !UNAVAILABLE_PROBE_EVIDENCE.test(message)
       rows.push({
         id: def.id,
         label: def.label,
@@ -164,12 +181,13 @@ export async function detect(ctx, cfg, { signal } = {}) {
         via: 'probe',
         command: def.bin,
         version: undefined,
-        auth: 'missing',
+        auth: absent ? 'missing' : 'unknown',
         capabilities: def.capabilities,
         readOnly: def.readOnly,
         source: 'probe',
         verified: def.verified,
-        detail: String(error?.code ?? error?.message ?? 'probe failed'),
+        probeFailed: !absent,
+        detail: code || message || 'probe failed',
       })
     }
   }
@@ -241,8 +259,12 @@ function renderCompanion(plugins, execution, legacy) {
 /** Render the copy-pasteable report. Text only: no JSON, no markup. */
 export function renderReport(report, cfg, state = {}) {
   const { host, rows, wsl, plugins, subagents, execution, legacy } = report
-  const ready = rows.filter((row) => row.auth !== 'missing')
-  const missing = rows.filter((row) => row.auth === 'missing')
+  // Three buckets: proven usable, proven absent, and unverifiable. A failed
+  // probe is neither installed nor missing; presenting it as "missing" is what
+  // made a cold-start WSL hiccup look like a CLI that is not installed.
+  const failed = rows.filter((row) => row.probeFailed === true)
+  const ready = rows.filter((row) => row.probeFailed !== true && row.auth !== 'missing')
+  const missing = rows.filter((row) => row.probeFailed !== true && row.auth === 'missing')
 
   const lines = []
   lines.push(`Oh My CoHarness doctor — ${report.at}`)
@@ -264,9 +286,18 @@ export function renderReport(report, cfg, state = {}) {
 
   for (const row of rows) {
     const exec = row.transport === 'wsl' ? `wsl:${row.distro ?? '*'}` : `native:${row.via}`
-    const state = row.auth === 'missing' ? 'missing' : row.detail ? 'degraded' : 'usable'
+    const probeFailed = row.probeFailed === true
+    const state = probeFailed
+      ? `unknown (probe failed: ${row.detail ?? 'no detail'})`
+      : row.auth === 'missing'
+        ? 'missing'
+        : row.detail
+          ? 'degraded'
+          : 'usable'
     const flags = []
-    if (row.detail) flags.push(row.detail)
+    // The probe failure is already spelled out in the state column; repeating
+    // the same detail in the flags would make the row read twice.
+    if (row.detail && !probeFailed) flags.push(row.detail)
     if (row.auth !== 'missing' && row.verified === false) flags.push('argv unverified')
     lines.push(
       `${pad(row.id, 12)}${pad(exec, 18)}${pad(shortVersion(row.version), 16)}${pad(row.auth, 12)}${pad(row.readOnly ?? 'unsupported', 12)}${state}` +
@@ -289,10 +320,17 @@ export function renderReport(report, cfg, state = {}) {
   lines.push('')
 
   if (!ready.length) {
-    lines.push('next: 先装一个 CLI（下面是官方安装命令），然后重启 DSH 再运行本诊断。')
-    for (const row of missing) {
-      const def = harnessDef(row.id)
-      lines.push(`  ${pad(row.id, 12)}${def?.install ?? ''}`)
+    if (failed.length) {
+      // Never let an unverifiable probe read as "not installed": say what it is
+      // and what clears it (a warm WSL, a later probe).
+      lines.push('next: 上表的 unknown (probe failed: …) 不是「未安装」—— 探针本身失败（冷启动 WSL 未就绪、超时或权限），稍后重跑 /coharness doctor。')
+    }
+    if (missing.length) {
+      lines.push('next: 先装一个 CLI（下面是官方安装命令），然后重启 DSH 再运行本诊断。')
+      for (const row of missing) {
+        const def = harnessDef(row.id)
+        lines.push(`  ${pad(row.id, 12)}${def?.install ?? ''}`)
+      }
     }
   } else {
     const first = ready[0]

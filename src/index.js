@@ -109,8 +109,9 @@ function renderSessions(registry) {
  *
  * The connection table is only as good as the doctor report behind it, so:
  * reuse the cached report when there is one, otherwise take a single non-forced
- * `detect()` pass (it caches, so doctor and later status calls are free), and if
- * that is unavailable every row honestly degrades to `auth: unknown`.
+ * `detect()` pass (it caches, so doctor and later status calls are free, and it
+ * re-probes only a cached report whose probe failed), and if that is unavailable
+ * every row honestly degrades to `auth: unknown`.
  */
 async function statusReport(rt) {
   const cached = rt.peekReport?.()
@@ -319,6 +320,34 @@ function coharnessCommand(rt) {
   }
 }
 
+/** How long a report containing a failed probe may be served before re-probing. */
+export const REPORT_TTL_MS = 15_000
+
+/**
+ * Whether a cached doctor report is stale enough that `detect()` must re-probe.
+ *
+ * Only an unverifiable report is refreshed automatically: a row that failed its
+ * probe (`probeFailed`) or that came back `auth: 'unknown'` from the probe
+ * (`source: 'probe'`) is a transient verdict — a cold-start WSL probe, for
+ * instance — and serving it forever turns a hiccup into a permanent "missing".
+ * A report with no such row is the truth for this process and is never
+ * auto-refreshed; only an explicit `detect(true)` (doctor) re-probes it.
+ *
+ * @param {any} report a doctor report (`{ rows: [...] }`) or null
+ * @param {number} ageMs milliseconds since that report was cached
+ * @param {number} [ttlMs] freshness window; defaults to {@link REPORT_TTL_MS}
+ * @returns {boolean} true only when a failed probe is older than the TTL
+ */
+export function reportNeedsRefresh(report, ageMs, ttlMs = REPORT_TTL_MS) {
+  const rows = Array.isArray(report?.rows) ? report.rows : []
+  const unverifiable = rows.some(
+    (row) => row?.probeFailed === true || (row?.auth === 'unknown' && row?.source === 'probe'),
+  )
+  if (!unverifiable) return false
+  // An unclocked report cannot be proven fresh; treat it as stale.
+  return !Number.isFinite(ageMs) || ageMs >= ttlMs
+}
+
 export function apply(ctx, config) {
   const cfg = resolveConfig(config)
   const sessions = createSessionRegistry(cfg.sessions)
@@ -329,6 +358,7 @@ export function apply(ctx, config) {
   const providerIssues = []
   let attempted = false
   let cachedReport = null
+  let cachedAt = 0
 
   const rt = {
     ctx,
@@ -346,7 +376,15 @@ export function apply(ctx, config) {
       return { registered: [...registered], issues: [...providerIssues], attempted }
     },
     async detect(force = false) {
-      if (!cachedReport || force) cachedReport = await detect(ctx, cfg)
+      // A failed probe is a stale verdict, not a durable one: re-probe it after
+      // the TTL so the first status/list after a restart cannot keep serving
+      // "missing" to every later call. A clean report stays cached until a
+      // forced `detect(true)` (doctor) asks for a fresh pass.
+      const stale = cachedReport !== null && reportNeedsRefresh(cachedReport, Date.now() - cachedAt)
+      if (!cachedReport || force || stale) {
+        cachedReport = await detect(ctx, cfg)
+        cachedAt = Date.now()
+      }
       return cachedReport
     },
     /**
