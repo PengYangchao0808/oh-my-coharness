@@ -355,6 +355,8 @@ node test/integration/sessions.test.mjs
 node test/integration/provider-session.test.mjs
 node test/integration/model-policy.test.mjs
 node test/integration/adapters.test.mjs
+node test/integration/connection.test.mjs
+node test/integration/surface-strict.test.mjs
 
 # 包自检：manifest、patch、locales、模块、skills、导出
 node scripts/check.mjs
@@ -371,6 +373,8 @@ node scripts/pack-check.mjs
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/STABILIZATION.zh-CN.md`](docs/STABILIZATION.zh-CN.md) | v0.6 稳定版候选：执行渠道、连接状态、双轨默认、PR 拆分与验收矩阵 |
+| [`presets/`](presets/README.md) | Safe Native / Hybrid Subscription 配置模板与人工验收记录范式 |
 | [`docs/V0.5.md`](docs/V0.5.md) | v0.5：Handoff、Session Registry、适配器、策略与验收边界 |
 | [`docs/ARCHITECTURE.zh-CN.md`](docs/ARCHITECTURE.zh-CN.md) | 合并后的分层、契约与关键决策 |
 | [`docs/MIGRATION.md`](docs/MIGRATION.md) | 从 OMC 0.3.0 + OMD 0.8.6 升级 |
