@@ -76,6 +76,11 @@ function renderPreview(preview) {
     lines.push('  those sessions cannot resolve the old composition after uninstalling OMD;')
     lines.push('  keep them for history and create new sessions under the Oh My CoHarness preset.')
   }
+  if (preview.sessions.zstdUnavailable === true) {
+    // Node 20 has no zstd in node:zlib; say so instead of reporting a shorter scan.
+    lines.push('  note: some legacy session files are zstd-compressed and this Node cannot read them;')
+    lines.push('  re-run the import with Node >= 22.15 to include them in the scan.')
+  }
   return lines.join('\n')
 }
 

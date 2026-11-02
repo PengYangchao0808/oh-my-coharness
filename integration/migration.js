@@ -16,9 +16,30 @@
  */
 
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { zstdDecompressSync } from 'node:zlib'
+
+const requireBuiltin = createRequire(import.meta.url)
+
+/**
+ * Decompress one legacy zstd session file.
+ *
+ * `node:zlib` only gained zstd in Node 22.15, so the export cannot be imported
+ * statically: doing so makes the whole module fail to load on Node 20 with a
+ * secondary loader error. Only the legacy scan needs it, and it fails with a
+ * named code the scan can report instead of pretending the file was empty.
+ */
+function zstdDecompress(buffer) {
+  const zlib = requireBuiltin('node:zlib')
+  if (typeof zlib.zstdDecompressSync !== 'function') {
+    throw Object.assign(
+      new Error('legacy zstd session files need Node >= 22.15 (zstdDecompressSync is unavailable on this Node)'),
+      { code: 'OMC/MIGRATION-ZSTD-UNAVAILABLE' },
+    )
+  }
+  return zlib.zstdDecompressSync(buffer)
+}
 
 export const NEW_CONFIG_FILE = 'oh-my-coharness.json'
 export const OLD_CONFIG_FILE = 'oh-my-dsh-slim.json'
@@ -210,6 +231,7 @@ export function detectLegacySessions({ home = dshHome(), limitFiles = 400, limit
   const matches = []
   let scanned = 0
   let skipped = 0
+  let zstdUnavailable = false
   let budget = limitBytes
   if (!existsSync(root)) return { scanned, skipped, sessions: matches }
 
@@ -244,16 +266,17 @@ export function detectLegacySessions({ home = dshHome(), limitFiles = 400, limit
       scanned += 1
       try {
         const raw = readFileSync(full)
-        const text = entry.name.endsWith('.zstd') ? zstdDecompressSync(raw).toString('utf8') : raw.toString('utf8')
+        const text = entry.name.endsWith('.zstd') ? zstdDecompress(raw).toString('utf8') : raw.toString('utf8')
         const found = OLD_PRESET_IDS.filter((id) => text.includes(`"${id}"`))
         if (found.length > 0) matches.push({ id: entry.name, presetIds: found })
-      } catch {
+      } catch (error) {
         skipped += 1
+        if (error?.code === 'OMC/MIGRATION-ZSTD-UNAVAILABLE') zstdUnavailable = true
       }
     }
   }
   walk(root)
-  return { scanned, skipped, sessions: matches }
+  return { scanned, skipped, sessions: matches, ...(zstdUnavailable ? { zstdUnavailable: true } : {}) }
 }
 
 /**
