@@ -56,17 +56,31 @@ function list(value, { max = 32, maxLength = 300 } = {}) {
     .slice(0, max)
 }
 
+/** A Windows drive path (`E:\work`, `e:/work`): canonicalised identically on every host. */
+const WIN_DRIVE = /^[A-Za-z]:[\\/]/
+
 /**
  * Canonical workspace string used by both the handoff and the session key.
  * Windows drives are lower-cased and separators normalised so the same project
  * cannot produce two lanes just because a path was typed differently.
+ *
+ * A drive path is never resolved against the host cwd: doing so on POSIX would
+ * prepend the process directory and mint a different project id for the same
+ * project once the host changes.
  */
 export function normalizeWorkspace(cwd) {
   const raw = typeof cwd === 'string' ? cwd.trim() : ''
   if (raw === '') return 'inherited'
+  if (WIN_DRIVE.test(raw)) return normalizeDrivePath(raw)
   let value = resolvePath(raw).replace(/\\/g, '/')
   if (/^[A-Za-z]:/.test(value)) value = value[0].toLowerCase() + value.slice(1)
   return value.replace(/\/+$/, '') || '/'
+}
+
+/** `E:\work\omc\` → `e:/work/omc`; the drive letter is the only case folded. */
+function normalizeDrivePath(raw) {
+  const value = raw[0].toLowerCase() + raw.slice(1).replace(/\\/g, '/')
+  return value.replace(/\/{2,}/g, '/').replace(/\/+$/, '')
 }
 
 /** Stable project id for a workspace. Never contains the path itself. */
