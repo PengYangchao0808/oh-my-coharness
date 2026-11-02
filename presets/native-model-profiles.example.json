@@ -1,0 +1,26 @@
+{
+  "$comment": "示例：把已存在于 DSH Settings → Models 的 provider/model 分配给角色。provider 与 model 必须成对出现，否则该角色继承会话模型。不要在工厂默认值里预置用户环境不存在的模型 ID。",
+  "roles": {
+    "orchestrator": {
+      "provider": "<provider-id>",
+      "model": "<main-model>",
+      "effort": "max"
+    },
+    "explorer": {
+      "provider": "<provider-id>",
+      "model": "<cheap-code-model>"
+    },
+    "fixer": {
+      "provider": "<provider-id>",
+      "model": "<strong-code-model>"
+    },
+    "librarian": {
+      "provider": "<provider-id>",
+      "model": "<tool-calling-model>"
+    },
+    "oracle": {
+      "provider": "<provider-id>",
+      "model": "<review-model>"
+    }
+  }
+}

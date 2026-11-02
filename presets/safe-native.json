@@ -1,0 +1,41 @@
+{
+  "$comment": "OMC 默认模式：全部角色由 DSH Native 执行，外部 CLI 不自动激活。把 roles/harnesses/dispatch/sessions/routing 合并进 OMC Host 行（cordis.patch.yml 的 config 下）。未设置 provider/model 时，Native 子 Agent 继承 DSH 会话模型。",
+  "surface": "auto",
+  "harnesses": {
+    "codex": { "enabled": false },
+    "claude": { "enabled": false },
+    "glm": { "enabled": false },
+    "opencode": { "enabled": false },
+    "antigravity": { "enabled": false },
+    "kimi": { "enabled": false },
+    "gemini": { "enabled": false },
+    "qwen": { "enabled": false }
+  },
+  "roles": {
+    "oracle": { "execution": { "backend": "native" } },
+    "explorer": { "execution": { "backend": "native" } },
+    "fixer": { "execution": { "backend": "native" } },
+    "librarian": { "execution": { "backend": "native" } },
+    "designer": { "execution": { "backend": "native" } },
+    "observer": { "enabled": false },
+    "councillor-alpha": { "enabled": false },
+    "councillor-beta": { "enabled": false },
+    "councillor-gamma": { "enabled": false }
+  },
+  "dispatch": {
+    "allowDirectFallback": false,
+    "defaultMode": "read-only",
+    "maxParallel": 2,
+    "timeoutMs": 300000
+  },
+  "sessions": {
+    "enabled": true,
+    "resumePolicy": "auto",
+    "allowUnverified": false
+  },
+  "routing": {
+    "enabled": false,
+    "allowPaidApi": false,
+    "allowUnknownBilling": false
+  }
+}
