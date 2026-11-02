@@ -165,7 +165,14 @@ Native 承担调度与写入，订阅 Harness 承担评审与前端方案：
 
 - 落地 §4 两档模板 + 可选 `native-model-profiles.json`（按实际已装模型生成，不预置用户环境不存在的模型 ID）。
 - 设置卡：默认值与真实执行结果一致；未认证 Harness 不可被推荐为可用；订阅计费需显式授权。
-- 验收：按引导完成后角色走正确渠道，不产生未授权计费回退。
+- **设置卡信息架构拆成两个 Tab**（现场反馈）：
+  - `外部 CLI`：Harness 列表、启用开关、只读等级、CLI 模型、连接状态（`routable` / `signed-out` / `未验证`）、人工验收记录入口；
+  - `角色与模型`：每角色的执行后端、**从 DSH 已加载目录选择 `provider/model`**、思考强度、Council 席位。
+- **角色模型选择必须可用**（现场缺陷：下拉只有"继承会话模型"）。要求：
+  - 目录来源以宿主实际暴露的能力为准，客户端拿不到时由 OMC 宿主侧 `/coharness` RPC 统一返回归一化列表；
+  - 目录不可用时必须在卡片上显示**具体原因**（而不是静默降级成"只有一个选项"），并提供刷新入口；
+  - 仍保留手工填写 `provider` + `model` 的兜底入口，保证目录接口变动不会让角色无法固定模型。
+- 验收：两个 Tab 各自完成一次真实操作；每个 Native 角色能钉住不同 provider/model 并被执行侧确认生效；目录失败时有可见原因与兜底路径。
 
 ### PR-04 · 发布验收与 CI
 
@@ -190,7 +197,13 @@ Native 承担调度与写入，订阅 Harness 承担评审与前端方案：
 | claude | 未安装 | — | disabled |
 | qwen | 未安装 | — | 从稳定版矩阵移除 |
 
-本机 DSH：Desktop 0.2.1-rc.3；profile 以 `link:` 指向本仓库，改动代码后重启 DSH 生效。
+本机 DSH：Desktop **0.2.1-rc.5**（原基线 rc.3，2026-11-02 已升级）；profile 以 `link:` 指向本仓库，改动代码后重启 DSH 生效。
+
+现场验证（2026-11-02）：
+
+- `coharness dispatch` 真实走通 `omc:codex` 只读调用（16.6 s，surface=provider，返回 child session id），说明 Provider → Adapter → WSL CLI 链路可用。
+- `doctor` 现场探测为 `wsl:Ubuntu · codex 0.165.0 / opencode 2.1.4 · auth ok · routable`。
+- **已知缺陷**：宿主启动瞬间的 doctor 探测是冷的，该失败报告会进缓存，导致重启后第一次 `status`/`list` 把 codex/opencode 报成 `missing · not routable`；跑一次 `doctor` 后恢复。修法：探测失败不进权威缓存（短 TTL 重试），`probeFailed` 不再映射为 `missing`。
 
 ---
 

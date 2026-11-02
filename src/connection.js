@@ -55,19 +55,24 @@ function authorizationFor(billing, entry, routing) {
  * One harness connection.
  *
  * @param {{ id: string, def?: object, cfg?: object, auth?: string,
- *   verify?: object|null, routing?: object, billing?: string }} input
+ *   verify?: object|null, routing?: object, billing?: string,
+ *   probeFailed?: boolean, detail?: string }} input
  *   `def` is the static harness definition (its `verified` flag means the argv
  *   was field-tested); `cfg` is the resolved configuration; `auth` is the
- *   doctor verdict for this harness, `unknown` when no probe ran.
+ *   doctor verdict for this harness, `unknown` when no probe ran;
+ *   `probeFailed` marks a row whose probe itself failed (the verdict is
+ *   unavailable, not negative) and `detail` carries the probe's error code.
  * @returns {{ id: string, state: string, installed: boolean,
  *   authenticated: boolean, verified: boolean, routable: boolean,
  *   auth: string, authorization: string, reason: string }}
  */
-export function connectionFor({ id, def, cfg, auth, verify, routing, billing } = {}) {
+export function connectionFor({ id, def, cfg, auth, verify, routing, billing, probeFailed, detail } = {}) {
   const entry = isObject(cfg?.harnesses?.[id]) ? cfg.harnesses[id] : {}
   const manual = isObject(verify) ? verify : isObject(entry.verify) ? entry.verify : null
   const manualAccepted = manual?.accepted === true
   const authState = AUTH_STATES.includes(auth) ? auth : 'unknown'
+  const probeFailure = probeFailed === true
+  const probeDetail = text(detail) || 'no detail'
   const bin = text(def?.bin) || text(entry.command) || String(id ?? 'unknown')
   const effectiveBilling = BILLINGS.includes(billing)
     ? billing
@@ -96,10 +101,26 @@ export function connectionFor({ id, def, cfg, auth, verify, routing, billing } =
   // enabled just because a key was missing.
   if (entry.enabled !== true) return row('disabled', 'disabled in config')
 
+  const installed = { installed: true }
+
+  // A failed probe is not a negative verdict. The CLI may well be installed —
+  // a cold-start WSL probe, a spawn deadline or a permission error all fail
+  // without proving anything — so the connection stays `installed`
+  // (unverifiable) and never claims `missing` or `routable`.
+  if (probeFailure) {
+    return row(
+      'installed',
+      // The probe's own code is kept in the reason: `OMC/CLI-MISSING` there means
+      // the probe could not reach the binary, which is exactly the cold-start
+      // case this state exists for.
+      `probe failed (${probeDetail}): ${bin} could not be verified as installed or signed in; re-run /coharness doctor`,
+      installed,
+    )
+  }
+
   // `missing` is the pre-state of installed: the binary itself is absent.
   if (authState === 'missing') return row('missing', `${bin} is not installed (binary missing)`)
 
-  const installed = { installed: true }
   if (!(authState === 'ok' || manualAccepted)) {
     const reason = authState === 'signed-out'
       ? `signed-out: ${bin} is installed but has no usable login`
@@ -177,6 +198,10 @@ export function connectionTable({ harnesses = [], cfg = {}, rows = [], routing }
       def,
       cfg,
       auth: reportRow?.auth,
+      // A failed probe is forwarded, not flattened into `missing`: the table
+      // must not claim a CLI is absent when the probe itself never answered.
+      probeFailed: reportRow?.probeFailed === true,
+      detail: reportRow?.detail,
       routing: effectiveRouting,
     })
   }

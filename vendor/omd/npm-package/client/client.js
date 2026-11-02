@@ -85,6 +85,16 @@ window.__ModuleLoader__.load({
       council: 'roleCouncil',
     };
     const EFFORTS = ['none', 'off', 'low', 'medium', 'high', 'max'];
+    // The catalog is one cheap RPC, and its failures are mostly a startup race
+    // (the remote face is still warming up when the settings page first
+    // mounts). One automatic retry a few seconds later is what turns an empty
+    // dropdown into a working one without a full page reload; the manual
+    // refresh button covers everything after that.
+    const MODEL_RETRY_DELAY_MS = 4000;
+    // Value of the disabled notice option. Never selectable: the select's own
+    // onChange ignores it, and it cannot collide with a `<provider>/<model>`
+    // value because it contains no slash.
+    const CATALOG_OPTION_VALUE = '__catalog__';
 
     // Reasoning-effort selection is MODEL-scoped: the host model catalog
     // exposes each model's supported reasoning.efforts (adapter-authoritative
@@ -200,6 +210,43 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * One route field as a stored document should hold it.
+     *
+     * The manual provider/model boxes can leave a half typed mid-edit. A half
+     * route is unreachable: the config reader drops BOTH halves and warns on
+     * stderr, so writing one would store a dead value the next read silently
+     * ignores. Saving it as "inherit" instead keeps the document's promise
+     * (provider AND model, or neither).
+     */
+    function routeFieldValue(role, field) {
+      if (field !== 'provider' && field !== 'model') return role?.[field];
+      return roleRouted(role) ? role?.[field] : undefined;
+    }
+
+    /**
+     * Draft patch for one manual route box in the advanced section.
+     *
+     * The boxes exist because the catalog can be broken while a role still
+     * needs a pinned route, so they write the SAME `provider`/`model` draft
+     * fields the dropdown writes and save through the identical write plan.
+     * Clearing BOTH boxes is the dropdown's "inherit" and clears the
+     * route-bound effort and token cap with it; a single typed half stays in
+     * the draft (the user is still completing the route) and is saved as
+     * "inherit" by routeFieldValue.
+     * @param role - the role's current draft fields.
+     * @param field - 'provider' or 'model'.
+     * @param raw - what the text box reports.
+     */
+    function manualRoutePatch(role, field, raw) {
+      const value = typeof raw === 'string' ? raw.trim() : '';
+      const next = { ...(role ?? {}), [field]: value === '' ? undefined : value };
+      if (roleRouted(next)) return { [field]: next[field] };
+      const hasProvider = typeof next.provider === 'string' && next.provider !== '';
+      const hasModel = typeof next.model === 'string' && next.model !== '';
+      return !hasProvider && !hasModel ? roleModelPatch(undefined, undefined) : { [field]: next[field] };
+    }
+
+    /**
     * Whether an explicitly configured effort cannot be taken by the selected
     * model (per the catalog). Unknown models never mismatch (the fixed-list
     * fallback applies); undefined/''/'none' never mismatch.
@@ -221,6 +268,204 @@ window.__ModuleLoader__.load({
     function effortGatesSave(role, groups) {
       return role?.enabled !== false
         && effortMismatch(role?.effort, groups, role?.provider, role?.model);
+    }
+
+    /**
+     * Human-readable text for one catalog failure path.
+     *
+     * The RPC answers `{ok:false, error:{code,message}}` instead of throwing,
+     * and a missing remote face or a rejected promise are two more paths that
+     * used to collapse into a bare `status:'error'`. Every one of them keeps
+     * its own words here; the code is appended because it is the only part
+     * that is greppable in the host log.
+     * @param error - `{message, code}`, an Error, or a plain string.
+     */
+    function failureReason(error) {
+      if (error === undefined || error === null) return undefined;
+      const message = typeof error === 'string'
+        ? error
+        : typeof error.message === 'string' && error.message !== '' ? error.message : undefined;
+      const code = typeof error.code === 'string' && error.code !== '' ? error.code : undefined;
+      if (message === undefined) return code;
+      return code === undefined ? message : `${message} (${code})`;
+    }
+
+    /** One provider failure row: `{id, name, message}` with the message optional. */
+    function normalizeFailure(raw) {
+      if (!raw || typeof raw !== 'object') return undefined;
+      const id = typeof raw.id === 'string' && raw.id !== '' ? raw.id : undefined;
+      const name = typeof raw.name === 'string' && raw.name !== '' ? raw.name : id;
+      const message = typeof raw.message === 'string' ? raw.message : '';
+      if (name === undefined && message === '') return undefined;
+      return { id, name: name ?? '?', message };
+    }
+
+    /**
+     * The card's view of `remote.session.modelCatalog()`.
+     *
+     * Three things must never be lost, because losing them was the empty
+     * dropdown: a returned `{ok:false, error}` keeps its message (and code), a
+     * thrown error keeps its message, and a SUCCESSFUL call keeps
+     * `value.failures` — `buildModelCatalog` drops every provider group whose
+     * models array is empty, so `groups: []` with failures is a normal answer
+     * ("no provider could be enumerated"), not a broken transport.
+     * @param response - the RPC envelope, or undefined for "still loading".
+     * @param failure - the missing face / thrown error, when there is no envelope.
+     */
+    function modelCatalogState(response, failure) {
+      if (response === undefined && failure === undefined) {
+        return { status: 'loading', groups: [], failures: [], routableProviders: [], defaultRoute: undefined, reason: undefined };
+      }
+      if (response?.ok === true && response.value !== undefined) {
+        const value = response.value ?? {};
+        const groups = [];
+        for (const group of Array.isArray(value.groups) ? value.groups : []) {
+          if (!group || typeof group.id !== 'string') continue;
+          const models = [];
+          for (const model of Array.isArray(group.models) ? group.models : []) {
+            if (!model || typeof model.id !== 'string') continue;
+            models.push({
+              id: model.id,
+              name: typeof model.name === 'string' && model.name !== '' ? model.name : model.id,
+              // reasoning.efforts are the per-model supported effort levels;
+              // the effort dropdown and its mismatch check read them here.
+              ...(model.reasoning === undefined ? {} : { reasoning: model.reasoning }),
+            });
+          }
+          // Same rule the host's own catalog builder applies: an empty group
+          // is not a heading with no rows, it is a provider that failed.
+          if (models.length === 0) continue;
+          groups.push({
+            id: group.id,
+            name: typeof group.name === 'string' && group.name !== '' ? group.name : group.id,
+            models,
+          });
+        }
+        const failures = (Array.isArray(value.failures) ? value.failures : [])
+          .map(normalizeFailure)
+          .filter((row) => row !== undefined);
+        const routableProviders = (Array.isArray(value.routableProviders) ? value.routableProviders : [])
+          .filter((id) => typeof id === 'string');
+        const fallbackRoute = value.default;
+        const defaultRoute = fallbackRoute && typeof fallbackRoute.provider === 'string'
+          && typeof fallbackRoute.model === 'string'
+          ? {
+            provider: fallbackRoute.provider,
+            model: fallbackRoute.model,
+            ...(typeof fallbackRoute.reasoningEffort === 'string' ? { reasoningEffort: fallbackRoute.reasoningEffort } : {}),
+          }
+          : undefined;
+        return { status: 'ready', groups, failures, routableProviders, defaultRoute, reason: undefined };
+      }
+      return {
+        status: 'error',
+        groups: [],
+        failures: [],
+        routableProviders: [],
+        defaultRoute: undefined,
+        reason: failureReason(response?.error ?? failure),
+      };
+    }
+
+    /**
+     * The one-line catalog status the model select and the roles tab show.
+     *
+     * A usable catalog needs no line at all. Everything else must say which of
+     * the three situations applies: still loading, the call failed (with the
+     * host's own reason), or the call succeeded with nothing to offer — the
+     * last one names the providers instead of claiming the API is missing.
+     */
+    function modelCatalogNotice(state, t) {
+      const groups = state?.groups ?? [];
+      const failures = state?.failures ?? [];
+      if (groups.length > 0) return undefined;
+      if (state?.status === 'loading') return t('modelsLoading');
+      if (state?.status === 'error') {
+        const reason = state.reason;
+        return reason === undefined || reason === ''
+          ? t('modelsError')
+          : t('modelsErrorReason').replace('{reason}', reason);
+      }
+      if (failures.length > 0) {
+        const names = failures.map((row) => row.name ?? row.id ?? '?').join(', ');
+        return t('modelsAllFailed')
+          .replace('{count}', String(failures.length))
+          .replace('{names}', names);
+      }
+      return t('modelsEmpty');
+    }
+
+    /**
+     * Every entry the model select must show, as data.
+     *
+     * Inherit stays FIRST and is never the only row of a non-empty catalog: it
+     * is what a role runs on until the user pins one and the only way back. A
+     * stored route the catalog does not list still needs a SELECTABLE value,
+     * otherwise the browser shows the first option while the configuration
+     * holds something else. The disabled notice is not a value.
+     * @returns `{value, options, notice}` — options are flat, in display order.
+     */
+    function modelOptions(state, route, t) {
+      const groups = state?.groups ?? [];
+      const provider = route?.provider;
+      const model = route?.model;
+      const routed = typeof provider === 'string' && provider !== ''
+        && typeof model === 'string' && model !== '';
+      const known = routed && groups.some((group) => group.id === provider && group.models.some((entry) => entry.id === model));
+      // Select values are the synthetic "<provider>/<modelId>" — the current
+      // value must use the SAME form or the browser falls back to the first
+      // option (found in GUI acceptance: oracle showed Flash instead of Pro).
+      const synthetic = routed ? `${provider}/${model}` : '';
+      const options = [{ kind: 'inherit', value: '', label: t('modelInherit') }];
+      if (routed && !known) {
+        options.push({ kind: 'current', value: synthetic, label: `${t('currentValueTag')}: ${synthetic}` });
+      }
+      for (const group of groups) {
+        for (const entry of group.models) {
+          options.push({
+            kind: 'model',
+            value: `${group.id}/${entry.id}`,
+            label: entry.name || entry.id,
+            group: group.id,
+            groupName: group.name ?? group.id,
+          });
+        }
+      }
+      const notice = modelCatalogNotice(state, t);
+      if (notice !== undefined) {
+        options.push({ kind: 'notice', value: CATALOG_OPTION_VALUE, label: notice, disabled: true });
+      }
+      return { value: synthetic, options, notice };
+    }
+
+    /**
+     * The diagnostics block under the roles tab: the status line, one line per
+     * failed provider (the host's message is the only explanation of why the
+     * dropdown is short), the routable provider count and the host default
+     * route. Pure so the strings are testable without a rendered tree.
+     */
+    function modelCatalogDiagnostics(state, t) {
+      const groups = state?.groups ?? [];
+      const failures = (state?.failures ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        text: row.message === undefined || row.message === ''
+          ? row.name
+          : t('modelsFailureLine').replace('{name}', row.name).replace('{message}', row.message),
+      }));
+      const routable = state?.routableProviders ?? [];
+      const defaultRoute = state?.defaultRoute;
+      return {
+        // A usable catalog still gets a line: "ready (N providers)" is what
+        // tells the user the refresh button did something.
+        notice: modelCatalogNotice(state, t) ?? t('modelsReady').replace('{count}', String(groups.length)),
+        failures,
+        routableText: t('modelsRoutable').replace('{count}', String(routable.length))
+          + (routable.length > 0 ? ` · ${routable.join(', ')}` : ''),
+        defaultText: defaultRoute === undefined
+          ? undefined
+          : t('modelsDefault').replace('{route}', `${defaultRoute.provider}/${defaultRoute.model}`),
+      };
     }
 
     // Fields the card manages on the preset layer (inherit-or-override vs the
@@ -352,6 +597,13 @@ window.__ModuleLoader__.load({
       executionHarnessProviderMissing: 'Provider 未注册',
       executionHarnessUnverified: '调用方式未验证',
       executionReadOnlyNone: '无只读调用方式',
+      harnessState: '连接：{state}',
+      harnessRoutable: '可自动路由',
+      harnessNotRoutable: '不可自动路由',
+      tabCli: '外部 CLI',
+      tabRoles: '角色与模型',
+      tabsLabel: '设置分区',
+      cliTabHint: '启用一个 Harness 会消耗该 CLI 自己的订阅额度；只有已验证且已认证的连接才会被自动路由。',
       orchestratorNote: 'orchestrator 即当前会话主模型：在对话输入框的模型选择器中更换，默认模型在 设置-模型 维护。未单独选模型/档位的角色跟随它；固定档位不被主模型支持时会在委派时退回会话档位。',
       enabled: '启用',
       model: '模型',
@@ -381,6 +633,17 @@ window.__ModuleLoader__.load({
       modelsLoading: '模型目录加载中…',
       modelsEmpty: '未发现可用模型：请先在 设置-模型 导入 provider。',
       modelsError: '模型目录不可用（当前会话/宿主未提供枚举）；已配置的模型值可正常查看与保存。',
+      modelsErrorReason: '模型目录不可用：{reason}',
+      modelsAllFailed: '没有可用模型（{count} 个 provider 失败）：{names}',
+      modelsFailureLine: '{name}：{message}',
+      modelsReady: '模型目录已就绪（{count} 个 provider）',
+      modelsRoutable: '可路由 provider：{count}',
+      modelsDefault: '默认模型：{route}',
+      modelsRefresh: '刷新模型目录',
+      modelsUnavailable: '当前会话未提供模型目录接口',
+      manualProvider: 'Provider ID',
+      manualModel: '模型 ID',
+      manualRouteHint: '模型路由要两半都填；只填一半会当作“继承会话模型”。',
       currentValueTag: '当前值',
       invalidMaxTokens: '需为正整数',
       invalidTemperature: '需在 0–2 之间',
@@ -480,6 +743,13 @@ window.__ModuleLoader__.load({
       executionHarnessProviderMissing: 'provider not registered',
       executionHarnessUnverified: 'invocation not verified',
       executionReadOnlyNone: 'no read-only mode',
+      harnessState: 'Connection: {state}',
+      harnessRoutable: 'auto-routable',
+      harnessNotRoutable: 'not auto-routable',
+      tabCli: 'External CLI',
+      tabRoles: 'Roles & models',
+      tabsLabel: 'Settings sections',
+      cliTabHint: 'Enabling a harness spends that CLI\u2019s own subscription; only verified and authenticated connections are auto-routable.',
       orchestratorNote: 'The orchestrator is the session\u2019s main model: change it in the composer\u2019s model picker; defaults live in Settings \u2192 Models. Roles without their own model or level follow it; a fixed level the model does not offer falls back to the session\u2019s level.',
       enabled: 'Enabled',
       model: 'Model',
@@ -509,6 +779,17 @@ window.__ModuleLoader__.load({
       modelsLoading: 'Loading model catalog\u2026',
       modelsEmpty: 'No models found: import a provider under Settings \u2192 Models first.',
       modelsError: 'Model catalog unavailable (this session/host exposes no enumeration); configured model values still render and save.',
+      modelsErrorReason: 'Model catalog unavailable: {reason}',
+      modelsAllFailed: 'No usable models ({count} providers failed): {names}',
+      modelsFailureLine: '{name}: {message}',
+      modelsReady: 'Model catalog ready ({count} providers)',
+      modelsRoutable: 'Auto-routable providers: {count}',
+      modelsDefault: 'Default model: {route}',
+      modelsRefresh: 'Refresh model catalog',
+      modelsUnavailable: 'This session exposes no model catalog API',
+      manualProvider: 'Provider ID',
+      manualModel: 'Model ID',
+      manualRouteHint: 'Both halves are required; a half route counts as "inherit the session model".',
       currentValueTag: 'Current',
       invalidMaxTokens: 'Must be a positive integer',
       invalidTemperature: 'Must be between 0 and 2',
@@ -841,7 +1122,9 @@ window.__ModuleLoader__.load({
           // council.enabled is derived from the seats; never write it.
           if (field === 'enabled' && DERIVED_ENABLED_ROLES.has(roleId)) continue;
           const path = ['presets', presetName, roleId, field];
-          const dv = d[field];
+          // A half route typed into the manual boxes is saved as "inherit":
+          // the document must never gain a route the reader would drop.
+          const dv = routeFieldValue(d, field);
           const bv = getPath(base, path);
           const uv = getPath(user, path);
           if (dv === undefined || deepEqualJson(dv, bv)) {
@@ -1142,7 +1425,7 @@ window.__ModuleLoader__.load({
         }
         for (const field of PRESET_FIELDS) {
           if (field === 'enabled' && DERIVED_ENABLED_ROLES.has(roleId)) continue;
-          const value = role[field];
+          const value = routeFieldValue(role, field);
           if (value === undefined || deepEqualJson(value, baseRole[field])) continue;
           record[field] = value;
         }
@@ -1286,55 +1569,68 @@ window.__ModuleLoader__.load({
       border: `1px solid ${color.border}`, borderRadius: 8, padding: '0 8px', minWidth: 0, width: '100%',
     };
 
-    function ModelSelect({ groups, status, provider, model, onChange, disabled, t }) {
-      // A route is BOTH halves or neither (issue #11). A provider without a
-      // model cannot describe a reachable target, and filling the missing half
-      // from the session would pair one provider id with another provider's
-      // model id; such a value renders — and saves — as "inherit".
+    /**
+     * The option nodes for one `modelOptions` result.
+     *
+     * Consecutive catalog entries become an `<optgroup>` per provider, so the
+     * select is grouped by provider name while inherit / current / notice stay
+     * plain options in the order `modelOptions` put them.
+     */
+    function modelOptionNodes(options) {
+      const nodes = [];
+      let openGroup;
+      let bucket = [];
+      const closeGroup = () => {
+        if (openGroup === undefined) return;
+        nodes.push(React.createElement('optgroup', { key: `group-${openGroup.id}`, label: openGroup.label }, bucket));
+        openGroup = undefined;
+        bucket = [];
+      };
+      for (const option of options) {
+        if (option.kind === 'model') {
+          if (openGroup?.id !== option.group) {
+            closeGroup();
+            openGroup = { id: option.group, label: option.groupName };
+          }
+          bucket.push(React.createElement('option', { key: option.value, value: option.value }, option.label));
+          continue;
+        }
+        closeGroup();
+        nodes.push(React.createElement('option', {
+          key: option.kind, value: option.value,
+          ...(option.disabled === true ? { disabled: true } : {}),
+        }, option.label));
+      }
+      closeGroup();
+      return nodes;
+    }
+
+    function ModelSelect({ catalog, provider, model, onChange, disabled, t }) {
+      // `modelOptions` owns the whole visible surface (inherit first, the
+      // stored value when it is outside the catalog, the provider groups and
+      // the disabled catalog notice), so the dropdown and its diagnostics
+      // cannot disagree about what the catalog contains.
+      const { value, options } = modelOptions(catalog, { provider, model }, t);
+      // A route the catalog does not list is still the stored value: re-picking
+      // it must not fire a change that would rewrite the configuration.
       const routed = typeof provider === 'string' && provider !== ''
         && typeof model === 'string' && model !== '';
-      const known = routed && groups.some((g) => g.id === provider && g.models.some((m) => m.id === model));
-      // Select values are the synthetic "<provider>/<modelId>" — the current
-      // value must use the SAME form or the browser falls back to the first
-      // option (found in GUI acceptance: oracle showed Flash instead of Pro).
-      const synthetic = routed ? `${provider}/${model}` : '';
-      const options = [
-        // Inherit is a first-class choice, not an empty state: it is what each
-        // role runs on until the user pins a model, and the only way BACK after
-        // pinning one. It stays available while the catalog loads, because
-        // following the session model needs no catalog at all.
-        React.createElement('option', { key: 'inherit', value: '' }, t('modelInherit')),
-      ];
-      if (routed && !known) {
-        options.push(React.createElement('option', { key: 'current', value: synthetic }, `${t('currentValueTag')}: ${synthetic}`));
-      }
-      for (const group of groups) {
-        options.push(React.createElement('optgroup', { key: group.id, label: group.name },
-          group.models.map((m) => React.createElement('option', { key: m.id, value: `${group.id}/${m.id}` }, m.name || m.id))));
-      }
-      // Catalog state is a NOTICE, not the selected value. The old placeholder
-      // doubled as both, so an inheriting role (or any role on a host that
-      // exposes no catalog) looked like an installation with no providers.
-      const notice = status === 'loading' ? t('modelsLoading')
-        : status === 'error' ? t('modelsError')
-          : groups.length === 0 ? t('modelsEmpty') : undefined;
-      if (notice !== undefined) {
-        options.push(React.createElement('option', { key: 'catalog', value: '__catalog__', disabled: true }, notice));
-      }
+      const known = routed && (catalog?.groups ?? []).some((group) => group.id === provider
+        && group.models.some((entry) => entry.id === model));
       return React.createElement('select', {
-        value: synthetic, disabled,
+        value, disabled,
         onChange: (e) => {
           const next = e.target.value;
           // Clearing BOTH halves is what "inherit" persists as: the bundled
           // profile writes two `unset` ops, a custom profile omits both fields,
           // and the host then resolves the session's own model.
           if (next === '') { onChange(undefined, undefined); return; }
-          if (!known && next === synthetic) return;
+          if (!known && next === value) return;
           const slash = next.indexOf('/');
           if (slash < 0) return;
           onChange(next.slice(0, slash), next.slice(slash + 1));
         }, style: { ...controlStyle, appearance: 'auto' },
-      }, options);
+      }, modelOptionNodes(options));
     }
 
     /** The roster dropdown: existing profiles (default marker on the selected
@@ -1388,6 +1684,14 @@ window.__ModuleLoader__.load({
         typeof row.bin === 'string' && row.bin !== '' ? row.bin : undefined,
         row.verified === false ? t('executionHarnessUnverified') : undefined,
       ].filter((part) => part !== undefined).join(' · ');
+      // Registration is not usability: a CLI can be registered and still never
+      // auto-route (signed out, billing blocked, argv unverified). Newer status
+      // payloads carry `state`/`reason`/`routable`; the reason is the Host's own
+      // sentence and the only actionable hint that does not need doctor.
+      const connection = typeof row.state === 'string' && row.state !== ''
+        ? `${t('harnessState').replace('{state}', row.state)} · ${t(row.routable === true ? 'harnessRoutable' : 'harnessNotRoutable')}`
+          + (typeof row.reason === 'string' && row.reason !== '' ? ` · ${row.reason}` : '')
+        : undefined;
       return React.createElement('div', {
         style: { border: `1px solid ${color.border}`, borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 },
       },
@@ -1426,11 +1730,17 @@ window.__ModuleLoader__.load({
             }, facts)
             : null,
         ),
+        connection === undefined
+          ? null
+          : React.createElement('div', {
+            style: { fontSize: 11, lineHeight: '16px', color: row.routable === true ? color.secondary : color.tertiary, minWidth: 0 },
+          }, connection),
       );
     }
 
-    function RoleRow({ roleId, draft, groups, modelsStatus, advOpen, onAdvancedToggle, onChange, t, showSwitch = true, statusText, executionStatus, onRefreshExecution }) {
+    function RoleRow({ roleId, draft, catalog, advOpen, onAdvancedToggle, onChange, t, showSwitch = true, statusText, executionStatus, onRefreshExecution }) {
       const role = draft.roles[roleId];
+      const groups = catalog?.groups ?? [];
       const locked = roleId === 'observer';
       const execution = normalizeExecution(role.execution);
       const external = execution.backend === 'omc';
@@ -1457,6 +1767,11 @@ window.__ModuleLoader__.load({
       const effortBad = !external && effortGatesSave(role, groups);
       const hintKey = external ? undefined : effortHintKey(role);
       const routed = roleRouted(role);
+      // One half typed into the manual route boxes: the draft keeps it while
+      // the user completes the route, but saving treats it as "inherit" —
+      // so the hint under those boxes must warn instead of reading as normal.
+      const halfRoute = (typeof role.provider === 'string' && role.provider !== '')
+        !== (typeof role.model === 'string' && role.model !== '');
       const descKey = COUNCIL_DESC_KEYS[roleId] ?? `role${roleId[0].toUpperCase()}${roleId.slice(1)}`;
       const invalid = {
         maxTokens: !external && role.maxTokens !== undefined && role.maxTokens !== '' && parseAdvancedNumber(role.maxTokens, 'maxTokens') === null,
@@ -1484,7 +1799,7 @@ window.__ModuleLoader__.load({
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 } },
           React.createElement('div', { style: { flex: '1 1 auto', minWidth: 0 } },
             React.createElement(ModelSelect, {
-              groups, status: modelsStatus, provider: role.provider, model: role.model, disabled: locked || external,
+              catalog, provider: role.provider, model: role.model, disabled: locked || external,
               onChange: (provider, model) => onChange(roleId, roleModelPatch(provider, model)), t,
             }),
           ),
@@ -1624,6 +1939,27 @@ window.__ModuleLoader__.load({
             : (role.maxTokens === undefined || role.maxTokens === '')
               ? React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('maxTokensEmptyHint'))
               : null,
+          // Manual route fallback: the catalog can be broken (that is the
+          // reason this section exists) while a role still needs a pinned
+          // route. These two boxes write the same draft fields the dropdown
+          // writes, so a manually pinned role saves through the same plan.
+          React.createElement('div', { style: { display: 'flex', gap: 12 } },
+            React.createElement(Field, { label: t('manualProvider') },
+              React.createElement(ui.Input, {
+                value: role.provider ?? '', placeholder: ' ', disabled: locked || external,
+                onChange: (e) => onChange(roleId, manualRoutePatch(role, 'provider', e.target.value)), style: controlStyle,
+              })),
+            React.createElement(Field, { label: t('manualModel') },
+              React.createElement(ui.Input, {
+                value: role.model ?? '', placeholder: ' ', disabled: locked || external,
+                onChange: (e) => onChange(roleId, manualRoutePatch(role, 'model', e.target.value)), style: controlStyle,
+              })),
+          ),
+          // The hint names the rule outright, in warning colour while the
+          // draft really is half a route.
+          React.createElement('span', {
+            style: { fontSize: 11, lineHeight: '16px', color: halfRoute ? color.warn : color.tertiary },
+          }, t('manualRouteHint')),
           COUNCIL_ROLE_IDS.includes(roleId) ? React.createElement(Field, {
             label: t(roleId === COUNCIL_ROLE_ID ? 'councilPrompt' : 'personaAppend'),
             grow: false,
@@ -1649,6 +1985,148 @@ window.__ModuleLoader__.load({
     }
 
     // -------------------------------------------------------------- card
+    /**
+     * Tab A — the external CLI harnesses.
+     *
+     * The one line under the heading states what the rows cannot: enabling a
+     * harness spends that CLI's own subscription, and registration alone does
+     * not make it routable — only a verified, authenticated connection is.
+     */
+    function CliTab({ harnessList, values, onChange, t }) {
+      return React.createElement('div', {
+        role: 'tabpanel', id: `${NS}-panel-cli`, 'aria-labelledby': `${NS}-tab-cli`, tabIndex: -1,
+        style: { display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 },
+      },
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', minWidth: 0 } },
+            React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, t('executionHarnessGroup')),
+            // One short line, once: these values are read at plugin start.
+            React.createElement('span', { style: { fontSize: 11, color: color.tertiary, lineHeight: '16px', minWidth: 0 } }, t('executionHarnessReloadHint')),
+          ),
+          React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('cliTabHint')),
+          ...harnessList.map((row) => React.createElement(HarnessRow, {
+            key: row.id, row, value: values[row.id], onChange, t,
+          })),
+        ),
+      );
+    }
+
+    /**
+     * Tab B — the role roster plus the model catalog diagnostics.
+     *
+     * The rows are built HERE rather than in the card body so only the visible
+     * tab pays for its roster (six role rows, three seats, the synthesizer and
+     * the observer). The diagnostics sit above the roster because they explain
+     * every model dropdown below them.
+     */
+    function RolesTab({ draft, catalog, diagnostics, onRefreshCatalog, expanded, onAdvancedToggle, onChange, t, executionStatus, onRefreshExecution }) {
+      const enabledSeats = COUNCILLOR_ROLE_IDS.filter((roleId) => {
+        const role = draft.roles[roleId];
+        return role !== undefined && role.enabled !== false;
+      });
+      const councilOn = enabledSeats.length >= MIN_COUNCIL_SEATS;
+      const councilStatusText = councilOn
+        ? t('councilOn').replace('{seats}', enabledSeats.map((roleId) => roleId.replace('councillor-', '')).join(', '))
+        : t('councilOff');
+      const councilWarnings = councilWarningKeys(draft).map((key) => t(key));
+      // observer is force-disabled (no attachment forwarding yet) and parked
+      // last; the Council group takes its previous position above it.
+      const upstreamRows = UPSTREAM_ROLE_IDS.filter((roleId) => roleId !== 'observer').map((roleId) => React.createElement(RoleRow, {
+        key: roleId, roleId, draft, catalog,
+        advOpen: expanded[roleId] === true,
+        onAdvancedToggle: () => onAdvancedToggle(roleId), onChange, t,
+        executionStatus, onRefreshExecution,
+      }));
+      const observerRow = React.createElement(RoleRow, {
+        key: 'observer', roleId: 'observer', draft, catalog,
+        advOpen: expanded.observer === true,
+        onAdvancedToggle: () => onAdvancedToggle('observer'), onChange, t,
+        executionStatus, onRefreshExecution,
+      });
+      const councilRows = COUNCIL_ROLE_IDS.map((roleId) => React.createElement(RoleRow, {
+        key: roleId, roleId, draft, catalog,
+        advOpen: expanded[roleId] === true,
+        onAdvancedToggle: () => onAdvancedToggle(roleId), onChange, t,
+        executionStatus, onRefreshExecution,
+        // The synthesizer has no switch: it follows the seats. The row only
+        // configures its model/effort/prompt and shows the derived state.
+        showSwitch: roleId !== COUNCIL_ROLE_ID,
+        statusText: councilOn ? t('councilAutoOn') : t('councilAutoOff'),
+      }));
+      const councilGroup = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 } },
+          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, t('councilGroup')),
+          React.createElement('span', { style: { fontSize: 11, color: councilOn ? color.secondary : color.tertiary, minWidth: 0 } }, councilStatusText),
+        ),
+        ...councilWarnings.map((text, index) => React.createElement('div', { key: 'warn-' + index, style: { fontSize: 11, lineHeight: '16px', color: color.warn } }, text)),
+        ...councilRows,
+      );
+      // A catalog with no usable groups is a warning, not an error: the
+      // configured routes still render and save.
+      const usable = (catalog?.groups ?? []).length > 0;
+      return React.createElement('div', {
+        role: 'tabpanel', id: `${NS}-panel-roles`, 'aria-labelledby': `${NS}-tab-roles`, tabIndex: -1,
+        style: { display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 },
+      },
+        React.createElement('div', { style: { display: 'flex', gap: 6, fontSize: 12, color: color.secondary, background: color.hover, borderRadius: 8, padding: '6px 8px' } },
+          t('orchestratorNote')),
+        React.createElement('div', {
+          style: { display: 'flex', flexDirection: 'column', gap: 4, border: `1px solid ${color.border}`, borderRadius: 10, padding: '8px 10px', minWidth: 0 },
+        },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 } },
+            React.createElement('span', {
+              style: { fontSize: 12, lineHeight: '18px', flex: '1 1 240px', minWidth: 0, color: usable ? color.secondary : color.warn },
+            }, diagnostics.notice),
+            React.createElement(ui.Button, { variant: 'outline', size: 'sm', onClick: onRefreshCatalog }, t('modelsRefresh')),
+          ),
+          // One compact line per provider the host could not enumerate. The
+          // message is the host's own text: it is the only place the reason
+          // for an empty dropdown exists.
+          ...diagnostics.failures.map((failure, index) => React.createElement('div', {
+            key: `failure-${failure.id ?? index}`,
+            style: { fontSize: 11, lineHeight: '16px', color: color.warn, minWidth: 0 },
+          }, failure.text)),
+          React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, diagnostics.routableText),
+          diagnostics.defaultText === undefined
+            ? null
+            : React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, diagnostics.defaultText),
+        ),
+        ...upstreamRows,
+        councilGroup,
+        observerRow,
+      );
+    }
+
+    /**
+     * The tab strip. Plain buttons with `role="tab"`: every tab is its own
+     * keyboard stop, so the strip works with Tab + Enter without a roving
+     * tabindex (and without a focus jail when the panel is empty).
+     */
+    function TabStrip({ active, onChange, t }) {
+      const tabs = [
+        { id: 'cli', label: t('tabCli') },
+        { id: 'roles', label: t('tabRoles') },
+      ];
+      return React.createElement('div', {
+        role: 'tablist', 'aria-label': t('tabsLabel'),
+        style: { display: 'flex', gap: 4, minWidth: 0, borderBottom: '1px solid var(--dsw-alias-border-l2)' },
+      }, tabs.map((entry) => React.createElement('button', {
+        key: entry.id, type: 'button', role: 'tab',
+        id: `${NS}-tab-${entry.id}`,
+        'aria-selected': active === entry.id,
+        'aria-controls': `${NS}-panel-${entry.id}`,
+        onClick: () => onChange(entry.id),
+        style: {
+          appearance: 'none', background: 'none', border: 'none', cursor: 'pointer',
+          padding: '6px 10px', marginBottom: -1, fontFamily: 'inherit',
+          fontSize: 13, lineHeight: '20px',
+          color: active === entry.id ? color.text : color.secondary,
+          fontWeight: active === entry.id ? 600 : 400,
+          borderBottom: `2px solid ${active === entry.id ? 'var(--dsw-alias-label-primary)' : 'transparent'}`,
+        },
+      }, entry.label)));
+    }
+
     /**
      * The revision fence to send with a write.
      *
@@ -1707,36 +2185,51 @@ window.__ModuleLoader__.load({
       // and the profile name is the only proof of what is about to disappear.
       const [deleteModal, setDeleteModal] = React.useState({ open: false, profileId: undefined, displayName: '', revision: undefined, error: undefined });
       const [toast, setToast] = React.useState(null);
-      const [models, setModels] = React.useState({ status: 'loading', groups: [] });
+      // Tab state is LOCAL: switching tabs only changes what is drawn. The
+      // profile strip, the save/reset actions and the dirty guard stay above
+      // the tabs, so saving means the same thing on both.
+      const [tab, setTab] = React.useState('cli');
+      // The catalog state keeps the host's own failure rows and routable list:
+      // a successful call may still arrive with zero groups (every provider
+      // failed), and the reason is the whole diagnosis.
+      const [models, setModels] = React.useState(() => modelCatalogState());
+      const [catalogRetried, setCatalogRetried] = React.useState(false);
       const loadModels = React.useCallback(() => {
         // DSH 0.1.2: the model catalog moved behind the host remote face
         // (ctx.remote.session.modelCatalog()); 0.1.1's connection.api.llm is
-        // gone. Degrade to the error notice when the face is unavailable so
-        // the card still renders with configured values intact.
+        // gone. Errors come back in the envelope rather than as rejects, so
+        // both paths keep their own words; a missing face is the third path
+        // and says so instead of pretending the catalog is empty.
+        setModels(modelCatalogState());
         if (remote?.session?.modelCatalog === undefined) {
-          setModels({ status: 'error', groups: [] });
-          return;
+          setModels(modelCatalogState(undefined, t('modelsUnavailable')));
+          return Promise.resolve();
         }
-        Promise.resolve(remote.session.modelCatalog()).then((response) => {
-          if (response?.ok !== true || response.value === undefined) {
-            setModels({ status: 'error', groups: [] });
-            return;
-          }
-          const groups = (response.value.groups ?? []).map((group) => ({
-            id: group.id,
-            name: group.name,
-            models: group.models.map((model) => ({
-              id: model.id,
-              name: model.name,
-              // reasoning.efforts are the per-model supported effort levels;
-              // the effort dropdown and its mismatch check read them here.
-              ...(model.reasoning === undefined ? {} : { reasoning: model.reasoning }),
-            })),
-          }));
-          setModels({ status: 'ready', groups });
-        }).catch(() => setModels({ status: 'error', groups: [] }));
-      }, [remote]);
-      React.useEffect(() => { loadModels(); }, [loadModels]);
+        return Promise.resolve()
+          .then(() => remote.session.modelCatalog())
+          .then((response) => { setModels(modelCatalogState(response)); })
+          .catch((error) => { setModels(modelCatalogState(undefined, error)); });
+      }, [remote, t]);
+      React.useEffect(() => { void loadModels(); }, [loadModels]);
+      // One automatic retry after a failed load: the first attempt often runs
+      // while the remote face is still warming up, and before this the
+      // dropdown stayed empty until a full page reload. The timer lives in an
+      // effect so unmounting the settings page clears it, and `catalogRetried`
+      // keeps it to exactly one attempt.
+      React.useEffect(() => {
+        if (models.status !== 'error' || catalogRetried) return undefined;
+        const timer = setTimeout(() => {
+          setCatalogRetried(true);
+          void loadModels();
+        }, MODEL_RETRY_DELAY_MS);
+        return () => clearTimeout(timer);
+      }, [models.status, catalogRetried, loadModels]);
+      const refreshModels = () => {
+        // A manual refresh is the user's own retry: do not schedule a second,
+        // invisible one on top of it.
+        setCatalogRetried(true);
+        void loadModels();
+      };
 
       const writable = snap.writable === true;
       const effective = snap.value ?? EMPTY_EFFECTIVE;
@@ -2233,62 +2726,23 @@ window.__ModuleLoader__.load({
         }),
       );
 
-      const enabledSeats = COUNCILLOR_ROLE_IDS.filter((roleId) => {
-        const role = current.roles[roleId];
-        return role !== undefined && role.enabled !== false;
-      });
-      const councilOn = enabledSeats.length >= MIN_COUNCIL_SEATS;
-      const councilStatusText = councilOn
-        ? t('councilOn').replace('{seats}', enabledSeats.map((roleId) => roleId.replace('councillor-', '')).join(', '))
-        : t('councilOff');
-      const councilWarnings = councilWarningKeys(current).map((key) => t(key));
-      // observer is force-disabled (no attachment forwarding yet) and parked
-      // last; the Council group takes its previous position above it.
-      const upstreamRows = UPSTREAM_ROLE_IDS.filter((roleId) => roleId !== 'observer').map((roleId) => React.createElement(RoleRow, {
-        key: roleId, roleId, draft: current, groups: models.groups, modelsStatus: models.status,
-        advOpen: expanded[roleId] === true,
-        onAdvancedToggle: () => toggleAdvanced(roleId), onChange: changeRole, t,
-        executionStatus, onRefreshExecution: loadExecutionStatus,
-      }));
-      const observerRow = React.createElement(RoleRow, {
-        key: 'observer', roleId: 'observer', draft: current, groups: models.groups, modelsStatus: models.status,
-        advOpen: expanded.observer === true,
-        onAdvancedToggle: () => toggleAdvanced('observer'), onChange: changeRole, t,
-        executionStatus, onRefreshExecution: loadExecutionStatus,
-      });
-      const councilRows = COUNCIL_ROLE_IDS.map((roleId) => React.createElement(RoleRow, {
-        key: roleId, roleId, draft: current, groups: models.groups, modelsStatus: models.status,
-        advOpen: expanded[roleId] === true,
-        onAdvancedToggle: () => toggleAdvanced(roleId), onChange: changeRole, t,
-        executionStatus, onRefreshExecution: loadExecutionStatus,
-        // The synthesizer has no switch: it follows the seats. The row only
-        // configures its model/effort/prompt and shows the derived state.
-        showSwitch: roleId !== COUNCIL_ROLE_ID,
-        statusText: councilOn ? t('councilAutoOn') : t('councilAutoOff'),
-      }));
-      const councilGroup = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-        React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 } },
-          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, t('councilGroup')),
-          React.createElement('span', { style: { fontSize: 11, color: councilOn ? color.secondary : color.tertiary, minWidth: 0 } }, councilStatusText),
-        ),
-        ...councilWarnings.map((text, index) => React.createElement('div', { key: 'warn-' + index, style: { fontSize: 11, lineHeight: '16px', color: color.warn } }, text)),
-        ...councilRows,
-      );
-      const roleRows = [...upstreamRows, councilGroup, observerRow];
-
-      // External CLI rows sit ABOVE the roles: a role sent to `omc` reads its
-      // model from here (the designer note points at this section), and the
-      // enabled bit decides whether that CLI's provider is registered at all.
-      const harnessSection = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-        React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', minWidth: 0 } },
-          React.createElement('span', { style: { fontSize: 13, fontWeight: 600, color: color.text, flex: 'none' } }, t('executionHarnessGroup')),
-          // One short line, once: these values are read at plugin start.
-          React.createElement('span', { style: { fontSize: 11, color: color.tertiary, lineHeight: '16px', minWidth: 0 } }, t('executionHarnessReloadHint')),
-        ),
-        ...harnessList.map((row) => React.createElement(HarnessRow, {
-          key: row.id, row, value: currentHarness[row.id], onChange: changeHarness, t,
-        })),
-      );
+      // Tab content is built only while that tab is active: a hidden panel
+      // renders nothing, so the roster's dozen rows and the eight harness
+      // editors do not exist in the tree the user cannot see.
+      const catalogDiagnostics = modelCatalogDiagnostics(models, t);
+      const cliPanel = tab === 'cli'
+        ? React.createElement(CliTab, {
+          harnessList, values: currentHarness, onChange: changeHarness, t,
+        })
+        : null;
+      const rolesPanel = tab === 'roles'
+        ? React.createElement(RolesTab, {
+          draft: current, catalog: models, diagnostics: catalogDiagnostics,
+          onRefreshCatalog: refreshModels, expanded,
+          onAdvancedToggle: toggleAdvanced, onChange: changeRole, t,
+          executionStatus, onRefreshExecution: loadExecutionStatus,
+        })
+        : null;
 
       // The profile strip lives at the top of the expanded card: choosing a
       // profile only changes WHAT is edited; the session is untouched.
@@ -2429,16 +2883,17 @@ window.__ModuleLoader__.load({
       ) : null;
 
       // Collapsed cards render only the header row; every editable surface
-      // (profile strip, roles, actions, hints, toast mount point) lives
-      // behind cardOpen.
+      // (profile strip, tabs, actions, hints, toast mount point) lives behind
+      // cardOpen. The profile strip and the save/reset actions sit ABOVE the
+      // tab strip on purpose: both tabs are one configuration, so picking a
+      // profile or saving cannot mean different things per tab.
       const body = cardOpen ? React.createElement(React.Fragment, null,
         React.createElement('div', { style: { borderTop: '1px solid var(--dsw-alias-border-l2)', padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, color: color.text } },
         profileStrip,
         actions,
-        React.createElement('div', { style: { display: 'flex', gap: 6, fontSize: 12, color: color.secondary, background: color.hover, borderRadius: 8, padding: '6px 8px' } },
-          t('orchestratorNote')),
-        harnessSection,
-        roleRows,
+        React.createElement(TabStrip, { active: tab, onChange: setTab, t }),
+        cliPanel,
+        rolesPanel,
         !writable ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: color.warn, fontSize: 12 } },
           renderIcon(ui, ICON_WARNING, { size: 14 }), t('readOnly')) : null,
         React.createElement('span', { style: { fontSize: 11, color: color.tertiary } }, t('effectiveHint')),
@@ -2511,6 +2966,20 @@ window.__ModuleLoader__.load({
     exports.roleModelPatch = roleModelPatch;
     exports.effortMismatch = effortMismatch;
     exports.effortGatesSave = effortGatesSave;
+    exports.manualRoutePatch = manualRoutePatch;
+    exports.routeFieldValue = routeFieldValue;
+    // Catalog state and its visible strings are pure so the empty-dropdown
+    // regressions (a dropped error message, a success with zero groups, a
+    // retry that never happened) are assertable without a rendered tree.
+    exports.modelCatalogState = modelCatalogState;
+    exports.modelCatalogNotice = modelCatalogNotice;
+    exports.modelOptions = modelOptions;
+    exports.modelCatalogDiagnostics = modelCatalogDiagnostics;
+    exports.MODEL_RETRY_DELAY_MS = MODEL_RETRY_DELAY_MS;
+    // The dictionaries are product surface: the parity test compares their key
+    // sets, and the tests render notices through the real strings instead of a
+    // stub that cannot show what the user actually reads.
+    exports.dictionaries = { zh, en };
     exports.initialProfileRoster = initialProfileRoster;
     exports.normalizeProfileRoster = normalizeProfileRoster;
     exports.mergeProfileConfig = mergeProfileConfig;

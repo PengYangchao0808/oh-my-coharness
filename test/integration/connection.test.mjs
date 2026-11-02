@@ -279,6 +279,80 @@ test('the table accepts ids and records as well as definitions', () => {
   assert.equal(byRecord.codex.reason, 'auth ok; read-only invocation verified; subscription billing authorized (subscription)')
 })
 
+test('a failed probe is installed-unverifiable, never missing and never routable', () => {
+  // Cold start: the WSL probe threw before it could prove anything. The verdict
+  // is unavailable, not negative.
+  const failed = connectionFor({
+    id: 'codex',
+    def: harnessDef('codex'),
+    cfg: cfgFor(),
+    auth: 'unknown',
+    probeFailed: true,
+    detail: 'Wsl/E_DISTRO_UNAVAILABLE',
+  })
+  assert.equal(failed.state, 'installed')
+  assert.equal(failed.installed, true)
+  assert.equal(failed.authenticated, false)
+  assert.equal(failed.verified, false)
+  assert.equal(failed.routable, false)
+  assert.equal(isRoutable(failed), false)
+  assert.match(failed.reason, /probe failed \(Wsl\/E_DISTRO_UNAVAILABLE\)/)
+  assert.match(failed.reason, /re-run \/coharness doctor/)
+  assert.doesNotMatch(failed.reason, /not installed/)
+
+  // The same row *without* the flag is a completed negative verdict.
+  const absent = connectionFor({
+    id: 'codex',
+    def: harnessDef('codex'),
+    cfg: cfgFor(),
+    auth: 'missing',
+    detail: 'OMC/CLI-MISSING',
+  })
+  assert.equal(absent.state, 'missing')
+  assert.equal(absent.installed, false)
+  assert.equal(absent.routable, false)
+  assert.equal(absent.reason, 'codex is not installed (binary missing)')
+
+  // A failed probe is not routable even when the row would otherwise qualify:
+  // the login was never verified, so no route may be picked automatically.
+  const healthyLooking = connectionFor({
+    id: 'codex',
+    def: harnessDef('codex'),
+    cfg: cfgFor(),
+    auth: 'ok',
+    probeFailed: true,
+    detail: 'OMC/SPAWN-TIMEOUT',
+  })
+  assert.equal(healthyLooking.state, 'installed')
+  assert.equal(healthyLooking.routable, false)
+  assert.match(healthyLooking.reason, /probe failed \(OMC\/SPAWN-TIMEOUT\)/)
+
+  // A disabled harness stays disabled: a failed probe never enables anything.
+  const off = connectionFor({
+    id: 'codex',
+    def: harnessDef('codex'),
+    cfg: cfgFor({ enabled: false }),
+    probeFailed: true,
+    detail: 'ENOENT',
+  })
+  assert.equal(off.state, 'disabled')
+})
+
+test('the table forwards a failed probe instead of flattening it to missing', () => {
+  const table = connectionTable({
+    harnesses: [harnessDef('codex'), harnessDef('opencode')],
+    cfg: { harnesses: { codex: { enabled: true }, opencode: { enabled: true } } },
+    rows: [
+      { id: 'codex', auth: 'unknown', source: 'probe', probeFailed: true, detail: 'Wsl/E_NO_DISTRO' },
+      { id: 'opencode', auth: 'missing', source: 'probe', detail: 'OMC/CLI-MISSING' },
+    ],
+  })
+  assert.equal(table.codex.state, 'installed')
+  assert.equal(table.codex.routable, false)
+  assert.match(table.codex.reason, /probe failed \(Wsl\/E_NO_DISTRO\)/)
+  assert.equal(table.opencode.state, 'missing')
+})
+
 function statusCtx(providers) {
   return {
     get(name) {
