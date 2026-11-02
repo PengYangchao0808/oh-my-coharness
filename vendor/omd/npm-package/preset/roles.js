@@ -38,6 +38,8 @@ import { describeExecution } from '../../../../integration/compatibility.js';
 import { resolveExecution } from '../../../../integration/execution.js';
 import { buildExternalBrief, defaultExternalConstraints } from '../../../../integration/external-brief.js';
 import { createHandoff } from '../../../../integration/handoff.js';
+import { connectionTable } from '../../../../src/connection.js';
+import { HARNESSES } from '../../../../src/harnesses.js';
 
 /** Cordis plugin name. */
 export const name = 'omds-role-subagent';
@@ -404,6 +406,28 @@ function liveProviders(ctx) {
 }
 
 /**
+ * The connection table the role tool can honestly claim.
+ *
+ * This tool has no doctor report — it only sees the configuration — so a
+ * harness is `routable` here only when a manual `verify` record proves the login
+ * was accepted on this machine. Every unverified harness is `auth: unknown`,
+ * which is NOT authenticated, and automatic routing must not pick it. An
+ * explicit `role.execution` still wins: only the policy path is guarded.
+ */
+function presetConnections(preset) {
+  const known = new Map(HARNESSES.map((entry) => [entry.id, entry]));
+  const harnesses = {};
+  for (const [id, entry] of Object.entries(preset.harnesses ?? {})) {
+    const value = entry !== null && typeof entry === 'object' ? entry : {};
+    harnesses[id] = { ...value, enabled: value.enabled !== false };
+  }
+  return connectionTable({
+    harnesses: Object.keys(harnesses).map((id) => known.get(id) ?? { id }),
+    cfg: { harnesses, routing: preset.routing ?? {} },
+  });
+}
+
+/**
  * The resolved per-role request shape, derived from the row config, the user
  * configuration, and the shipped defaults.
  * @param config - the raw row config (id/name/config from the preset).
@@ -420,7 +444,16 @@ export function resolveRole(config, ctx) {
   const preset = loadConfig(ctx);
   const roleConfig = preset.roles[row.roleId] ?? {};
   const shipped = roleConfig;
-  const execution = resolveExecution(row.roleId, roleConfig, liveProviders(ctx));
+  const billing = Object.fromEntries(
+    Object.entries(preset.harnesses ?? {})
+      .map(([id, entry]) => [id, entry?.billing])
+      .filter(([, value]) => typeof value === 'string'),
+  );
+  const execution = resolveExecution(row.roleId, roleConfig, liveProviders(ctx), {
+    routing: preset.routing,
+    billing,
+    connections: presetConnections(preset),
+  });
   if (execution.fallbackReason !== undefined) {
     ctx?.logger?.warn?.('oh-my-coharness: role "' + row.roleId + '": ' + execution.fallbackReason);
   }

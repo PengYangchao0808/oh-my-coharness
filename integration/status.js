@@ -9,6 +9,7 @@
 
 import { HARNESSES } from '../src/harnesses.js'
 import { resolveConfig } from '../src/config.js'
+import { connectionTable } from '../src/connection.js'
 import { describeExecution, EXTERNAL_ROLE_IDS } from './compatibility.js'
 import { harnessReadOnlyClass, resolveExecution } from './execution.js'
 import { createSessionRegistry } from './sessions.js'
@@ -37,12 +38,14 @@ export function liveProviders(ctx) {
 }
 
 /**
- * One row per role, plus harness availability.
+ * One row per role, plus harness availability and the connection table.
  * @param ctx - any context that can reach `subagents` and the settings service.
  * @param rowConfig - the Host row config, so default-disabled harnesses report
  *   their real enabled state instead of "available".
- * @param options - `{ registry }` lets the Host reuse its live registry; status
- *   otherwise opens the same file read-only.
+ * @param options - `{ registry, report, connections }`: `registry` lets the Host
+ *   reuse its live registry; `report` is a doctor report whose `rows` carry the
+ *   auth verdicts; `connections` overrides the derived table. Without a report
+ *   every harness degrades to `auth: 'unknown'`, which is never authenticated.
  * @returns a JSON-serializable status object.
  */
 export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
@@ -50,12 +53,25 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
   const registry = options.registry ?? createSessionRegistry(cfg.sessions)
   const providers = liveProviders(ctx)
   const loaded = await readRoleConfiguration(ctx)
+  const billing = Object.fromEntries(
+    HARNESSES.map((def) => [def.id, cfg.harnesses[def.id]?.billing ?? def.billing ?? 'unknown']),
+  )
+  const report = options.report ?? null
+  const connections = options.connections ?? connectionTable({
+    harnesses: HARNESSES,
+    cfg,
+    rows: report?.rows ?? [],
+  })
   const roles = []
   if (loaded.ok) {
     for (const [roleId, roleConfig] of Object.entries(loaded.config.roles)) {
       let resolved
       try {
-        resolved = resolveExecution(roleId, roleConfig, providers)
+        resolved = resolveExecution(roleId, roleConfig, providers, {
+          routing: cfg.routing,
+          billing,
+          connections,
+        })
       } catch (error) {
         roles.push({
           roleId,
@@ -65,13 +81,14 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
           blocked: true,
           code: error?.code ?? 'OMC/EXECUTION-INVALID',
           reason: String(error?.message ?? error),
+          connection: null,
         })
         continue
       }
       roles.push({
         roleId,
         enabled: roleConfig.enabled !== false,
-        execution: describeExecution(roleConfig),
+        execution: resolved.external ? `omc:${resolved.harness}` : describeExecution(roleConfig),
         backend: resolved.backend,
         harness: resolved.harness,
         provider: resolved.provider,
@@ -83,6 +100,10 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
         code: resolved.code,
         reason: resolved.reason,
         fallbackReason: resolved.fallbackReason,
+        policy: resolved.policy,
+        // The connection an external row actually depends on; native rows have
+        // no external target, so there is nothing to check.
+        connection: resolved.external ? connections[resolved.harness] ?? null : null,
         externalCapable: EXTERNAL_ROLE_IDS.includes(roleId),
       })
     }
@@ -90,7 +111,7 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
 
   const policy = policySummary(cfg.routing)
   policy.recommendations = Object.fromEntries(
-    roles.map((row) => [row.roleId, recommendRoute(row.roleId, cfg.routing, providers)]),
+    roles.map((row) => [row.roleId, recommendRoute(row.roleId, cfg.routing, providers, { billing, connections })]),
   )
 
   return {
@@ -101,23 +122,41 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
     roles,
     sessions: registry.stats(),
     routing: policy,
-    harnesses: HARNESSES.map((def) => ({
-      id: def.id,
-      label: def.label,
-      bin: def.bin,
-      enabled: cfg.harnesses[def.id]?.enabled !== false,
-      // Empty string, never undefined: the settings card renders this field
-      // directly and a missing key would read as a lost setting.
-      model: cfg.harnesses[def.id]?.model ?? '',
-      readOnly: harnessReadOnlyClass(def.id),
-      provider: `omc:${def.id}`,
-      providerAvailable: providers.includes(`omc:${def.id}`),
-      verified: def.verified === true,
-      // Session support is a fact of the adapter, separate from argv verification.
-      session: def.session
-        ? { format: def.session.format, confidence: def.session.confidence }
-        : null,
-    })),
+    connections,
+    // Honesty about provenance: without a probe pass these are conservative
+    // guesses (`auth: unknown`), not facts.
+    connectionSource: report ? 'doctor' : 'unknown',
+    connectionAt: report?.at,
+    harnesses: HARNESSES.map((def) => {
+      const connection = connections[def.id] ?? null
+      return {
+        id: def.id,
+        label: def.label,
+        bin: def.bin,
+        enabled: cfg.harnesses[def.id]?.enabled !== false,
+        // Empty string, never undefined: the settings card renders this field
+        // directly and a missing key would read as a lost setting.
+        model: cfg.harnesses[def.id]?.model ?? '',
+        readOnly: harnessReadOnlyClass(def.id),
+        adapter: cfg.harnesses[def.id]?.adapter ?? 'cli',
+        billing: cfg.harnesses[def.id]?.billing ?? def.billing ?? 'unknown',
+        provider: `omc:${def.id}`,
+        providerAvailable: providers.includes(`omc:${def.id}`),
+        verified: def.verified === true,
+        // Registration is not usability: the connection state says whether an
+        // automatic route may pick this harness at all.
+        state: connection?.state ?? (cfg.harnesses[def.id]?.enabled === false ? 'disabled' : 'installed'),
+        reason: connection?.reason ?? 'connection unknown (run /coharness doctor)',
+        routable: connection?.routable === true,
+        authenticated: connection?.authenticated === true,
+        authorization: connection?.authorization ?? 'blocked',
+        auth: connection?.auth ?? 'unknown',
+        // Session support is a fact of the adapter, separate from argv verification.
+        session: def.session
+          ? { format: def.session.format, confidence: def.session.confidence }
+          : null,
+      }
+    }),
   }
 }
 
@@ -144,6 +183,19 @@ export async function detectLegacyCompanion(ctx) {
   }
 }
 
+/** One harness's connection verdict, for the read-only class table. */
+function connectionLabel(row) {
+  const state = typeof row.state === 'string' ? row.state : 'unknown'
+  const auth = typeof row.auth === 'string' ? row.auth : 'unknown'
+  const authorization = typeof row.authorization === 'string' ? row.authorization : 'blocked'
+  if (state === 'routable') return `routable (${authorization})`
+  if (state === 'installed') return `${auth === 'ok' ? state : auth} · not routable`
+  if (state === 'verified') {
+    return authorization === 'blocked' ? 'verified · billing blocked · not routable' : 'verified · not routable'
+  }
+  return `${state} · not routable`
+}
+
 /** Render the role/execution block used by the doctor report. */
 export function renderExecutionStatus(status, { legacy } = {}) {
   const lines = []
@@ -158,6 +210,14 @@ export function renderExecutionStatus(status, { legacy } = {}) {
     // implementer applies; the flag keeps that distinction visible in doctor.
     if (row.mode === 'patch') flags.push('patch producer')
     if (row.external && row.providerAvailable === false) flags.push('provider unavailable')
+    // Registered is not usable: an external row says so when its connection is
+    // not routable, and a native row explains the automatic route it refused.
+    if (row.connection && row.connection.routable !== true) {
+      flags.push(`connection ${row.connection.state ?? 'unknown'} · not routable`)
+    }
+    if (row.backend === 'native' && Array.isArray(row.policy?.blocked) && row.policy.blocked.length) {
+      flags.push(`auto-route refused: ${row.policy.blocked.map((entry) => entry.reason).join('; ')}`)
+    }
     lines.push(
       `  ${row.roleId.padEnd(18)}${String(row.enabled === false ? 'off' : 'on').padEnd(4)}` +
         `${(row.backend ?? 'native').padEnd(7)}${(row.execution ?? 'native').padEnd(20)}` +
@@ -178,23 +238,39 @@ export function renderExecutionStatus(status, { legacy } = {}) {
   if (status.routing) {
     lines.push(
       `routing: ${status.routing.preset} (${status.routing.label}) · ` +
-        `${status.routing.enabled ? 'advisory recommendations on' : 'advisory only, not applied'}`,
+        `${status.routing.enabled ? 'advisory recommendations on' : 'advisory only, not applied'} · ` +
+        `api ${status.routing.allowPaidApi ? 'allowed' : 'blocked'} · ` +
+        `unknown ${status.routing.allowUnknownBilling ? 'allowed' : 'blocked'}`,
     )
     if (status.routing.enabled) {
+      const connections = status.connections
       const recommended = Object.entries(status.routing.recommendations ?? {})
         .filter(([, route]) => route?.backend === 'omc')
-        .map(([role, route]) => `${role}→omc:${route.harness}`)
+        // A recommendation is a claim that the route is usable, so a
+        // non-routable connection must never be printed as one.
+        .filter(([, route]) => (connections ? connections[route.harness]?.routable === true : true))
+        .map(([role, route]) => `${role}→omc:${route.harness}${route.billing ? ` (${route.billing})` : ''}`)
       if (recommended.length) lines.push(`  recommended: ${recommended.join(' · ')}`)
     }
   }
+  lines.push(
+    status.connectionSource === 'doctor'
+      ? `connection: from doctor report${status.connectionAt ? ` at ${status.connectionAt}` : ''}`
+      : 'connection: unknown (run /coharness doctor)',
+  )
   lines.push('harness read-only class:')
   for (const row of status.harnesses) {
     const resume = row.session
       ? ` · resume ${row.session.confidence}`
       : ''
+    // Without a connection state (older payloads) keep the pre-connection text
+    // exactly, so nothing silently loses the registration fact.
+    const connection = typeof row.state === 'string'
+      ? `${connectionLabel(row)}${row.providerAvailable ? '' : ' · provider not registered'}`
+      : `${row.providerAvailable ? 'provider registered' : 'provider missing'}${row.verified ? '' : ' · argv unverified'}`
     lines.push(
       `  ${row.id.padEnd(12)}${(row.enabled ? 'on' : 'off').padEnd(4)}${row.readOnly.padEnd(12)}` +
-        `${row.providerAvailable ? 'provider registered' : 'provider missing'}${row.verified ? '' : ' · argv unverified'}${resume}`,
+        `${connection}${resume}`,
     )
   }
   if (legacy) {

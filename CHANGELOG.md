@@ -6,7 +6,71 @@ project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- **Harness adapter contract** (`src/adapters.js`): one lifecycle for every
+  execution backend — `capabilities → start | resume → status → collect →
+  cancel`. The provider and the direct dispatcher share it, so a new transport
+  cannot grow a second task state machine. `cli` is implemented; `mcp` and
+  `app-server` are declared and return `OMC/ADAPTER-UNSUPPORTED` instead of
+  silently degrading to another backend.
+- **Billing guard for automatic routing** (`integration/model-policy.js`):
+  `harnesses.<id>.billing` (`subscription | api | unknown`), plus
+  `routing.allowPaidApi`, `routing.allowUnknownBilling` and a per-role
+  `authorizeBilling`. Only subscription routes are eligible by default; unknown
+  billing is never treated as free. Blocked routes are reported with a reason.
+- **`harnesses.<id>.adapter`** protocol field, kept separate from
+  `harnesses.<id>.transport` (native vs WSL CLI process).
+- **Settings schema** for `routing` and `sessions`; the OMD preset now forwards
+  `routing` and `harnesses` to the role tool so the policy applies at dispatch,
+  not only in the status card.
+- `test/integration/adapters.test.mjs`, wired into `npm test`.
+- **Explicit-only direct fallback** (`dispatch.allowDirectFallback`, default
+  `false`): a missing or rejecting provider now fails with
+  `OMC/PROVIDER-UNAVAILABLE` instead of silently running on the direct surface.
+  Direct stays reachable by asking for it (`surface: direct`, a write mode) or by
+  opting in.
+- **Connection state model** (`src/connection.js`):
+  `disabled → missing → installed → authenticated → verified → routable`.
+  `auth: unknown` is never authenticated; `harnesses.<id>.verify` is the only
+  dated manual-acceptance record that upgrades a harness whose login cannot be
+  probed non-interactively.
+- **Config templates** (`presets/`): `safe-native.json`,
+  `hybrid-subscription.json` and a `native-model-profiles` example.
+- **CI** (`.github/workflows/ci.yml`): static/contracts on Node 20/22, package
+  manifest + tarball install, and a dispatch-only DSH runtime placeholder.
+
+### Changed
+- **Automatic routing only elects `routable` harnesses**. `recommendRoute` takes
+  the connection table, blocks registered-but-signed-out or billing-unauthorized
+  routes with a reason, and the OMD role tool never auto-routes a harness that
+  only has `auth: unknown`. Omitting the table keeps the previous behaviour.
+- `recommendRoute` / status / doctor now share one connection table: status shows
+  `signed-out · not routable`, suppresses recommendations for non-routable
+  harnesses, and doctor embeds the real probe rows instead of `unknown`.
+- **Routing is applied at dispatch** when `routing.enabled` is true and the role
+  has no explicit `execution`. An explicit `role.execution` still wins, and only
+  external-capable roles are eligible. `/coharness status` shows the applied
+  `policy` per role and renders `api allowed|blocked` / `unknown allowed|blocked`.
+- **Presets**: `balanced` and `quality` now run Designer on Codex (quality falls
+  back to Antigravity); Kimi is no longer the default Designer backend.
+- **`codex exec resume` no longer passes `-s`**: the resumed turn has no sandbox
+  flag and inherits the policy recorded on the session. Never resume a session
+  created writable. Codex session support is now `verified` (2026-10-30,
+  two-round check); Claude remains `documented`.
+- Role status rows report the effective execution (`omc:<harness>`) instead of
+  the raw configuration, and expose `adapter` / `billing` per harness.
+
+### Notes
+- Verification: `168 tests / 0 fail`, `scripts/check.mjs` reports `14 modules`,
+  `scripts/pack-check.mjs` passes with `presets/` in the tarball, and
+  `docs/V0.5.md` §8 records the Codex two-round result plus remaining gaps.
+- `docs/STABILIZATION.zh-CN.md` is the v0.6 release gate: positioning, channel
+  model, connection states, the two official defaults, PR plan and the P0
+  acceptance matrix. It also records the reachability audit: every `src/` and
+  `integration/` module is statically reachable, so PR-02 must not delete
+  modules on "nobody imports it" grounds.
+- MCP and app-server adapters are contract placeholders only. They fail loudly by
+  design; no MCP server or app-server endpoint is shipped or probed.
 
 ## [0.5.0-alpha.1] — 2026-10-30
 

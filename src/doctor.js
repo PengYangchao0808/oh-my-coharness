@@ -177,7 +177,10 @@ export async function detect(ctx, cfg, { signal } = {}) {
   const wsl = await listWslDistros(ctx, signal)
   const plugins = probePlugins(ctx)
   const [execution, legacy] = await Promise.all([
-    buildExecutionStatus(ctx, cfg),
+    // Doctor already holds the probe rows: hand them over so the embedded
+    // execution block reports real connection states instead of degrading to
+    // `unknown (run /coharness doctor)`.
+    buildExecutionStatus(ctx, cfg, { report: { rows } }),
     detectLegacyCompanion(ctx),
   ])
 

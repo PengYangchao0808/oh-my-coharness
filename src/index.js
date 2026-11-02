@@ -104,11 +104,30 @@ function renderSessions(registry) {
   return lines.join('\n')
 }
 
-/** Role execution + provider state, without probing any CLI. */
-async function executionStatusText(ctx, cfg, registry) {
+/**
+ * Role execution + provider state.
+ *
+ * The connection table is only as good as the doctor report behind it, so:
+ * reuse the cached report when there is one, otherwise take a single non-forced
+ * `detect()` pass (it caches, so doctor and later status calls are free), and if
+ * that is unavailable every row honestly degrades to `auth: unknown`.
+ */
+async function statusReport(rt) {
+  const cached = rt.peekReport?.()
+  if (cached) return cached
+  try {
+    return (await rt.detect?.()) ?? null
+  } catch {
+    return null
+  }
+}
+
+async function executionStatusText(rt) {
   const [status, legacy] = await Promise.all([
-    buildExecutionStatus(ctx, cfg, { registry }),
-    detectLegacyCompanion(ctx),
+    statusReport(rt).then((report) =>
+      buildExecutionStatus(rt.ctx, rt.cfg, { registry: rt.sessions, report }),
+    ),
+    detectLegacyCompanion(rt.ctx),
   ])
   return renderExecutionStatus(status, { legacy }).join('\n')
 }
@@ -200,7 +219,7 @@ function coharnessTool(rt) {
       }
 
       if (action === 'status') {
-        return { text: await executionStatusText(rt.ctx, rt.cfg, rt.sessions) }
+        return { text: await executionStatusText(rt) }
       }
 
       if (action === 'sessions') {
@@ -267,7 +286,7 @@ function coharnessCommand(rt) {
       }
 
       if (topic === 'status') {
-        return { kind: 'success', text: await executionStatusText(rt.ctx, rt.cfg, rt.sessions) }
+        return { kind: 'success', text: await executionStatusText(rt) }
       }
 
       if (topic === 'sessions') {

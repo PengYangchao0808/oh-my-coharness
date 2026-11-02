@@ -1,0 +1,157 @@
+# CI pipeline for oh-my-coharness.
+#
+# The package is pure ESM with no dependencies (only optional @deepseek-ai/*
+# peers that the DeepSeek Harness host supplies), so nothing here needs
+# `npm install` and nothing uses a package-manager cache: there is no lockfile
+# to key one on. Tests are plain `node:test` scripts and need no network.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# The workflow only reads this repository.
+permissions:
+  contents: read
+
+# A newer push to the same ref cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Static checks (`npm run check`) plus the node:test contract/integration
+  # suites (`npm test`). The matrix covers both supported runtime lines
+  # (package.json engines: node >=20).
+  static-and-contracts:
+    name: Static + contracts (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.x', '22.x']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          # No `cache:` on purpose — zero dependencies, no lockfile to hash.
+
+      - name: Report Node version
+        run: node --version
+
+      - name: Static checks
+        run: npm run check
+
+      - name: Contract and integration tests
+        run: npm test
+
+  # Packaging contract: what `npm publish` would actually ship. First the
+  # repository-side manifest check, then a real `npm pack` whose file list is
+  # asserted, and finally an install of that tarball into a scratch project to
+  # prove the published shape resolves as `oh-my-coharness` for consumers.
+  package-and-install:
+    name: Package + install tarball (Node 20.x)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Dry-run pack
+        run: npm pack --dry-run
+
+      - name: Tarball manifest check
+        run: node scripts/pack-check.mjs
+
+      - name: Pack and assert tarball contents
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm pack --json > pack.json
+          node - <<'NODE'
+          const fs = require('node:fs')
+
+          const [meta] = JSON.parse(fs.readFileSync('pack.json', 'utf8'))
+          const filename = meta.filename
+          // npm may report entries with or without the `package/` prefix.
+          const paths = meta.files.map((file) => file.path.replace(/^package\//, ''))
+
+          const required = [
+            'src/entry.js',
+            'integration/execution.js',
+            'vendor/omd/npm-package/preset/preset.js',
+          ]
+          const forbidden = paths.filter(
+            (path) =>
+              path === 'docs/archive' ||
+              path.startsWith('docs/archive/') ||
+              path === '.github' ||
+              path.startsWith('.github/'),
+          )
+          const missing = required.filter((path) => !paths.includes(path))
+
+          const problems = []
+          if (missing.length) problems.push(`missing required path(s): ${missing.join(', ')}`)
+          if (forbidden.length) problems.push(`forbidden path(s) shipped: ${forbidden.join(', ')}`)
+          if (problems.length) {
+            for (const problem of problems) console.error(`::error::${problem}`)
+            process.exit(1)
+          }
+
+          console.log(
+            `${filename}: ${paths.length} files; required entries present; no docs/archive/**, no .github/**`,
+          )
+          NODE
+          TARBALL="$(node -p "JSON.parse(require('node:fs').readFileSync('pack.json', 'utf8'))[0].filename")"
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+
+      - name: Install tarball into a scratch project
+        shell: bash
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          tgz="$PWD/$TARBALL"
+          scratch="$(mktemp -d)"
+          echo "scratch project: $scratch"
+          cd "$scratch"
+          npm init -y > /dev/null
+          npm i --ignore-scripts --no-audit --no-fund "$tgz"
+          test -f node_modules/oh-my-coharness/src/entry.js
+          node -e "const { createRequire } = require('node:module'); const resolved = createRequire(process.cwd() + '/x').resolve('oh-my-coharness/package.json'); console.log('resolved:', resolved); if (!resolved.endsWith('node_modules/oh-my-coharness/package.json')) throw new Error('unexpected resolution: ' + resolved);"
+
+  # PLACEHOLDER — this job does not exercise DeepSeek Harness and must not be
+  # read as a passing DSH check. A real DSH runtime smoke test needs a
+  # self-hosted runner with DeepSeek Harness installed, configured and
+  # authenticated; a bare GitHub-hosted runner has none of that. Until such a
+  # runner exists, this job only prints what would be required and exits 0.
+  # It runs exclusively on manual dispatch, so it never colours PR results.
+  dsh-runtime-smoke:
+    name: DSH runtime smoke (placeholder)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain that DSH is not exercised here
+        run: |
+          set -euo pipefail
+          cat <<'EOF'
+          [placeholder] dsh-runtime-smoke did NOT run any DeepSeek Harness check.
+          A real DSH smoke test requires a self-hosted runner with DeepSeek
+          Harness installed, a configured model provider, and credentials.
+          Nothing was installed and no network access was attempted here.
+          Replace this job once a self-hosted DSH runner is available.
+          EOF
+          echo "::notice title=DSH runtime smoke is a placeholder::No DeepSeek Harness checks ran; a self-hosted runner with DSH is required."
+          exit 0

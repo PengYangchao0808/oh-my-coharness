@@ -363,6 +363,10 @@ export function loadConfig(ctx) {
     servers: clone(servers),
     roles,
     orchestrator: { ...(defaultPreset?.orchestrator ?? {}), ...(userRoles.orchestrator ?? {}) },
+    // Host-side routing and harness billing are needed by the role tool to apply
+    // the policy at dispatch time, not only in the status card.
+    routing: clone(user.routing ?? {}),
+    harnesses: clone(user.harnesses ?? {}),
   });
 }
 

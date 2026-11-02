@@ -164,7 +164,7 @@ CLI 支持矩阵（`confidence` 决定默认是否启用）：
 
 | Harness | 续接形态 | 置信度 | 默认 |
 |---|---|---|---|
-| codex | `codex exec resume <id>` + `--json` | documented | ✅ |
+| codex | `codex exec resume <id>` + `--json` | verified（2026-10-30 两轮 + 沙箱继承） | ✅ |
 | claude | `claude -p ... --resume <id> --output-format json` | documented | ✅ |
 | kimi | `kimi ... --session <id>` | unverified | ⚠️ 需 `allowUnverified` |
 | opencode | `opencode run --session <id>` | unverified | ⚠️ 需 `allowUnverified` |
@@ -172,22 +172,26 @@ CLI 支持矩阵（`confidence` 决定默认是否启用）：
 | glm | 复用 Claude 的 `--resume`，Z.ai 端点兼容性未验证 | unverified | ⚠️ 需 `allowUnverified` |
 | antigravity | 恢复命令未验证 | — | ❌ |
 
-> **尚未完成真实两轮验收。** 上表的 `documented` 表示命令形态有官方文档依据，不代表本机已经跑通“同一 Lane 第二轮续接”。在真实环境验证前，不要把它当作稳定能力发布。
+> **目前只有 Codex 完成真实两轮验收。** 上表的 `documented` 表示命令形态有官方文档依据，不代表本机已经跑通“同一 Lane 第二轮续接”。在真实环境验证前，不要把它当作稳定能力发布。Codex 的 `exec resume` 没有 `-s`：续接轮沿用会话创建时记录的沙箱，所以不要续接一个可写会话。
 
-### 模型策略：先做可解释的建议，不做自动选举
+### 模型策略：可解释的建议，加一道成本闸门
 
-`routing` 提供 `economy / balanced / quality` 三套**建议**，默认不改变执行配置：
+`routing` 提供 `economy / balanced / quality` 三套建议，默认不改变执行配置：
 
 ```json
 {
   "routing": {
     "enabled": false,
-    "preset": "balanced"
+    "preset": "balanced",
+    "allowPaidApi": false,
+    "allowUnknownBilling": false
   }
 }
 ```
 
-显式的 `role.execution` 永远优先；策略只推荐可用的 `omc:<harness>`，Provider 未注册时回落到 native。`/coharness status` 会显示当前策略和建议，但不会偷偷改路由。
+显式的 `role.execution` 永远优先。`routing.enabled=true` 后，策略才会在角色没有显式 `execution` 时把建议变成实际路由（仅限可外部执行的角色）；Provider 未注册时不发车，回落到 native。
+
+自动路由还要过一道成本闸门：`harnesses.<id>.billing` 取 `subscription | api | unknown`，只有订阅计费的线路默认可被自动选用；API 计费需要 `routing.allowPaidApi: true`，计费未知需要 `routing.allowUnknownBilling: true`，单条线路也可用 `authorizeBilling: true` 单独放行。**未知不等于免费**——说不清谁付费的线路不会被自动选中，被拦下的线路会带原因出现在 `/coharness status`。
 
 ---
 
@@ -350,6 +354,9 @@ node test/integration/session-adapters.test.mjs
 node test/integration/sessions.test.mjs
 node test/integration/provider-session.test.mjs
 node test/integration/model-policy.test.mjs
+node test/integration/adapters.test.mjs
+node test/integration/connection.test.mjs
+node test/integration/surface-strict.test.mjs
 
 # 包自检：manifest、patch、locales、模块、skills、导出
 node scripts/check.mjs
@@ -366,6 +373,8 @@ node scripts/pack-check.mjs
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/STABILIZATION.zh-CN.md`](docs/STABILIZATION.zh-CN.md) | v0.6 稳定版候选：执行渠道、连接状态、双轨默认、PR 拆分与验收矩阵 |
+| [`presets/`](presets/README.md) | Safe Native / Hybrid Subscription 配置模板与人工验收记录范式 |
 | [`docs/V0.5.md`](docs/V0.5.md) | v0.5：Handoff、Session Registry、适配器、策略与验收边界 |
 | [`docs/ARCHITECTURE.zh-CN.md`](docs/ARCHITECTURE.zh-CN.md) | 合并后的分层、契约与关键决策 |
 | [`docs/MIGRATION.md`](docs/MIGRATION.md) | 从 OMC 0.3.0 + OMD 0.8.6 升级 |

@@ -1,0 +1,41 @@
+{
+  "$comment": "混合订阅模式：Native 负责调度与写入，Codex 负责评审，Antigravity 负责前端方案（只出 Patch）。只有在对应 CLI 已登录并通过真实最小调用验收后才启用；未通过验收时保持 harnesses.<id>.enabled=false。fallback:'fail' 是刻意选择：订阅失效时明确失败，不静默改走另一条可能收费的通道。",
+  "surface": "auto",
+  "harnesses": {
+    "codex": { "enabled": true, "billing": "subscription" },
+    "antigravity": { "enabled": true, "billing": "subscription" },
+    "claude": { "enabled": false },
+    "glm": { "enabled": false, "billing": "subscription" },
+    "opencode": { "enabled": false, "billing": "subscription" },
+    "kimi": { "enabled": false, "billing": "subscription" },
+    "gemini": { "enabled": false },
+    "qwen": { "enabled": false }
+  },
+  "roles": {
+    "oracle": { "execution": { "backend": "omc", "harness": "codex", "fallback": "fail" } },
+    "designer": { "execution": { "backend": "omc", "harness": "antigravity", "fallback": "fail" } },
+    "explorer": { "execution": { "backend": "native" } },
+    "fixer": { "execution": { "backend": "native" } },
+    "librarian": { "execution": { "backend": "native" } },
+    "observer": { "enabled": false },
+    "councillor-alpha": { "enabled": true, "execution": { "backend": "native" } },
+    "councillor-beta": { "enabled": true, "execution": { "backend": "omc", "harness": "codex", "fallback": "fail" } },
+    "councillor-gamma": { "enabled": false }
+  },
+  "dispatch": {
+    "allowDirectFallback": false,
+    "defaultMode": "read-only",
+    "maxParallel": 3,
+    "timeoutMs": 600000
+  },
+  "sessions": {
+    "enabled": true,
+    "resumePolicy": "auto",
+    "allowUnverified": false
+  },
+  "routing": {
+    "enabled": false,
+    "allowPaidApi": false,
+    "allowUnknownBilling": false
+  }
+}

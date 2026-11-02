@@ -94,7 +94,9 @@ test('harness adapters declare a resume argv per CLI', () => {
   ])
   const codexResume = codex.session.resumeArgs('thread-1', 'task', { mode: 'read-only', json: true })
   assert.deepEqual(codexResume.slice(0, 5), ['exec', 'resume', 'thread-1', '--json', '--skip-git-repo-check'])
-  assert.ok(codexResume.includes('read-only'))
+  // `codex exec resume` has no -s flag; the sandbox is inherited from the session.
+  assert.equal(codexResume.includes('-s'), false)
+  assert.equal(codex.session.confidence, 'verified')
 
   const claude = harnessDef('claude')
   assert.deepEqual(claude.argv('task', { json: true }), [

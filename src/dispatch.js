@@ -1,17 +1,22 @@
 /**
  * Dispatch: DispatchRequest → real execution → DispatchResult[].
  *
- * Provider first, direct only as a fallback. The difference matters: with a provider
- * the host owns capacity, cancellation and the completion notice; a direct run is a
- * degraded surface that doctor reports as such (ADAPTER §6.3). Every result therefore
- * says which surface produced it and, when it had to degrade, why (V0.2-PLAN §6.2).
+ * Provider first, and the direct surface only when it was asked for: `surface: 'direct'`
+ * or a non-read-only mode are explicit requests, and `dispatch.allowDirectFallback`
+ * unlocks the implicit one. A missing or rejecting provider never degrades silently —
+ * it fails and names both the reason and the switch (V0.2-PLAN §6.2). The difference
+ * matters: with a provider the host owns capacity, cancellation and the completion
+ * notice, while a direct run is a degraded surface that doctor reports as such
+ * (ADAPTER §6.3). Every result therefore names the surface it used — or, for a refusal,
+ * the one that was asked for — and, when it had to degrade, why.
  */
 
 import { harnessDef, normalizeId } from './harnesses.js'
 import { harnessConfig, isEnabled } from './config.js'
-import { harnessEnv, launch, planTransport, readCollected, statusOf, withTimeout } from './transport.js'
+import { adapterFor } from './adapters.js'
+import { harnessEnv, planTransport, withTimeout } from './transport.js'
 import { blocksToText } from './provider.js'
-import { maskSessionId, parseSessionOutput } from './session-adapters.js'
+import { maskSessionId } from './session-adapters.js'
 
 function omcError(code, message) {
   const error = new Error(`${code}: ${message}`)
@@ -67,6 +72,33 @@ function providerEligibility(rt, def, shared, exec) {
 }
 
 /**
+ * Direct is reached by asking for it. `surface: 'direct'` is the explicit request, and
+ * so is any non-read-only mode: a write mode cannot travel through the fixed read-only
+ * provider surface, so it was a request for the direct one. Neither depends on
+ * `dispatch.allowDirectFallback`; only the implicit fallback does.
+ */
+function explicitDirect(cfg, shared) {
+  return cfg.surface === 'direct' || shared.mode !== 'read-only'
+}
+
+/**
+ * A task that reached no surface at all. `surface` names the provider that was asked
+ * for, because that is the truthful intent and the only alternative the consumer knows:
+ * `renderDispatch` (src/index.js) maps every other value to `-`, so a new value would
+ * render as "no surface" next to work that did run. The reason and the disabled switch
+ * travel in the diagnostic, where the caller can act on them.
+ */
+function providerUnavailable(def, started, reason, notes = []) {
+  return withNotes(
+    { status: 'failed', harnessId: def.id, surface: 'provider', output: '', elapsedMs: Date.now() - started },
+    [
+      `OMC/PROVIDER-UNAVAILABLE: ${reason}; direct fallback is disabled by dispatch.allowDirectFallback=false; set it to true to opt in, or ask for the direct surface explicitly (surface: direct, or a non-read-only mode)`,
+      ...notes,
+    ],
+  )
+}
+
+/**
  * @returns {Promise<{ def: import('./harnesses.js').HarnessDef, warning?: string }>}
  */
 async function resolveTarget(rt, raw) {
@@ -100,13 +132,25 @@ async function resolveTarget(rt, raw) {
 async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, notes = []) {
   const { ctx, cfg } = rt
   const hcfg = harnessConfig(cfg, def.id)
+  const harnessAdapter = adapterFor(def, cfg)
+  if (harnessAdapter.supported !== true) {
+    return {
+      status: 'failed',
+      harnessId: def.id,
+      surface: 'direct',
+      downgradeReason: reason || 'direct runs have no child session or host capacity',
+      output: '',
+      elapsedMs: Date.now() - started,
+      diagnostics: [...notes, `OMC/ADAPTER-UNSUPPORTED: ${harnessAdapter.reason ?? 'transport unavailable'}`],
+    }
+  }
   // The direct surface has no child session and no host capacity slot; saying so on
   // every result is what keeps a degraded run from being read as full support.
   const surface = { surface: 'direct', downgradeReason: reason || 'direct runs have no child session or host capacity' }
   let deadline
   try {
     const plan = await planTransport(ctx, def, cfg, exec.signal)
-    const launched = await launch(ctx, def, {
+    const launched = await harnessAdapter.start(ctx, {
       task: prompt,
       cwd,
       model: hcfg.model || undefined,
@@ -119,11 +163,11 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
     })
     deadline = launched.deadline
     const outcome = await launched.handle.done
-    const captured = readCollected(launched.handle, cfg.dispatch.maxOutputBytes)
-    const status = statusOf(outcome, deadline, exec.signal)
+    const captured = harnessAdapter.collect(launched.handle, cfg.dispatch.maxOutputBytes)
+    const status = harnessAdapter.status(outcome, deadline, exec.signal)
     // Direct runs do not resume (no lane identity), but reporting the session id
     // and usage the CLI already returned makes the cost observable.
-    const parsed = def.session ? parseSessionOutput(def.session.format, captured.stdout) : null
+    const parsed = harnessAdapter.parse(captured.stdout)
 
     return withNotes(
       {
@@ -137,7 +181,7 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
         spillPath: captured.spillPath,
         elapsedMs: Date.now() - started,
         ...(parsed?.sessionId
-          ? { nativeSession: { id: maskSessionId(parsed.sessionId), format: def.session.format } }
+          ? { nativeSession: { id: maskSessionId(parsed.sessionId), format: harnessAdapter.session?.format } }
           : {}),
         ...(parsed?.usage ? { usage: parsed.usage } : {}),
       },
@@ -179,6 +223,14 @@ async function runOne(rt, def, task, shared, exec, warning) {
         ...notes,
       ],
     }
+  }
+
+  if (!eligibility.ok && !explicitDirect(rt.cfg, shared) && rt.cfg.dispatch.allowDirectFallback !== true) {
+    // A missing or rejecting provider used to become a direct run without a word. That
+    // hid a degraded surface (no child session, no host capacity slot) behind a
+    // normal-looking result, so the implicit fallback is opt-in now and a refusal is
+    // loud: the caller asked for a provider and must not be handed something else.
+    return providerUnavailable(def, started, eligibility.reason, notes)
   }
 
   if (eligibility.ok) {
@@ -277,8 +329,13 @@ async function runOne(rt, def, task, shared, exec, warning) {
           [...notes, code || String(error?.message ?? 'activation failed')],
         )
       }
-      // Fall through to a direct run only for capability/registration gaps, and say
-      // exactly why the surface changed.
+      // Explicit direct intent never reaches this branch — providerEligibility rejects it
+      // first — so only the flag can unlock the fallback here.
+      if (rt.cfg.dispatch.allowDirectFallback !== true) {
+        return providerUnavailable(def, started, `provider activation rejected the call (${code})`, notes)
+      }
+      // Opted into the fallback: a direct run for capability/registration gaps, and the
+      // downgradeReason says exactly why the surface changed.
       return directRun(
         rt,
         def,

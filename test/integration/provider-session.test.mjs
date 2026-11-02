@@ -97,7 +97,8 @@ test('Codex: first run stores a session, second run resumes it', async () => {
   assert.equal(argv[1], 'exec')
   assert.equal(argv[2], 'resume')
   assert.equal(argv[3], 'thread-first')
-  assert.ok(argv.includes('read-only'))
+  // Resume has no -s flag; it inherits the read-only policy recorded on the session.
+  assert.equal(argv.includes('-s'), false)
   assert.equal(registry.stats().resumable, 1)
   assert.equal(registry.list()[0].turns, 2)
 })
