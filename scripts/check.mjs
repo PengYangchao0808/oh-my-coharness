@@ -7,6 +7,7 @@
  * would this directory survive being installed as a single bundle?
  */
 
+import { spawnSync } from 'node:child_process'
 import { readFile, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -22,6 +23,32 @@ function ok(condition, message) {
 
 async function readJson(relative) {
   return JSON.parse(await readFile(join(root, relative), 'utf8'))
+}
+
+/**
+ * Import one module in a fresh Node process; return the failure text or null.
+ *
+ * Node 20.19+ clears a module wrap's transient resolve cache at the end of a
+ * failed instantiation and then reports `request for 'node:fs' is not in cache`
+ * instead of the real error (see nodejs/node#52187 and module_wrap.cc). That
+ * secondary error used to abort this whole audit. A child process has a single
+ * module job and never reaches that state, and its stderr is the true first
+ * failure — which is what a packaging check needs to report.
+ */
+function loadInChild(absolutePath) {
+  const url = pathToFileURL(absolutePath).href
+  const result = spawnSync(process.execPath, ['--input-type=module', '--eval', `await import(${JSON.stringify(url)})`], {
+    encoding: 'utf8',
+    timeout: 60_000,
+  })
+  if (result.status === 0) return null
+  const detail = `${result.stderr ?? ''}\n${result.stdout ?? ''}`
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('at '))
+    .slice(0, 2)
+    .join(' ')
+  return detail || `exit ${result.status ?? 'signal'}`
 }
 
 // ── manifest ─────────────────────────────────────────────────────────────────
@@ -77,18 +104,12 @@ try {
 // ── modules load ─────────────────────────────────────────────────────────────
 const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry', 'session-adapters', 'adapters', 'connection']
 for (const name of modules) {
-  try {
-    await import(pathToFileURL(join(root, 'src', `${name}.js`)).href)
-  } catch (error) {
-    failures.push(`src/${name}.js failed to load: ${error.message}`)
-  }
+  const reason = loadInChild(join(root, 'src', `${name}.js`))
+  if (reason) failures.push(`src/${name}.js failed to load: ${reason}`)
 }
 for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy']) {
-  try {
-    await import(pathToFileURL(join(root, 'integration', `${name}.js`)).href)
-  } catch (error) {
-    failures.push(`integration/${name}.js failed to load: ${error.message}`)
-  }
+  const reason = loadInChild(join(root, 'integration', `${name}.js`))
+  if (reason) failures.push(`integration/${name}.js failed to load: ${reason}`)
 }
 for (const relative of [
   'vendor/omd/npm-package/preset/preset.js',
@@ -96,11 +117,8 @@ for (const relative of [
   'vendor/omd/npm-package/lib/index.js',
   'vendor/omd/npm-package/lib/profile-registry.js',
 ]) {
-  try {
-    await import(pathToFileURL(join(root, relative)).href)
-  } catch (error) {
-    failures.push(`${relative} failed to load: ${error.message}`)
-  }
+  const reason = loadInChild(join(root, relative))
+  if (reason) failures.push(`${relative} failed to load: ${reason}`)
 }
 
 const entry = await import(pathToFileURL(join(root, 'src', 'index.js')).href)
