@@ -1,0 +1,53 @@
+{
+  "case": "R06",
+  "title": "trial 采集与隔离运行器",
+  "date": "2026-11-03",
+  "packageVersion": "0.5.0-alpha.2-practice.2",
+  "result": "passed-with-limits",
+  "dataKind": "combination regressions (no model calls, no paid run)",
+  "modelCalls": 0,
+  "code": [
+    "integration/trial-collector.js — collectTrial/exportTrials/assertNotObservational; exports a trial record the EXISTING evaluateStrategyExperiment accepts, and lists every unobserved field as incomplete instead of filling it",
+    "scripts/strategy-runner.mjs — frozen manifest planning, per-trial worktree isolation, budget caps handed to the executor, receipts only on a real execute"
+  ],
+  "checks": {
+    "evaluatorCompatible": {
+      "verdict": "passed",
+      "observed": "6 synthetic trials (2 tasks x 3 strategies) pass evaluateStrategyExperiment with a complete frozen manifest; summaries show 2 trials per arm"
+    },
+    "missingOrDuplicateRejected": {
+      "verdict": "passed",
+      "observed": "a deleted trial is a 'missing trial' problem (evaluator blocked); a duplicated one is an exporter problem and the evaluator throws on duplicate"
+    },
+    "conditionDriftVisible": { "verdict": "passed", "observed": "a trial whose model differs from the manifest is reported as a problem, not silently accepted" },
+    "missingNumbersStayNull": {
+      "verdict": "passed",
+      "observed": "a missing usage bucket stays null and appears in incomplete; the total is null, never 0"
+    },
+    "noFalseSuccess": {
+      "verdict": "passed",
+      "observed": "cancelled/failed terminals never count as success; an unobserved terminal is exported as execution pending with status unknown, and elapsedMs is null"
+    },
+    "strategyMismatchVisible": { "verdict": "passed", "observed": "contradicting actualActions set strategyMismatch and strategyApplied false, and the evaluator blocks on 'not applied'" },
+    "observationalNotExperimental": { "verdict": "passed", "observed": "a manifest without randomisation metadata is reported observational and exportTrials adds a problem" },
+    "runnerPlanWritesNothing": { "verdict": "passed", "observed": "--plan prints the frozen allocation and creates no receipt directory" },
+    "runnerRefusesPaidRun": {
+      "verdict": "passed",
+      "observed": "--execute exits 2 without --max-usd and --confirm-paid-experiment, and again without budget caps/concurrency/deadline, printing the exact reasons"
+    },
+    "runnerIsolation": { "verdict": "passed", "observed": "executePlan creates one worktree per assignment, passes the caps to every runTrial call, and writes a receipt once" },
+    "noHostNoExecution": { "verdict": "passed", "observed": "without a host execution context the default adapter throws OMC/TRIAL-NO-EXECUTOR and writes no receipt" }
+  },
+  "test": "test/integration/trial-collector.test.mjs",
+  "boundaries": [
+    "the runner passes budget caps but cannot meter spend: the executor must enforce them and book real costs into the usage ledger",
+    "costBasis is 'estimated' — the ledger stores a computed amount and a price source, not an invoice; a truly billed run needs a receipt source that does not exist yet",
+    "the CLI --execute path cannot run in a plain process (no DSH host context) and says so instead of pretending; a host must import executePlan",
+    "history logs can be an observational baseline but are never retro-tagged as a randomised experiment"
+  ],
+  "notCovered": [
+    "an actual paid experiment (requires a user-approved budget)",
+    "a real host executor that spends and books costs",
+    "the 9/72/30-task scale of R08"
+  ]
+}

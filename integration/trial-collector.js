@@ -126,13 +126,14 @@ function resolveAssignment({ assignment, manifest, taskId, strategy }) {
     if (typeof assignment.trialId !== 'string' || assignment.trialId.trim() === '') {
       return { assignment: null, problem: 'the supplied assignment row has no trialId, so the trial cannot be matched to the frozen plan' }
     }
-    if (taskId && assignment.taskId !== taskId) {
-      return {
-        assignment,
-        problem: `the supplied assignment belongs to task ${assignment.taskId}, not ${taskId}; identity is exported from the frozen row and never silently rewritten`,
-      }
-    }
-    return { assignment }
+    // The runtime parent task id and the frozen benchmark task id are two
+    // different identifiers: the allocation names a benchmark task, while
+    // `taskId` names the concrete parent task that ran it. Both are exported;
+    // neither is rewritten into the other.
+    const note = taskId && assignment.taskId !== taskId
+      ? `runtime task ${taskId} ran frozen benchmark task ${assignment.taskId}; both ids are recorded`
+      : null
+    return { assignment, note }
   }
   const rows = Array.isArray(manifest?.assignments) ? manifest.assignments : []
   if (!rows.length) return { assignment: null, problem: 'no assignment was supplied and the manifest carries no frozen allocation' }
@@ -197,6 +198,7 @@ export function collectTrial({
     incomplete.push('assignment')
     notes.push(resolved.problem)
   }
+  if (resolved.note) notes.push(resolved.note)
   const frozen = resolved.assignment
   const assignedStrategy = frozen?.strategy && SESSION_STRATEGIES.includes(frozen.strategy)
     ? frozen.strategy
@@ -210,6 +212,7 @@ export function collectTrial({
 
   const trialId = typeof frozen?.trialId === 'string' ? frozen.trialId : null
   const repeat = Number.isSafeInteger(frozen?.repeat) ? frozen.repeat : null
+  const benchmarkTaskId = typeof frozen?.taskId === 'string' ? frozen.taskId : null
   const policyVersion = assignedStrategy ? (manifest?.policyVersions?.[assignedStrategy] ?? null) : null
   const experimentDigest = typeof manifest?.digest === 'string' ? manifest.digest : null
   const conditionsDigest = typeof manifest?.conditionsDigest === 'string' ? manifest.conditionsDigest : null
@@ -237,6 +240,10 @@ export function collectTrial({
   if (repeat === null) {
     incomplete.push('repeat')
     notes.push('the frozen assignment carries no repeat index; blocking is impossible to verify')
+  }
+  if (!benchmarkTaskId) {
+    incomplete.push('assignment.taskId')
+    notes.push('the frozen assignment carries no benchmark task id, so this trial cannot be grouped back to a benchmark task')
   }
 
   // --- execution: the store is the only source of truth for the terminal state.
@@ -385,6 +392,15 @@ export function collectTrial({
   if (acceptanceState !== observedAcceptance) {
     notes.push(`acceptance state "${observedAcceptance}" is not one of ${ACCEPTANCE_STATES.join('/')}; recorded as unknown`)
   }
+  if (!requested && (status === 'failed' || status === 'cancelled')
+    && (acceptanceState === 'unknown' || acceptanceState === 'pending')) {
+    // A real terminal failure is itself evidence that the work was not
+    // delivered; the evaluator models exactly that as a failed acceptance with
+    // runtime-terminal evidence. No grader claim is invented — the caller can
+    // still supply its own verdict and evidence instead.
+    acceptanceState = 'failed'
+    notes.push(`no grader verdict was supplied, so the ${status} execution is recorded as a failed acceptance with runtime-terminal evidence (it does not prove any behaviour verdict)`)
+  }
   let evidenceKind = typeof requested?.evidenceKind === 'string' ? requested.evidenceKind : null
   let evidenceRef = typeof requested?.evidenceRef === 'string' && requested.evidenceRef.trim() !== ''
     ? requested.evidenceRef
@@ -504,6 +520,7 @@ export function collectTrial({
     status,
     observedAcceptance: String(observedAcceptance),
     taskId: task,
+    benchmarkTaskId,
     repeat,
     strategy: assignedStrategy,
     parentId: parent,
@@ -690,7 +707,7 @@ export function exportTrials({ manifest = null, collected = [] } = {}) {
       problems.push(`duplicated trial ${trialId} (taskId ${trial.taskId ?? '?'}, repeat ${trial.repeat ?? '?'}); aggregate attempts once before evaluation instead of exporting two rows`)
       continue
     }
-    const blockKey = `${trial.taskId ?? '?'}|${trial.repeat ?? '?'}|${trial.strategy ?? '?'}`
+    const blockKey = `${trial.benchmarkTaskId ?? trial.taskId ?? '?'}|${trial.repeat ?? '?'}|${trial.strategy ?? '?'}`
     if (seenKeys.has(blockKey)) {
       problems.push(`duplicated (taskId, repeat, strategy) block ${blockKey} (trial ${trialId} and ${seenKeys.get(blockKey)}); one record per frozen assignment`)
     }
@@ -703,8 +720,11 @@ export function exportTrials({ manifest = null, collected = [] } = {}) {
     }
     byTrial.set(trialId, trial)
 
-    if (trial.taskId !== assignment.taskId) {
-      problems.push(`trial ${trialId} reports taskId ${trial.taskId}, the frozen allocation assigns ${assignment.taskId}`)
+    // `taskId` is the concrete runtime parent task; the frozen allocation names
+    // the benchmark task, which the collector exports as `benchmarkTaskId`.
+    const benchmarkTaskId = typeof trial.benchmarkTaskId === 'string' ? trial.benchmarkTaskId : null
+    if (benchmarkTaskId !== null && benchmarkTaskId !== assignment.taskId) {
+      problems.push(`trial ${trialId} ran frozen benchmark task ${benchmarkTaskId}, the allocation assigns ${assignment.taskId}`)
     }
     if (trial.repeat !== assignment.repeat) {
       problems.push(`trial ${trialId} reports repeat ${trial.repeat}, the frozen allocation assigns ${assignment.repeat}`)

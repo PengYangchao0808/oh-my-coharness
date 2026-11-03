@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "practice-native-runtime-probe",
   "task": "R01+R02",
-  "at": "2026-11-03T14:06:02.460Z",
+  "at": "2026-11-03T14:13:17.621Z",
   "host": {
     "version": "0.2.1-rc.5",
     "preset": "oh-my-coharness",
@@ -13,50 +13,50 @@
   "facts": {
     "sessions": {
       "parent": {
-        "id": "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba",
+        "id": "omc-native-probe-parent-8d21ad83-f4ca-4d60-a450-df09840774f5",
         "parentSession": null,
         "events": 16
       },
       "child": {
-        "id": "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974",
-        "parentSession": "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba",
+        "id": "omc-native-probe-child-ba1d59c1-6278-4270-a181-6f4d87b91f48",
+        "parentSession": "omc-native-probe-parent-8d21ad83-f4ca-4d60-a450-df09840774f5",
         "events": 16
       },
       "nested": {
-        "id": "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe",
-        "parentSession": "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974",
+        "id": "omc-native-probe-nested-a4585186-e855-4b2b-8a48-5cf1a2cbde22",
+        "parentSession": "omc-native-probe-child-ba1d59c1-6278-4270-a181-6f4d87b91f48",
         "events": 20
       }
     },
     "children": [],
     "adapterCalls": [
       {
-        "sessionId": "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba",
+        "sessionId": "omc-native-probe-parent-8d21ad83-f4ca-4d60-a450-df09840774f5",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974",
+        "sessionId": "omc-native-probe-child-ba1d59c1-6278-4270-a181-6f4d87b91f48",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe",
+        "sessionId": "omc-native-probe-nested-a4585186-e855-4b2b-8a48-5cf1a2cbde22",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-budget-1ba293df-706a-41fc-81fa-5742564cb850",
+        "sessionId": "omc-native-probe-budget-99dfcd89-5b55-4718-922f-b71970c0b104",
         "call": 1
       }
     ],
     "preSteps": [
       {
-        "agent": "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe",
+        "agent": "omc-native-probe-nested-a4585186-e855-4b2b-8a48-5cf1a2cbde22",
         "turn": 1,
         "decision": "reject"
       }
     ],
     "hostVersion": "0.2.1-rc.5",
     "events": {
-      "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba": [
+      "omc-native-probe-parent-8d21ad83-f4ca-4d60-a450-df09840774f5": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -154,7 +154,7 @@
           "reason": "error"
         }
       ],
-      "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974": [
+      "omc-native-probe-child-ba1d59c1-6278-4270-a181-6f4d87b91f48": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -257,7 +257,7 @@
           "reason": "completed"
         }
       ],
-      "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe": [
+      "omc-native-probe-nested-a4585186-e855-4b2b-8a48-5cf1a2cbde22": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -384,7 +384,7 @@
           "reason": "completed"
         }
       ],
-      "omc-native-probe-budget-1ba293df-706a-41fc-81fa-5742564cb850": [
+      "omc-native-probe-budget-99dfcd89-5b55-4718-922f-b71970c0b104": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -564,7 +564,7 @@
         "autoRoots": 0,
         "handlerErrors": 0,
         "replayRuns": 3,
-        "lastEventAt": "2026-11-03T14:06:02.376Z"
+        "lastEventAt": "2026-11-03T14:13:17.546Z"
       }
     }
   },
@@ -584,7 +584,7 @@
     "sessions": 3,
     "bindings": 3,
     "parents": [
-      "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba"
+      "omc-native-probe-parent-8d21ad83-f4ca-4d60-a450-df09840774f5"
     ],
     "roles": {
       "orchestrator": 1,
@@ -602,9 +602,9 @@
       "autoRoots": 1,
       "handlerErrors": 0,
       "replayRuns": 0,
-      "lastEventAt": "2026-11-03T14:06:02.370Z"
+      "lastEventAt": "2026-11-03T14:13:17.541Z"
     },
-    "lastEventAt": "2026-11-03T14:06:02.370Z"
+    "lastEventAt": "2026-11-03T14:13:17.541Z"
   },
   "budgetGate": {
     "parent": "probe-budget-parent",
@@ -636,7 +636,7 @@
       "hard": true,
       "checkpoint": {
         "action": "stop-partial",
-        "at": "2026-11-03T14:06:02.448Z",
+        "at": "2026-11-03T14:13:17.611Z",
         "reasons": [
           "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
         ],
@@ -655,7 +655,7 @@
     },
     "checkpoint": {
       "action": "stop-partial",
-      "at": "2026-11-03T14:06:02.448Z",
+      "at": "2026-11-03T14:13:17.611Z",
       "reasons": [
         "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
       ],

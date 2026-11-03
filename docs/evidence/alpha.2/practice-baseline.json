@@ -2,23 +2,23 @@
   "schemaVersion": 1,
   "kind": "practice-baseline",
   "task": "R00",
-  "generatedAt": "2026-11-03T14:10:07.732Z",
+  "generatedAt": "2026-11-03T14:15:42.757Z",
   "generatedBy": "scripts/practice-baseline.mjs",
   "packageVersion": "0.5.0-alpha.2-practice.2",
   "sources": "docs/evidence/alpha.2/practice-baseline.sources.json",
   "git": {
-    "commit": "07f65cb8113443fd0cb7584d65c8d75d911745ae",
+    "commit": "e56a9f8152f7dac7844997d1b85206690f05e2fb",
     "branch": "main",
     "workingTree": {
-      "changed": 13,
-      "untracked": 17,
+      "changed": 15,
+      "untracked": 4,
       "clean": false
     }
   },
   "treeFingerprint": {
     "algorithm": "sha256",
-    "files": 255,
-    "digest": "3aff9b63b802229d894b1956df1f4b67afb8fa6019f4e86f6a1f2048418e553f",
+    "files": 258,
+    "digest": "f57eee13e7385afee982161e22a338146fef0e7749c04ae99bf540d47337f9dd",
     "excludes": [
       ".git/",
       "node_modules/",
@@ -33,14 +33,14 @@
   },
   "testRun": {
     "source": "docs/evidence/alpha.2/last-test-run.json",
-    "startedAt": "2026-11-03T14:09:53.287Z",
+    "startedAt": "2026-11-03T14:15:29.815Z",
     "node": "v24.21.0",
     "platform": "win32-x64",
     "totals": {
-      "suites": 38,
-      "passed": 38,
+      "suites": 41,
+      "passed": 41,
       "failed": 0,
-      "durationMs": 6179
+      "durationMs": 6919
     },
     "failing": []
   },
@@ -73,7 +73,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72818
+              "bytes": 72825
             },
             {
               "kind": "artifact",
@@ -93,7 +93,7 @@
               "ref": "test/integration/budget-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 995
+              "durationMs": 1002
             },
             {
               "kind": "artifact",
@@ -162,7 +162,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72818
+              "bytes": 72825
             }
           ]
         },
@@ -232,7 +232,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72818
+              "bytes": 72825
             }
           ]
         },
@@ -246,7 +246,7 @@
               "ref": "test/integration/session-strategy.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 209
+              "durationMs": 204
             }
           ]
         },
@@ -296,7 +296,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72818
+              "bytes": 72825
             }
           ]
         },
@@ -316,14 +316,14 @@
               "ref": "test/integration/native-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 67
+              "durationMs": 69
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 151
+              "durationMs": 124
             }
           ]
         },
@@ -400,7 +400,7 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 151
+              "durationMs": 124
             }
           ]
         },
@@ -491,7 +491,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 72
+              "durationMs": 70
             }
           ]
         },
@@ -568,7 +568,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 72
+              "durationMs": 70
             }
           ]
         },
@@ -644,7 +644,7 @@
               "ref": "test/integration/wp05-managed.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 83
+              "durationMs": 95
             },
             {
               "kind": "test-suite",
@@ -658,7 +658,7 @@
               "ref": "test/integration/mailbox.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 170
+              "durationMs": 171
             }
           ]
         },
@@ -735,7 +735,7 @@
               "ref": "test/integration/wp03-packet.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 83
+              "durationMs": 88
             }
           ]
         },
@@ -799,7 +799,7 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 151
+              "durationMs": 124
             },
             {
               "kind": "test-suite",
@@ -876,14 +876,14 @@
               "ref": "test/integration/sessions.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 1126
+              "durationMs": 1114
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/provider-session.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 168
+              "durationMs": 177
             }
           ]
         },
@@ -961,14 +961,14 @@
               "ref": "test/integration/report-cache.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 124
+              "durationMs": 112
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp04-context.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 74
+              "durationMs": 69
             }
           ]
         },
@@ -1045,21 +1045,21 @@
               "ref": "test/integration/client.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 85
+              "durationMs": 66
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/usability.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 171
+              "durationMs": 163
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/migration.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 93
+              "durationMs": 68
             }
           ]
         },
@@ -1162,31 +1162,58 @@
     },
     {
       "id": "independent-acceptance",
-      "title": "外部独立验收（worker 不能自己改分）",
+      "title": "独立 grader 与分层任务集（R07）",
       "releaseScope": "alpha.2 R07",
       "layers": {
         "implementation": {
-          "status": "not-run",
-          "declared": "not-run",
-          "note": "integration/acceptance-runner.js does not exist yet",
-          "refs": []
+          "status": "passed",
+          "declared": "passed",
+          "note": "fixed external checks with argv-only execution, tree fingerprint from work-packet.js, acceptanceFiles digested before/after and against a frozen baseline",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/acceptance-runner.js",
+              "resolved": true,
+              "bytes": 26716
+            },
+            {
+              "kind": "artifact",
+              "ref": "test/benchmarks/session-strategies/README.md",
+              "resolved": true,
+              "bytes": 3954
+            }
+          ]
         },
         "tests": {
-          "status": "not-run",
-          "declared": "not-run",
-          "note": null,
-          "refs": []
+          "status": "passed",
+          "declared": "passed",
+          "note": "13 regressions on a REAL benchmark task: reference passes, broken start fails, wrong patch fails, grader tampering detected, forbidChanges, deterministic family split",
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/acceptance-runner.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 582
+            },
+            {
+              "kind": "artifact",
+              "ref": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+              "resolved": true,
+              "bytes": 1279
+            }
+          ]
         },
         "hostProbe": {
           "status": "not-run",
           "declared": "not-run",
-          "note": null,
+          "note": "the grader is offline by design; it does not need a host",
           "refs": []
         },
         "realModel": {
           "status": "not-run",
           "declared": "not-run",
-          "note": null,
+          "note": "no worker has been graded on a paid run yet",
           "refs": []
         },
         "desktop": {
@@ -1236,14 +1263,14 @@
               "kind": "artifact",
               "ref": "scripts/check.mjs",
               "resolved": true,
-              "bytes": 12889
+              "bytes": 12929
             },
             {
               "kind": "test-suite",
               "ref": "test/smoke.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 585
+              "durationMs": 565
             }
           ]
         },
@@ -1272,47 +1299,111 @@
           "refs": []
         }
       }
+    },
+    {
+      "id": "trial-collection",
+      "title": "trial 采集与隔离运行器（R06）",
+      "releaseScope": "alpha.2 R06",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "collectTrial/exportTrials produce evaluator-compatible records and list every unobserved field as incomplete; the runner isolates per-trial worktrees and refuses a paid run without explicit caps",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/trial-collector.js",
+              "resolved": true,
+              "bytes": 38978
+            },
+            {
+              "kind": "artifact",
+              "ref": "scripts/strategy-runner.mjs",
+              "resolved": true,
+              "bytes": 24587
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "12 regressions: evaluator acceptance, missing/duplicate/mismatched refusal, null-not-zero usage, no false success, observational guard, plan-writes-nothing, both execute refusals, worktree isolation",
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/trial-collector.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 250
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no host executor exists yet; the runner refuses instead of pretending",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no paid experiment has been run",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "cost basis can only be estimated from the ledger; there is no invoice source",
+          "refs": []
+        }
+      }
     }
   ],
   "totals": {
     "implementation": {
-      "passed": 13,
+      "passed": 15,
       "partial": 2,
-      "not-run": 1,
+      "not-run": 0,
       "blocked": 0,
       "unverified": 0
     },
     "tests": {
-      "passed": 15,
+      "passed": 17,
       "partial": 0,
-      "not-run": 1,
+      "not-run": 0,
       "blocked": 0,
       "unverified": 0
     },
     "hostProbe": {
       "passed": 6,
       "partial": 5,
-      "not-run": 5,
+      "not-run": 6,
       "blocked": 0,
       "unverified": 0
     },
     "realModel": {
       "passed": 1,
       "partial": 1,
-      "not-run": 14,
+      "not-run": 15,
       "blocked": 0,
       "unverified": 0
     },
     "desktop": {
       "passed": 0,
       "partial": 0,
-      "not-run": 16,
+      "not-run": 17,
       "blocked": 0,
       "unverified": 0
     },
     "costCoverage": {
       "passed": 0,
-      "partial": 4,
+      "partial": 5,
       "not-run": 11,
       "blocked": 1,
       "unverified": 0

@@ -37,6 +37,9 @@ example-local-fix/
    | `forbidChanges` | files/directories the delivery must not have modified |
    | `rubric` | human/LLM criteria; never the sole truth |
 
+   Unknown extra keys (for example `notes`) are ignored by the runner — it
+   grades only the fields above.
+
 3. Check both directions before committing: the reference fix passes
    (`passed: true`) and the start state fails (`passed: false`).
    `test/integration/acceptance-runner.test.mjs` does exactly this against

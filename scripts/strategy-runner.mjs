@@ -51,6 +51,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createStrategyExperiment } from '../integration/strategy-eval.js'
 import { createTaskWorktree } from '../integration/worktree.js'
 
@@ -582,7 +583,7 @@ async function main(argv) {
   fail([`${NO_EXECUTOR}: this CLI has no DSH host context, so an isolated worktree per trial and a paid executor cannot be provided here; a host integration must call executePlan() from this module (see --print-executor-contract)`])
 }
 
-const invokedDirectly = process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))
+const invokedDirectly = Boolean(process.argv[1]) && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 if (invokedDirectly) {
   main(process.argv.slice(2)).catch((error) => {
     console.error(`${error?.code ?? 'OMC/TRIAL-RUNNER'}: ${error?.message ?? error}`)

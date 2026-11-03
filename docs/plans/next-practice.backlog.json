@@ -10,9 +10,20 @@
   "startedByThisPlan": true,
   "progress": {
     "updatedAt": "2026-11-03",
-    "completed": ["R00", "R01", "R02", "R03", "R04"],
-    "next": "R05",
-    "note": "R00-R04 done; R05-R07 code landing with limits; R08 needs a paid budget decision, R09 needs Desktop/install acceptance, R10 is post-release. The alpha.2 release gate is NOT passed."
+    "completed": [
+      "R00",
+      "R01",
+      "R02",
+      "R03",
+      "R04",
+      "R06",
+      "R07"
+    ],
+    "inProgress": [
+      "R05"
+    ],
+    "next": "R05 / R08",
+    "note": "R00-R04+R06+R07 done with tests and evidence; R05 only the status surface; R08 needs a paid budget decision, R09 needs Desktop/install acceptance, R10 is post-release. The alpha.2 release gate is NOT passed."
   },
   "tasks": [
     {
@@ -21,12 +32,34 @@
       "priority": "P0",
       "status": "done",
       "completedAt": "2026-11-03",
-      "evidence": ["docs/evidence/alpha.2/practice-baseline.json", "docs/evidence/alpha.2/practice-baseline.sources.json", "docs/evidence/alpha.2/last-test-run.json", "scripts/practice-baseline.mjs", "scripts/run-tests.mjs"],
+      "evidence": [
+        "docs/evidence/alpha.2/practice-baseline.json",
+        "docs/evidence/alpha.2/practice-baseline.sources.json",
+        "docs/evidence/alpha.2/last-test-run.json",
+        "scripts/practice-baseline.mjs",
+        "scripts/run-tests.mjs"
+      ],
       "dependsOn": [],
-      "relatesTo": ["WP00", "WP09"],
-      "existingFiles": ["package.json", "docs/plans/v0.5.0-alpha.2.backlog.json", "docs/evidence/alpha.2/capabilities.json", "docs/evidence/2026-11-03-feedback-eval.json", ".github/workflows/ci.yml"],
-      "proposedFiles": ["docs/evidence/alpha.2/practice-baseline.json"],
-      "acceptance": ["记录 commit 和未提交工作树指纹", "分别报告实现/回归/宿主/模型/Desktop/费用覆盖", "缓存身份探针和真实 usage 分开", "宿主 CI placeholder 不计通过"],
+      "relatesTo": [
+        "WP00",
+        "WP09"
+      ],
+      "existingFiles": [
+        "package.json",
+        "docs/plans/v0.5.0-alpha.2.backlog.json",
+        "docs/evidence/alpha.2/capabilities.json",
+        "docs/evidence/2026-11-03-feedback-eval.json",
+        ".github/workflows/ci.yml"
+      ],
+      "proposedFiles": [
+        "docs/evidence/alpha.2/practice-baseline.json"
+      ],
+      "acceptance": [
+        "记录 commit 和未提交工作树指纹",
+        "分别报告实现/回归/宿主/模型/Desktop/费用覆盖",
+        "缓存身份探针和真实 usage 分开",
+        "宿主 CI placeholder 不计通过"
+      ],
       "startNextWhen": "每项拟发布能力均有来源或明确未验证标记"
     },
     {
@@ -35,120 +68,392 @@
       "priority": "P0",
       "status": "done",
       "completedAt": "2026-11-03",
-      "evidence": ["integration/native-runtime.js", "test/integration/native-runtime.test.mjs", "docs/evidence/alpha.2/practice-r01-native-runtime.json"],
+      "evidence": [
+        "integration/native-runtime.js",
+        "test/integration/native-runtime.test.mjs",
+        "docs/evidence/alpha.2/practice-r01-native-runtime.json"
+      ],
       "remaining": [
         "a billed real-model run has not been recorded (the host probe uses a synthetic adapter)",
         "Desktop click-through is not covered",
         "cancelled (aborted) reason is proven by unit regressions only"
       ],
-      "dependsOn": ["R00"],
-      "relatesTo": ["WP02", "WP05", "F02"],
-      "existingFiles": ["src/index.js", "integration/usage-ledger.js", "integration/execution-events.js", "vendor/omd/npm-package/preset/subagent-roles.js", "vendor/omd/npm-package/preset/role-composition.js"],
-      "proposedFiles": ["integration/native-runtime.js", "test/integration/native-runtime.test.mjs"],
-      "acceptance": ["父任务/node/child/attempt 可关联", "主控和嵌套 child 费用无重复", "实际路由、失败缺 usage 和终态真实记录", "重放/重启/重复监听不重复入账", "作用域和 profile 隔离"],
-      "existingAcceptance": ["A05", "A06", "A08", "A13"]
+      "dependsOn": [
+        "R00"
+      ],
+      "relatesTo": [
+        "WP02",
+        "WP05",
+        "F02"
+      ],
+      "existingFiles": [
+        "src/index.js",
+        "integration/usage-ledger.js",
+        "integration/execution-events.js",
+        "vendor/omd/npm-package/preset/subagent-roles.js",
+        "vendor/omd/npm-package/preset/role-composition.js"
+      ],
+      "proposedFiles": [
+        "integration/native-runtime.js",
+        "test/integration/native-runtime.test.mjs"
+      ],
+      "acceptance": [
+        "父任务/node/child/attempt 可关联",
+        "主控和嵌套 child 费用无重复",
+        "实际路由、失败缺 usage 和终态真实记录",
+        "重放/重启/重复监听不重复入账",
+        "作用域和 profile 隔离"
+      ],
+      "existingAcceptance": [
+        "A05",
+        "A06",
+        "A08",
+        "A13"
+      ]
     },
     {
       "id": "R02",
       "status": "done",
-      "evidence": ["integration/request-gate.js", "test/integration/budget-runtime.test.mjs", "test/fixtures/budget-contender.mjs", "docs/evidence/alpha.2/practice-r02-budget.json"],
-      "remaining": ["a real billed run", "Desktop evidence", "per-call hard cap inside an external CLI"],
+      "evidence": [
+        "integration/request-gate.js",
+        "test/integration/budget-runtime.test.mjs",
+        "test/fixtures/budget-contender.mjs",
+        "docs/evidence/alpha.2/practice-r02-budget.json"
+      ],
+      "remaining": [
+        "a real billed run",
+        "Desktop evidence",
+        "per-call hard cap inside an external CLI"
+      ],
       "title": "逐请求预算执行和跨进程恢复",
       "priority": "P0",
-      "status": "planned",
-      "dependsOn": ["R01"],
-      "relatesTo": ["WP06"],
-      "existingFiles": ["integration/budget.js", "integration/file-lock.js", "src/provider.js", "src/dispatch.js", "test/integration/wp06-budget.test.mjs"],
-      "proposedFiles": ["test/integration/budget-runtime.test.mjs"],
-      "acceptance": ["executionAttemptId/modelRequestId/sourceEventId 分开", "两个进程争最后名额只允许一个发送", "重试和未知发送结果保守结算", "停止判定阻止下一次真实请求", "外部路径只承诺 dispatch 边界控制", "取消/重启保留检查点与未知状态"],
-      "existingAcceptance": ["A17", "A18"]
+      "dependsOn": [
+        "R01"
+      ],
+      "relatesTo": [
+        "WP06"
+      ],
+      "existingFiles": [
+        "integration/budget.js",
+        "integration/file-lock.js",
+        "src/provider.js",
+        "src/dispatch.js",
+        "test/integration/wp06-budget.test.mjs"
+      ],
+      "proposedFiles": [
+        "test/integration/budget-runtime.test.mjs"
+      ],
+      "acceptance": [
+        "executionAttemptId/modelRequestId/sourceEventId 分开",
+        "两个进程争最后名额只允许一个发送",
+        "重试和未知发送结果保守结算",
+        "停止判定阻止下一次真实请求",
+        "外部路径只承诺 dispatch 边界控制",
+        "取消/重启保留检查点与未知状态"
+      ],
+      "existingAcceptance": [
+        "A17",
+        "A18"
+      ]
     },
     {
       "id": "R03",
       "status": "done",
-      "evidence": ["integration/native-managed.js", "test/integration/managed-native.test.mjs", "docs/evidence/alpha.2/practice-r03-native-managed.json"],
-      "remaining": ["a live Explorer -> Fixer -> acceptance run", "external Codex -> native Fixer chain"],
+      "evidence": [
+        "integration/native-managed.js",
+        "test/integration/managed-native.test.mjs",
+        "docs/evidence/alpha.2/practice-r03-native-managed.json"
+      ],
+      "remaining": [
+        "a live Explorer -> Fixer -> acceptance run",
+        "external Codex -> native Fixer chain"
+      ],
       "title": "原生角色、工作包、消息与验收闭环",
       "priority": "P0",
-      "status": "planned",
-      "dependsOn": ["R01", "R02"],
-      "relatesTo": ["WP03", "WP04", "WP05"],
-      "existingFiles": ["integration/managed-execution.js", "integration/graph.js", "integration/mailbox.js", "integration/work-packet.js", "integration/artifact-store.js", "vendor/omd/npm-package/preset/roles.js", "src/index.js"],
-      "proposedFiles": ["test/integration/managed-native.test.mjs"],
-      "acceptance": ["原生 role 激活绑定 graph，失败可释放/恢复", "后台启动不提前结算", "批次结果逐项关联或明确拒绝超出契约的批次", "消息持久注入后确认，恢复不重注入", "验收当前集成版本后才解锁依赖", "同工作树先保持一个活动 writer"],
-      "existingAcceptance": ["A09", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "A25"]
+      "dependsOn": [
+        "R01",
+        "R02"
+      ],
+      "relatesTo": [
+        "WP03",
+        "WP04",
+        "WP05"
+      ],
+      "existingFiles": [
+        "integration/managed-execution.js",
+        "integration/graph.js",
+        "integration/mailbox.js",
+        "integration/work-packet.js",
+        "integration/artifact-store.js",
+        "vendor/omd/npm-package/preset/roles.js",
+        "src/index.js"
+      ],
+      "proposedFiles": [
+        "test/integration/managed-native.test.mjs"
+      ],
+      "acceptance": [
+        "原生 role 激活绑定 graph，失败可释放/恢复",
+        "后台启动不提前结算",
+        "批次结果逐项关联或明确拒绝超出契约的批次",
+        "消息持久注入后确认，恢复不重注入",
+        "验收当前集成版本后才解锁依赖",
+        "同工作树先保持一个活动 writer"
+      ],
+      "existingAcceptance": [
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A25"
+      ]
     },
     {
       "id": "R04",
       "status": "done",
-      "evidence": ["integration/worker-registry.js", "integration/session-strategy.js", "test/integration/session-strategy.test.mjs", "docs/evidence/alpha.2/practice-r04-selection.json"],
-      "remaining": ["a real session rotation", "Desktop decision history"],
+      "evidence": [
+        "integration/worker-registry.js",
+        "integration/session-strategy.js",
+        "test/integration/session-strategy.test.mjs",
+        "docs/evidence/alpha.2/practice-r04-selection.json"
+      ],
+      "remaining": [
+        "a real session rotation",
+        "Desktop decision history"
+      ],
       "title": "可轮换模块负责人和会话选择器",
       "priority": "P1",
-      "status": "planned",
-      "dependsOn": ["R03"],
-      "relatesTo": ["WP05", "F02"],
-      "existingFiles": ["integration/sessions.js", "integration/work-packet.js", "integration/context-view.js", "integration/progress.js", "vendor/omd/npm-package/preset/roles.js"],
-      "proposedFiles": ["integration/worker-registry.js", "integration/session-strategy.js", "test/integration/session-strategy.test.mjs"],
-      "acceptance": ["逻辑 worker 与物理 child/generation 分开", "相关修正续接、忙碌排队、独立任务新建", "模型/权限/工作区/事实不匹配不盲目复用", "无合法压缩接口不伪造 compact", "决策特征与实际动作有版本且可解释", "续接率不作为晋升目标"]
+      "dependsOn": [
+        "R03"
+      ],
+      "relatesTo": [
+        "WP05",
+        "F02"
+      ],
+      "existingFiles": [
+        "integration/sessions.js",
+        "integration/work-packet.js",
+        "integration/context-view.js",
+        "integration/progress.js",
+        "vendor/omd/npm-package/preset/roles.js"
+      ],
+      "proposedFiles": [
+        "integration/worker-registry.js",
+        "integration/session-strategy.js",
+        "test/integration/session-strategy.test.mjs"
+      ],
+      "acceptance": [
+        "逻辑 worker 与物理 child/generation 分开",
+        "相关修正续接、忙碌排队、独立任务新建",
+        "模型/权限/工作区/事实不匹配不盲目复用",
+        "无合法压缩接口不伪造 compact",
+        "决策特征与实际动作有版本且可解释",
+        "续接率不作为晋升目标"
+      ]
     },
     {
       "id": "R05",
       "title": "设置卡与监控展示真实状态",
       "priority": "P1",
       "status": "planned",
-      "dependsOn": ["R01", "R02", "R03"],
-      "relatesTo": ["WP08"],
-      "existingFiles": ["src/config.js", "src/index.js", "vendor/omd/npm-package/lib/config-settings.js", "vendor/omd/npm-package/client/client.js", "locale/zh.json", "locale/en.json"],
+      "dependsOn": [
+        "R01",
+        "R02",
+        "R03"
+      ],
+      "relatesTo": [
+        "WP08"
+      ],
+      "existingFiles": [
+        "src/config.js",
+        "src/index.js",
+        "vendor/omd/npm-package/lib/config-settings.js",
+        "vendor/omd/npm-package/client/client.js",
+        "locale/zh.json",
+        "locale/en.json"
+      ],
       "proposedFiles": [],
-      "acceptance": ["累计保留/活动/可继续/结束/异常分别展示", "四桶用量和未知费用不填零", "显示策略版本、覆盖、实际路由与检查点", "observe 不无条件改变历史/回显/路由", "保存/重载/并发编辑/模式回退有 Desktop 证据"],
-      "existingAcceptance": ["A07", "A23", "A29"]
+      "acceptance": [
+        "累计保留/活动/可继续/结束/异常分别展示",
+        "四桶用量和未知费用不填零",
+        "显示策略版本、覆盖、实际路由与检查点",
+        "observe 不无条件改变历史/回显/路由",
+        "保存/重载/并发编辑/模式回退有 Desktop 证据"
+      ],
+      "existingAcceptance": [
+        "A07",
+        "A23",
+        "A29"
+      ]
     },
     {
       "id": "R06",
       "title": "完整 trial 采集与隔离运行器",
       "priority": "P1",
-      "status": "planned",
-      "dependsOn": ["R03", "R04"],
-      "relatesTo": ["F02", "WP09"],
-      "existingFiles": ["integration/strategy-eval.js", "scripts/strategy-eval.mjs", "integration/usage-ledger.js", "integration/execution-events.js", "integration/managed-execution.js", "integration/worktree.js"],
-      "proposedFiles": ["integration/trial-collector.js", "scripts/strategy-runner.mjs", "test/integration/trial-collector.test.mjs"],
-      "acceptance": ["完整父任务含全部 child/重试/压缩/验证费用", "预算指纹与实际执行限制分别证明", "起始树/会话/产物隔离且可恢复", "缺失/重复/条件漂移阻止推荐", "历史观察数据不能冒充随机实验", "策略要求与实际动作不一致可见"]
+      "status": "done",
+      "dependsOn": [
+        "R03",
+        "R04"
+      ],
+      "relatesTo": [
+        "F02",
+        "WP09"
+      ],
+      "existingFiles": [
+        "integration/strategy-eval.js",
+        "scripts/strategy-eval.mjs",
+        "integration/usage-ledger.js",
+        "integration/execution-events.js",
+        "integration/managed-execution.js",
+        "integration/worktree.js"
+      ],
+      "proposedFiles": [
+        "integration/trial-collector.js",
+        "scripts/strategy-runner.mjs",
+        "test/integration/trial-collector.test.mjs"
+      ],
+      "acceptance": [
+        "完整父任务含全部 child/重试/压缩/验证费用",
+        "预算指纹与实际执行限制分别证明",
+        "起始树/会话/产物隔离且可恢复",
+        "缺失/重复/条件漂移阻止推荐",
+        "历史观察数据不能冒充随机实验",
+        "策略要求与实际动作不一致可见"
+      ],
+      "evidence": [
+        "integration/trial-collector.js",
+        "scripts/strategy-runner.mjs",
+        "test/integration/trial-collector.test.mjs",
+        "docs/evidence/alpha.2/practice-r06-collector.json"
+      ],
+      "remaining": [
+        "a paid experiment with a user-approved budget",
+        "a host executor that spends and books costs",
+        "the 9/72/30-task scale of R08"
+      ]
     },
     {
       "id": "R07",
       "title": "独立 grader 和分层任务集",
       "priority": "P1",
-      "status": "planned",
-      "dependsOn": ["R06"],
-      "relatesTo": ["F03"],
-      "existingFiles": ["integration/role-result.js", "integration/execution-events.js", "integration/strategy-eval.js"],
-      "proposedFiles": ["integration/acceptance-runner.js", "test/benchmarks/session-strategies/README.md", "test/integration/acceptance-runner.test.mjs"],
-      "acceptance": ["参考解可通过且故意错误解失败", "外部验收固定且不可由 worker 改分", "最终集成版本指纹与证据一致", "按问题族划分开发/验证/留出", "包含应续接与应重开任务", "主观模型评价经过校准且不是唯一真值"]
+      "status": "done",
+      "evidence": [
+        "integration/acceptance-runner.js",
+        "test/integration/acceptance-runner.test.mjs",
+        "test/benchmarks/session-strategies/",
+        "docs/evidence/alpha.2/practice-r07-grader.json"
+      ],
+      "remaining": [
+        "a task set large enough for R08",
+        "model-grader calibration",
+        "Desktop evidence"
+      ],
+      "dependsOn": [
+        "R06"
+      ],
+      "relatesTo": [
+        "F03"
+      ],
+      "existingFiles": [
+        "integration/role-result.js",
+        "integration/execution-events.js",
+        "integration/strategy-eval.js"
+      ],
+      "proposedFiles": [
+        "integration/acceptance-runner.js",
+        "test/benchmarks/session-strategies/README.md",
+        "test/integration/acceptance-runner.test.mjs"
+      ],
+      "acceptance": [
+        "参考解可通过且故意错误解失败",
+        "外部验收固定且不可由 worker 改分",
+        "最终集成版本指纹与证据一致",
+        "按问题族划分开发/验证/留出",
+        "包含应续接与应重开任务",
+        "主观模型评价经过校准且不是唯一真值"
+      ]
     },
     {
       "id": "R08",
       "title": "真实三策略对照与缓存/费用核对",
       "priority": "P1",
       "status": "planned",
-      "dependsOn": ["R05", "R06", "R07"],
-      "relatesTo": ["WP07", "WP09", "F03"],
-      "existingFiles": ["scripts/cache-affinity-check.mjs", "scripts/strategy-eval.mjs", "docs/examples/strategy-eval.spec.json", "docs/FEEDBACK-EVOLUTION.zh-CN.md"],
-      "proposedFiles": ["docs/evidence/alpha.2/session-strategies/report.json", "docs/evidence/alpha.2/session-strategies/RESULTS.zh-CN.md"],
-      "acceptance": ["先 9 trial 链路冒烟，再 72 trial 开发筛选，确认阶段按证据扩样", "每档单独冻结总费用/单任务/并发/截止规则", "同模型同任务同预算验收及配对随机顺序", "缓存身份与真实发送/usage 分开报告", "失败/未知/优化成本均不剔除", "只对冻结主比较作有限结论"],
-      "existingAcceptance": ["A21", "A22", "A26", "A27", "A28"]
+      "dependsOn": [
+        "R05",
+        "R06",
+        "R07"
+      ],
+      "relatesTo": [
+        "WP07",
+        "WP09",
+        "F03"
+      ],
+      "existingFiles": [
+        "scripts/cache-affinity-check.mjs",
+        "scripts/strategy-eval.mjs",
+        "docs/examples/strategy-eval.spec.json",
+        "docs/FEEDBACK-EVOLUTION.zh-CN.md"
+      ],
+      "proposedFiles": [
+        "docs/evidence/alpha.2/session-strategies/report.json",
+        "docs/evidence/alpha.2/session-strategies/RESULTS.zh-CN.md"
+      ],
+      "acceptance": [
+        "先 9 trial 链路冒烟，再 72 trial 开发筛选，确认阶段按证据扩样",
+        "每档单独冻结总费用/单任务/并发/截止规则",
+        "同模型同任务同预算验收及配对随机顺序",
+        "缓存身份与真实发送/usage 分开报告",
+        "失败/未知/优化成本均不剔除",
+        "只对冻结主比较作有限结论"
+      ],
+      "existingAcceptance": [
+        "A21",
+        "A22",
+        "A26",
+        "A27",
+        "A28"
+      ]
     },
     {
       "id": "R09",
       "title": "alpha.2 产品验收与发布准备",
       "priority": "P1",
       "status": "planned",
-      "dependsOn": ["R08"],
-      "relatesTo": ["WP08", "WP09"],
-      "existingFiles": ["package.json", "scripts/check.mjs", "scripts/pack-check.mjs", ".github/workflows/ci.yml", "README.md", "CHANGELOG.md", "vendor/omd/PATCHES.md", "docs/ACCEPTANCE-V0.5-ALPHA2.zh-CN.md"],
-      "proposedFiles": ["docs/RELEASE-V0.5-ALPHA2.zh-CN.md"],
-      "acceptance": ["真实 native/Codex Desktop 全链及取消恢复", "tarball 真安装和支持矩阵", "代码/版本断言/locale/schema/文档一致", "未验证协议不宣称缓存优化或完整复刻", "未达效率目标保留 observe 默认并如实报告"],
-      "existingAcceptance": ["A24", "A25", "A29"]
+      "dependsOn": [
+        "R08"
+      ],
+      "relatesTo": [
+        "WP08",
+        "WP09"
+      ],
+      "existingFiles": [
+        "package.json",
+        "scripts/check.mjs",
+        "scripts/pack-check.mjs",
+        ".github/workflows/ci.yml",
+        "README.md",
+        "CHANGELOG.md",
+        "vendor/omd/PATCHES.md",
+        "docs/ACCEPTANCE-V0.5-ALPHA2.zh-CN.md"
+      ],
+      "proposedFiles": [
+        "docs/RELEASE-V0.5-ALPHA2.zh-CN.md"
+      ],
+      "acceptance": [
+        "真实 native/Codex Desktop 全链及取消恢复",
+        "tarball 真安装和支持矩阵",
+        "代码/版本断言/locale/schema/文档一致",
+        "未验证协议不宣称缓存优化或完整复刻",
+        "未达效率目标保留 observe 默认并如实报告"
+      ],
+      "existingAcceptance": [
+        "A24",
+        "A25",
+        "A29"
+      ]
     },
     {
       "id": "R10",
@@ -156,11 +461,29 @@
       "priority": "P2",
       "status": "planned",
       "releaseScope": "post-alpha.2",
-      "dependsOn": ["R09"],
-      "relatesTo": ["F04", "F05"],
-      "existingFiles": ["integration/strategy-eval.js", "docs/plans/feedback-evolution.backlog.json"],
-      "proposedFiles": ["integration/policy-candidates.js", "integration/policy-rollout.js"],
-      "acceptance": ["候选只改有限规则并记录证据/成本/前一版本", "不能放宽权限、验收和总预算来获取分数", "冻结候选后使用新的留出确认", "按父任务分配版本且运行中不热切", "灰度退化可恢复且任务状态不丢失", "持续检验另行设计，不反复滥用固定样本区间"]
+      "dependsOn": [
+        "R09"
+      ],
+      "relatesTo": [
+        "F04",
+        "F05"
+      ],
+      "existingFiles": [
+        "integration/strategy-eval.js",
+        "docs/plans/feedback-evolution.backlog.json"
+      ],
+      "proposedFiles": [
+        "integration/policy-candidates.js",
+        "integration/policy-rollout.js"
+      ],
+      "acceptance": [
+        "候选只改有限规则并记录证据/成本/前一版本",
+        "不能放宽权限、验收和总预算来获取分数",
+        "冻结候选后使用新的留出确认",
+        "按父任务分配版本且运行中不热切",
+        "灰度退化可恢复且任务状态不丢失",
+        "持续检验另行设计，不反复滥用固定样本区间"
+      ]
     }
   ]
 }

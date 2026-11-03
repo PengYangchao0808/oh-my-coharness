@@ -135,7 +135,7 @@ for (const name of modules) {
   const reason = loadInChild(join(root, 'src', `${name}.js`))
   if (reason) failures.push(`src/${name}.js failed to load: ${reason}`)
 }
-for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy', 'tasks', 'fleet', 'catalog', 'demo', 'state', 'file-lock', 'cli-result', 'graph', 'mailbox', 'project-policy', 'worktree', 'custom-roles', 'role-result', 'preset-snapshot', 'usage-ledger', 'execution-events', 'native-runtime', 'request-gate', 'native-managed', 'worker-registry', 'session-strategy', 'work-packet', 'artifact-store', 'context-view', 'retrieval-cache', 'budget', 'progress', 'managed-execution']) {
+for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy', 'tasks', 'fleet', 'catalog', 'demo', 'state', 'file-lock', 'cli-result', 'graph', 'mailbox', 'project-policy', 'worktree', 'custom-roles', 'role-result', 'preset-snapshot', 'usage-ledger', 'execution-events', 'native-runtime', 'request-gate', 'native-managed', 'worker-registry', 'session-strategy', 'trial-collector', 'acceptance-runner', 'work-packet', 'artifact-store', 'context-view', 'retrieval-cache', 'budget', 'progress', 'managed-execution']) {
   const reason = loadInChild(join(root, 'integration', `${name}.js`))
   if (reason) failures.push(`integration/${name}.js failed to load: ${reason}`)
 }

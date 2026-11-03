@@ -187,7 +187,7 @@ async function executionStatusText(rt) {
  * the budget gate is enforcing, and where the bridge stands. Everything here is
  * read from durable records — no model call, no guessed number.
  */
-function runtimeFootnotes(rt) {
+export function runtimeFootnotes(rt) {
   const lines = []
   try {
     const diagnostics = rt.native?.diagnostics?.()

@@ -452,19 +452,24 @@ export function createAcceptanceRunner({ cwd, subprocess = null, now = () => new
 
     /**
      * Freeze the start state. The caller must call this BEFORE the task runs;
-     * `verifyDelivered` later compares `forbidChanges` against this map.
+     * `verifyDelivered` later compares `forbidChanges` against this map, and
+     * `run` treats a changed acceptance definition as tampering even if the
+     * change happened before the checks started.
      */
     async baseline({ spec, workdir } = {}) {
       const validated = validateAcceptanceSpec(spec)
       const workdirPath = dirFor(workdir)
       const fingerprint = treeFingerprint(workdirPath, { maxFiles: MAX_FILES, now })
       const map = fileDigests(workdirPath)
+      const acceptance = acceptanceSnapshot(workdirPath, validated.acceptanceFiles)
       return {
         version: ACCEPTANCE_RUNNER_VERSION,
         taskId: validated.taskId,
         split: validated.split,
         fingerprint: fingerprint.digest,
         files: map.files,
+        acceptanceDigest: acceptance.digest,
+        acceptanceFiles: acceptance.files,
         truncated: fingerprint.truncated || map.truncated,
         at: now(),
       }
@@ -501,11 +506,14 @@ export function createAcceptanceRunner({ cwd, subprocess = null, now = () => new
 
       const problems = []
       const warnings = []
-      const tampered = before.digest !== after.digest
+      const frozenDigest = typeof baseline?.acceptanceDigest === 'string' ? baseline.acceptanceDigest : null
+      const changedSinceBaseline = frozenDigest !== null && frozenDigest !== before.digest
+      const changedDuringRun = before.digest !== after.digest
+      const tampered = changedSinceBaseline || changedDuringRun
       if (tampered) {
         problems.push(
-          `the acceptance definition changed while it was being checked (${validated.acceptanceFiles.join(', ')}); ` +
-          'a worker must not edit the grading it is measured against',
+          `${changedSinceBaseline ? 'the acceptance definition changed after it was frozen' : 'the acceptance definition changed while it was being checked'} ` +
+          `(${validated.acceptanceFiles.join(', ')}); a worker must not edit the grading it is measured against`,
         )
       }
       if (baseline && baseline.files) {
@@ -521,7 +529,7 @@ export function createAcceptanceRunner({ cwd, subprocess = null, now = () => new
       }
 
       let reason = null
-      if (tampered) reason = 'OMC/ACCEPTANCE-TAMPERED: the acceptance definition changed between the pre-run and post-run digest'
+      if (tampered) reason = 'OMC/ACCEPTANCE-TAMPERED: the acceptance definition is not the one that was frozen for this task'
       else if (problems.length) reason = `OMC/ACCEPTANCE-FORBIDDEN-CHANGE: ${problems[0]}`
       else if (checkReason) reason = checkReason
 
@@ -537,7 +545,7 @@ export function createAcceptanceRunner({ cwd, subprocess = null, now = () => new
         reason,
         problems,
         warnings,
-        ...(tampered ? { acceptanceDigestBefore: before.digest } : {}),
+        ...(tampered ? { acceptanceDigestBefore: changedSinceBaseline ? frozenDigest : before.digest } : {}),
         ...(fingerprint.truncated ? { fingerprintNote: `fingerprint covers the first ${MAX_FILES} files only` } : {}),
       }
     },

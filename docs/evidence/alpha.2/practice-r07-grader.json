@@ -1,0 +1,40 @@
+{
+  "case": "R07",
+  "title": "独立 grader 与分层任务集",
+  "date": "2026-11-03",
+  "packageVersion": "0.5.0-alpha.2-practice.2",
+  "result": "passed-with-limits",
+  "dataKind": "executed tests with a real child process (no model calls)",
+  "modelCalls": 0,
+  "code": [
+    "integration/acceptance-runner.js — fixed external checks, argv form runs without a shell, treeFingerprint reused from work-packet.js, acceptanceFiles digested before/after AND against the frozen baseline",
+    "test/benchmarks/session-strategies/ — README + example-local-fix task (broken start, reference fix, fixed grader)"
+  ],
+  "checks": {
+    "referencePasses": { "verdict": "passed", "observed": "the example task's reference fix passes the fixed grader (7/7) through a real child process" },
+    "brokenStartFails": { "verdict": "passed", "observed": "the start state fails the same grader without throwing; the verdict reports the failed check" },
+    "wrongPatchFails": { "verdict": "passed", "observed": "a plausible wrong patch passes 1-3 but fails 7/7, so the grader is not a happy-path test" },
+    "graderTamperDetected": { "verdict": "passed", "observed": "editing an acceptanceFiles entry after baseline, or rewriting the grader during the run, yields OMC/ACCEPTANCE-TAMPERED" },
+    "forbidChanges": { "verdict": "passed", "observed": "a delivered change outside writeScope is reported by verifyDelivered against the frozen baseline; no baseline means no silent pass" },
+    "fingerprintStable": { "verdict": "passed", "observed": "two runs over the same tree produce the same fingerprint; a real edit moves it" },
+    "splitNoLeak": { "verdict": "passed", "observed": "deterministicSplit keeps a whole family in one split, is salt-stable, and notes singleton families" },
+    "argvNotShell": { "verdict": "passed", "observed": "the injected subprocess service receives a literal argv plus cwd and env, never a shell string" }
+  },
+  "test": "test/integration/acceptance-runner.test.mjs",
+  "taskSet": {
+    "path": "test/benchmarks/session-strategies/",
+    "shipped": ["example-local-fix"],
+    "requiredKinds": ["should reuse", "should restart"],
+    "note": "a task set large enough for R08 does not exist yet; only the wiring and one real task ship here"
+  },
+  "boundaries": [
+    "the runner proves behaviour only; subjective quality still needs a rubric and blind review, and a model grader is never the sole truth",
+    "tamper protection covers only declared acceptanceFiles; without declarations the verdict carries a warning that nothing protects the grading",
+    "the acceptance definition must live outside the worker's write scope; forbidChanges only detects changes against a caller-frozen baseline"
+  ],
+  "notCovered": [
+    "a task set with enough families for a 30-task confirmation run",
+    "model-assisted grading calibration against human samples",
+    "Desktop evidence"
+  ]
+}

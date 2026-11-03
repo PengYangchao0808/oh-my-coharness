@@ -109,9 +109,13 @@ test('the broken start state fails without throwing', async () => {
     const [check] = verdict.checks
     assert.equal(check.passed, false)
     assert.equal(check.exitCode, 1)
-    assert.match(check.outputTail, /fail 1\/7/)
-    assert.match(check.outputTail, /1-3/)
-    assert.deepEqual(check.problems, ['exit code 1, expected 0'])
+    assert.match(check.outputTail, /fail 6\/7/)
+    assert.match(check.outputTail, /FAIL "1-3" returned \[1,2\], expected \[1,2,3\]/)
+    assert.deepEqual(check.problems, [
+      'exit code 1, expected 0',
+      'stdout is missing "ok 7/7"',
+      'stdout must not contain "fail"',
+    ])
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
@@ -159,6 +163,30 @@ test('editing an acceptanceFiles entry between baseline and run is OMC/ACCEPTANC
   }
 })
 
+test('rewriting the grader while the checks run is also OMC/ACCEPTANCE-TAMPERED', async () => {
+  const dir = await makeSandbox({ fix: 'reference' })
+  try {
+    // The "test" itself overwrites the acceptance definition. Its own exit
+    // code is 0, so only the pre/post digest can catch it.
+    const tamperingSpec = {
+      ...SPEC,
+      forbidChanges: [],
+      commands: [{
+        name: 'rewrite-grader',
+        run: ['node', '-e', "require('node:fs').writeFileSync('acceptance/check.mjs', \"console.log('ok 7/7')\\n\")"],
+        expect: { exitCode: 0 },
+      }],
+    }
+    const verdict = await runnerFor(dir).run({ spec: tamperingSpec, workdir: dir })
+    assert.equal(verdict.passed, false)
+    assert.match(verdict.reason, /^OMC\/ACCEPTANCE-TAMPERED/)
+    assert.equal(verdict.checks[0].passed, true)
+    assert.notEqual(verdict.acceptanceDigestBefore, verdict.acceptanceDigest)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
 test('verifyDelivered reports a forbidChanges violation against the frozen baseline', async () => {
   const dir = await makeSandbox({ fix: 'reference' })
   try {
@@ -188,7 +216,7 @@ test('verifyDelivered reports a forbidChanges violation against the frozen basel
   }
 })
 
-test('forbidChanges inside run() needs a baseline and is otherwise a warning', async () => {
+test('forbidChanges inside run() needs a baseline and reports a locked path', async () => {
   const dir = await makeSandbox({ fix: 'reference' })
   try {
     const runner = runnerFor(dir)
@@ -196,13 +224,16 @@ test('forbidChanges inside run() needs a baseline and is otherwise a warning', a
     assert.equal(withoutBaseline.passed, true)
     assert.match(withoutBaseline.warnings.join('\n'), /forbidChanges was not evaluated/)
 
-    const baseline = await runner.baseline({ spec: SPEC, workdir: dir })
-    await writeFile(join(dir, 'acceptance', 'check.mjs'), "console.log('ok 7/7')\n")
-    const verdict = await runner.run({ spec: SPEC, workdir: dir, baseline })
+    // A task variant where even src/ is frozen: any delivery edit is a
+    // forbidden change, and it is reported as such by run() when a baseline
+    // was frozen first.
+    const lockedSpec = { ...SPEC, forbidChanges: ['acceptance/', 'spec.json', 'src/'] }
+    const baseline = await runner.baseline({ spec: lockedSpec, workdir: dir })
+    await writeFile(join(dir, 'src', 'parse-range.mjs'), `${await readFile(REFERENCE_MODULE, 'utf8')}\n// worker note\n`)
+    const verdict = await runner.run({ spec: lockedSpec, workdir: dir, baseline })
     assert.equal(verdict.passed, false)
-    // Tampering wins the reason, but the forbidden change is still reported.
-    assert.match(verdict.reason, /^OMC\/ACCEPTANCE-TAMPERED/)
-    assert.match(verdict.problems.join('\n'), /acceptance\/check\.mjs changed after the baseline/)
+    assert.match(verdict.reason, /^OMC\/ACCEPTANCE-FORBIDDEN-CHANGE/)
+    assert.match(verdict.problems.join('\n'), /src\/parse-range\.mjs changed after the baseline/)
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
@@ -261,10 +292,14 @@ test('a malformed spec throws OMC/ACCEPTANCE-SPEC instead of inventing a verdict
   }
 })
 
-const SPLIT_TASKS = [
-  'local-fix', 'local-fix-b', 'cross-file', 'cross-file-b', 'interface', 'interface-b',
-  'long-echo', 'long-echo-b', 'wrong-assumption', 'wrong-assumption-b', 'cancel-recovery', 'cancel-recovery-b',
-].map((family, index) => ({ id: `${family}-${index % 2 === 0 ? 'a' : 'b'}`, family }))
+const SPLIT_FAMILIES = [
+  'local-fix', 'cross-file', 'interface-change', 'long-echo',
+  'wrong-assumption', 'cancel-recovery', 'state-race', 'standalone-module',
+]
+const SPLIT_TASKS = SPLIT_FAMILIES.flatMap((family) => [
+  { id: `${family}-a`, family },
+  { id: `${family}-b`, family },
+])
 
 function splitMap(result) {
   return Object.fromEntries(TASK_SPLITS.flatMap((split) => result[split].map((id) => [id, split])))
@@ -286,16 +321,18 @@ test('deterministicSplit is stable for one salt and every task lands in exactly 
 })
 
 test('deterministicSplit never splits one family and moves with another salt', () => {
-  const build = (salt) => deterministicSplit({ tasks: SPLIT_TASKS, salt })
-  const first = build('omc-v1')
+  const first = deterministicSplit({ tasks: SPLIT_TASKS, salt: 'omc-v1' })
   const map = splitMap(first)
-  for (const family of new Set(SPLIT_TASKS.map((task) => task.family))) {
-    const splits = new Set(
-      TASK_SPLITS.flatMap((split) => first[split]).filter((id) => map[id] && SPLIT_TASKS.find((t) => t.id === id).family === family).map((id) => map[id]),
-    )
-    assert.equal(splits.size, 1, `family ${family} leaked across splits`)
+  const familyOf = new Map(SPLIT_TASKS.map((task) => [task.id, task.family]))
+  const familySplit = new Map()
+  for (const [id, split] of Object.entries(map)) {
+    const family = familyOf.get(id)
+    assert.equal(familySplit.get(family) ?? split, split, `family ${family} leaked across splits`)
+    familySplit.set(family, split)
   }
-  const other = splitMap(build('omc-v2'))
+  assert.equal(familySplit.size, SPLIT_FAMILIES.length)
+
+  const other = splitMap(deterministicSplit({ tasks: SPLIT_TASKS, salt: 'omc-v2' }))
   const moved = Object.keys(map).filter((id) => map[id] !== other[id])
   assert.ok(moved.length > 0, 'a different salt must produce a different assignment')
 })
