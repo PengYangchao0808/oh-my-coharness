@@ -2,23 +2,23 @@
   "schemaVersion": 1,
   "kind": "practice-baseline",
   "task": "R00",
-  "generatedAt": "2026-11-03T14:19:14.657Z",
+  "generatedAt": "2026-11-03T14:20:12.280Z",
   "generatedBy": "scripts/practice-baseline.mjs",
   "packageVersion": "0.5.0-alpha.2-practice.3",
   "sources": "docs/evidence/alpha.2/practice-baseline.sources.json",
   "git": {
-    "commit": "a0a562fe689c40b7728b2801e8d5d773dd8142e1",
+    "commit": "3eb4f8db6ae96b5a0a07bf32fa35dfdd1cd35795",
     "branch": "main",
     "workingTree": {
-      "changed": 14,
-      "untracked": 1,
+      "changed": 3,
+      "untracked": 0,
       "clean": false
     }
   },
   "treeFingerprint": {
     "algorithm": "sha256",
     "files": 259,
-    "digest": "c3ba2322fa3db0a344f71498aa04062e63e962b2ed3f4a1730c061b4d2ac0c6d",
+    "digest": "ae115ea60758f2b98cec4468b3b1360c5c11309c2fe1c0bf648d64e36569e576",
     "excludes": [
       ".git/",
       "node_modules/",
@@ -33,14 +33,14 @@
   },
   "testRun": {
     "source": "docs/evidence/alpha.2/last-test-run.json",
-    "startedAt": "2026-11-03T14:19:04.680Z",
+    "startedAt": "2026-11-03T14:19:56.231Z",
     "node": "v24.21.0",
     "platform": "win32-x64",
     "totals": {
       "suites": 42,
       "passed": 42,
       "failed": 0,
-      "durationMs": 7038
+      "durationMs": 6770
     },
     "failing": []
   },
@@ -73,7 +73,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 76414
+              "bytes": 77566
             },
             {
               "kind": "artifact",
@@ -93,7 +93,7 @@
               "ref": "test/integration/budget-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 989
+              "durationMs": 994
             },
             {
               "kind": "artifact",
@@ -162,7 +162,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 76414
+              "bytes": 77566
             }
           ]
         },
@@ -176,7 +176,7 @@
               "ref": "test/integration/managed-native.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 62
+              "durationMs": 65
             }
           ]
         },
@@ -232,7 +232,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 76414
+              "bytes": 77566
             }
           ]
         },
@@ -246,7 +246,7 @@
               "ref": "test/integration/session-strategy.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 189
+              "durationMs": 168
             }
           ]
         },
@@ -296,7 +296,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 76414
+              "bytes": 77566
             }
           ]
         },
@@ -316,14 +316,14 @@
               "ref": "test/integration/native-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 67
+              "durationMs": 64
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 127
+              "durationMs": 132
             }
           ]
         },
@@ -400,7 +400,7 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 127
+              "durationMs": 132
             }
           ]
         },
@@ -491,7 +491,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 62
+              "durationMs": 60
             }
           ]
         },
@@ -568,7 +568,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 62
+              "durationMs": 60
             }
           ]
         },
@@ -644,21 +644,21 @@
               "ref": "test/integration/wp05-managed.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 92
+              "durationMs": 78
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/graph.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 90
+              "durationMs": 85
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/mailbox.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 171
+              "durationMs": 156
             }
           ]
         },
@@ -735,7 +735,7 @@
               "ref": "test/integration/wp03-packet.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 87
+              "durationMs": 82
             }
           ]
         },
@@ -799,14 +799,14 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 127
+              "durationMs": 132
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/role-result.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 52
+              "durationMs": 47
             }
           ]
         },
@@ -876,14 +876,14 @@
               "ref": "test/integration/sessions.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 1109
+              "durationMs": 1105
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/provider-session.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 169
+              "durationMs": 179
             }
           ]
         },
@@ -961,14 +961,14 @@
               "ref": "test/integration/report-cache.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 110
+              "durationMs": 106
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp04-context.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 73
+              "durationMs": 63
             }
           ]
         },
@@ -1031,7 +1031,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 76414
+              "bytes": 77566
             },
             {
               "kind": "artifact",
@@ -1051,21 +1051,21 @@
               "ref": "test/integration/efficiency-settings.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 102
+              "durationMs": 92
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/client.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 58
+              "durationMs": 61
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/usability.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 168
+              "durationMs": 165
             }
           ]
         },
@@ -1136,7 +1136,7 @@
               "ref": "test/integration/strategy-eval.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 111
+              "durationMs": 96
             }
           ]
         },
@@ -1207,7 +1207,7 @@
               "ref": "test/integration/acceptance-runner.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 607
+              "durationMs": 549
             },
             {
               "kind": "artifact",
@@ -1283,7 +1283,7 @@
               "ref": "test/smoke.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 579
+              "durationMs": 575
             }
           ]
         },
@@ -1347,7 +1347,7 @@
               "ref": "test/integration/trial-collector.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 249
+              "durationMs": 215
             }
           ]
         },

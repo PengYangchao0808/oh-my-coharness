@@ -292,6 +292,25 @@ export function runtimeFootnotes(rt) {
         `managed coverage: ${coverage.boundNative} bound native child(ren) of ${coverage.nodes} node(s); ` +
         'unbound native work stays unmanaged',
       )
+      // Four buckets, not one merged "tokens" number: a reader must be able to
+      // tell cache reads from new input, and see when a bucket is unknown.
+      if (rt.usageLedger && typeof rt.usageLedger.totals === 'function') {
+        const totals = rt.usageLedger.totals({ parentId: rt.statusParentId })
+        if ((totals.entries ?? 0) === 0) {
+          lines.push('usage (this parent): no requests booked yet · nothing to show (never a zero-cost claim)')
+        } else {
+          const sums = totals.sums ?? {}
+          const bucket = (value) => (value === null || value === undefined ? '?' : String(value))
+          const cost = totals.costKnown
+            ? `$${Number(totals.costUsd ?? 0).toFixed(4)} settled`
+            : 'cost unknown (never $0)'
+          lines.push(
+            `usage (this parent): in ${bucket(sums.uncachedInputTokens)} · cache read ${bucket(sums.cacheReadTokens)} · ` +
+            `cache write ${bucket(sums.cacheWriteTokens)} · out ${bucket(sums.outputTokens)} · ` +
+            `${totals.entries} request(s) · ${cost} · coverage ${totals.coverage}`,
+          )
+        }
+      }
     }
   } catch (error) {
     lines.push(`runtime footnotes unavailable: ${String(error?.message ?? error)}`)
