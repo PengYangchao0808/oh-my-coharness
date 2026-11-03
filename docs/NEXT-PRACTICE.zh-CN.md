@@ -8,6 +8,7 @@
 > - 仍未完成：真实计费模型链路、Desktop 点击、取消(aborted)的宿主级证据、R02 的逐请求闸门与跨进程预留。alpha.2 发布闸门**未**通过。
 >
 > 当前包版本：`0.5.0-alpha.2-practice.1`（实践增量，不是 alpha.2 发布版本）。本文其余部分仍是对 R02–R10 的原始方案。
+> **R02–R10 的可开工执行方案**见 [R02–R10 执行方案](plans/r02-r10.execution-plan.zh-CN.md)：逐项落点、步骤、证据文件、验证命令与依赖闸门。
 
 配套：[可跟踪实践清单](plans/next-practice.backlog.json) · [alpha.2 设计](V0.5-ALPHA2-PLAN.zh-CN.md) · [验收规格](ACCEPTANCE-V0.5-ALPHA2.zh-CN.md) · [反馈与进化设计](FEEDBACK-EVOLUTION.zh-CN.md)。
 
