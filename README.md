@@ -24,6 +24,8 @@
 
 **后续开发入口：** [完整下一步实践方案](docs/NEXT-PRACTICE.zh-CN.md) 按 R00–R10 列出剩余接线、代码落点、验收和发布顺序；配套 [可跟踪清单](docs/plans/next-practice.backlog.json)。
 
+**产品路线：** [OMC 0.X → 1.X → 2.X 完整发展路线](docs/ROADMAP.zh-CN.md) 把三个阶段固定为三种能力（Collaborate / Connect / Evolve），给出各自里程碑、完成门槛与三层 Benchmark；2.X 的分层结构与授权账本详设见 [分层维护体系设计](docs/SUPERAGENT-LAYERING.zh-CN.md)。路线只给方向与排期，不构成能力声明。
+
 Oh My CoHarness（OMC）把两件过去分开的事合成一个产品：
 
 - **谁来做**：Orchestrator + Oracle / Explorer / Fixer / Designer / Librarian / Council 的专业分工；
@@ -459,6 +461,8 @@ node scripts/pack-check.mjs
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/ROADMAP.zh-CN.md`](docs/ROADMAP.zh-CN.md) | 0.X → 1.X → 2.X 产品路线：三个时代、里程碑、完成门槛与三层 Benchmark |
+| [`docs/SUPERAGENT-LAYERING.zh-CN.md`](docs/SUPERAGENT-LAYERING.zh-CN.md) | 分层维护体系设计：L0/L1/L2、Mandate 授权、统一验收出口、分期与收益对照门 |
 | [`docs/DURABLE-ORCHESTRATION.zh-CN.md`](docs/DURABLE-ORCHESTRATION.zh-CN.md) | profile 分区、跨进程锁、持久结果、工作图、消息邮箱、CLI 分类 |
 | [`docs/DESKTOP-ACCEPTANCE.zh-CN.md`](docs/DESKTOP-ACCEPTANCE.zh-CN.md) | 真实 Desktop 混合编排验收清单与记录模板 |
 | [`docs/DSH-CONTRACT-LIMITS.zh-CN.md`](docs/DSH-CONTRACT-LIMITS.zh-CN.md) | 仍受 DSH 宿主契约限制的能力与替代方案 |
