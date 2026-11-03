@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-03",
+  "packageVersion": "0.5.0-alpha.1",
+  "scope": "offline session-strategy allocation and evaluation foundation",
+  "dataKind": "synthetic-and-unit-fixtures",
+  "checks": {
+    "newEvaluationTests": { "passed": 14, "failed": 0, "command": "node test/integration/strategy-eval.test.mjs" },
+    "currentPackageTests": { "suites": 34, "passed": 336, "failedSuites": 0, "method": "Executed every package.json scripts.test entry individually with node" },
+    "cliEndToEnd": { "passed": true, "assignedTrials": 12, "syntheticReview": "blocked", "automaticActivation": false, "existingOutputOverwriteRejected": true },
+    "selfCheck": { "passed": true, "command": "node scripts/check.mjs", "note": "The first restricted run could not launch module-check subprocesses. The permitted local subprocess run passed." },
+    "packManifest": { "passed": true, "command": "node scripts/pack-check.mjs", "realTarballInstallExecuted": false },
+    "documentLinksAndSubplanDependencies": { "passed": true },
+    "scopedDiffWhitespace": { "passed": true }
+  },
+  "modelCallsFromThisWork": 0,
+  "liveComparisonExecuted": false,
+  "runtimeCollectorInstalled": false,
+  "runtimeStrategyControllerInstalled": false,
+  "automaticPolicyActivationImplemented": false,
+  "limitations": [
+    "No relative performance claim for the three strategies is established by these tests.",
+    "Record digests verify declared consistency and do not attest to runtime or grader truthfulness.",
+    "Canary deployment, rollback execution, candidate generation and real independent grading remain planned."
+  ]
+}

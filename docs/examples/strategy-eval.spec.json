@@ -1,0 +1,36 @@
+{
+  "experimentId": "omc-session-strategy-example",
+  "dataKind": "synthetic",
+  "split": "development",
+  "seed": "omc-example-2026-11-03",
+  "tasks": [
+    { "id": "followup-fix", "revision": "example-tree-and-requirements-v1" },
+    { "id": "independent-module", "revision": "example-tree-and-requirements-v2" }
+  ],
+  "repeats": 2,
+  "conditions": {
+    "provider": "fixture-only",
+    "model": "fixture-only",
+    "toolsetDigest": "example-tools-v1",
+    "budgetDigest": "example-total-parent-budget-v1",
+    "evaluatorVersion": "example-external-acceptance-v1",
+    "environmentDigest": "example-runtime-and-dependencies-v1",
+    "promptDigest": "example-common-task-and-role-instructions-v1",
+    "cacheRegime": "cold"
+  },
+  "policyVersions": {
+    "reuse_compact": "reuse-compact@1",
+    "fresh_handoff": "fresh-handoff@1",
+    "adaptive": "adaptive-frozen@1"
+  },
+  "optimizerCostUsd": { "reuse_compact": 0, "fresh_handoff": 0, "adaptive": 0 },
+  "promotion": {
+    "candidate": "adaptive",
+    "reference": "reuse_compact",
+    "minTasks": 30,
+    "minRepeats": 2,
+    "minCostReduction": 0.1,
+    "maxQualityLoss": 0,
+    "maxLatencyIncrease": 0.05
+  }
+}

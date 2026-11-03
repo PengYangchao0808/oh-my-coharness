@@ -1,0 +1,27 @@
+{
+  "case": "A17-A20",
+  "workPackage": "WP06",
+  "date": "2026-11-03",
+  "result": "passed with one recorded boundary (A18 partial)",
+  "codeVersion": "0.5.0-alpha.1 working tree @ git 68f9644 (uncommitted alpha.2 batch-2 implementation)",
+  "layers": ["combination regressions (no model calls)"],
+  "modelCalls": 0,
+  "newModules": [
+    "integration/budget.js — attempt reservations atomic within the tracker (the last slot goes to exactly one), booked counts read from the idempotent usage ledger, checkpoint verdicts from the closed action set, unknown cost visible and never zero, stop-partial never implies completed; decideEscalation enforces per-class rules, one escalation per task, authorization and budget room",
+    "integration/progress.js — combined-signal assessment (call fingerprints, code/artifact/fact changes, failing-test set movement, declared waits); three identical calls with no movement stall-warn with an explanation; post-change retries, changed test sets and declared polling are never flagged"
+  ],
+  "changedModules": [
+    "src/config.js — the efficiency section (§2): mode off|observe|balanced with observe as the resolved default, team/checkpoints/context/budget/progress bounds validated; balanced-only features are not switched on by config alone (WP08 owns the settings surface and the capability check)"
+  ],
+  "regressions": "test/integration/wp06-budget.test.mjs (7/7)",
+  "caseResults": {
+    "A17": "passed — reservations, ledger-backed counting, stop-partial semantics",
+    "A18": "partial — stop verdicts, durable execution records and restart reconciliation exist, and the real cancel path is the host interrupt contract (tasks.cancel); the caller-side loop that ACTS on a stop-partial verdict automatically at tool boundaries is not wired this batch; nothing marks a budget-exhausted task completed",
+    "A19": "passed — see progress regressions; observing adds no model calls by construction",
+    "A20": "passed — class rules, single escalation, authorization and budget constraints"
+  },
+  "boundaries": [
+    "hard per-request call caps are a native-lane-only promise (WP00); external/direct lanes get between-dispatch checkpoints, and the config default maxCalls stays null",
+    "the per-request gate itself (agent/request waterfall) is verified; wiring OMC's reservation INTO that waterfall for native children is the remaining integration step recorded in WP05's boundary"
+  ]
+}

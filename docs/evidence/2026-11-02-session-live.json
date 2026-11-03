@@ -1,0 +1,36 @@
+{
+  "at": "2026-11-02T09:38:03.186Z",
+  "localDate": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "harness": "codex",
+  "cliVersion": "0.166.0-alpha.5.1",
+  "scope": "Real OMC Provider + native CLI; separate registry instances between rounds; not a Desktop UI end-to-end test",
+  "rounds": [
+    {
+      "round": 1,
+      "stopReason": "completed",
+      "session": "new",
+      "expectedAnswer": true,
+      "turns": 1,
+      "usage": { "inputTokens": 16727, "outputTokens": 8, "cachedInputTokens": 0 }
+    },
+    {
+      "round": 2,
+      "stopReason": "completed",
+      "session": "resumed",
+      "maskedSessionId": "01a19b…8a",
+      "expectedAnswer": true,
+      "turns": 2,
+      "usage": { "inputTokens": 34013, "outputTokens": 27, "cachedInputTokens": 16512 }
+    }
+  ],
+  "workspaceUnchanged": true,
+  "passed": true,
+  "hostChecks": {
+    "hostVersion": "0.2.1-rc.5",
+    "isolatedNativePresetMount": true,
+    "isolatedExternalOracleMount": true,
+    "mountedPrimaryTools": 9,
+    "modelCalls": 0
+  }
+}

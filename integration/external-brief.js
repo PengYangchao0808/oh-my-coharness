@@ -109,7 +109,7 @@ export function adaptPersonaForExternal(persona, { harness, readOnly, mode = 're
 
   const environment = [
     `**Execution environment**: You are running as an external CLI (${harness ?? 'unknown harness'}) launched by Oh My CoHarness. You cannot see the DSH conversation and cannot call DSH tools (\`read\`, \`glob\`, \`grep\`, \`edit\`, \`write\`, \`bash\`, \`pwsh\`, \`subagent_*\`). Use this CLI's own file and search tools instead. ${workspaceBoundary(readOnly, normalizeMode(mode))}`,
-    'Do not delegate to other agents, do not ask the orchestrator a follow-up question, and do not claim work you did not do. Return one final report; the orchestrator cannot resume this run.',
+    'Do not delegate to other agents, do not ask the orchestrator a follow-up question, and do not claim work you did not do. Return one final report for this run. A later delegation in the same lane may continue your native CLI session; rely on the current task and verified handoff facts when files have changed.',
   ].join(' ')
 
   return [...paragraphs, environment].join('\n\n')

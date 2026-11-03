@@ -143,6 +143,15 @@ export function validateHandoff(raw) {
   if (context.artifactRefs !== undefined && !Array.isArray(context.artifactRefs)) {
     throw invalid('context.artifactRefs must be an array')
   }
+  for (const entries of [context.changedFiles ?? [], context.artifactRefs ?? []]) {
+    for (const entry of entries) {
+      if (typeof entry !== 'string' || entry.length > 300) throw invalid('file and artifact paths must be strings of at most 300 characters')
+    }
+  }
+  if (raw.acceptance !== undefined && !Array.isArray(raw.acceptance)) throw invalid('acceptance must be an array')
+  for (const entry of raw.acceptance ?? []) {
+    if (typeof entry !== 'string' || entry.length > 300) throw invalid('acceptance entries must be strings of at most 300 characters')
+  }
 
   const changedFiles = list(context.changedFiles)
   if (changedFiles.length !== (context.changedFiles ?? []).length) throw invalid('context.changedFiles has too many entries')
@@ -215,10 +224,10 @@ export function createHandoff({
     },
     context: {
       summary: text(context.summary, 2000),
-      changedFiles: list(context.changedFiles),
-      artifactRefs: list(context.artifactRefs, { max: 16 }),
+      changedFiles: context.changedFiles ?? [],
+      artifactRefs: context.artifactRefs ?? [],
     },
-    acceptance: list(acceptance, { max: 16 }),
+    acceptance,
     constraints: {
       readOnly: constraints.readOnly !== false,
       maxReviewRounds: constraints.maxReviewRounds ?? 1,
@@ -248,7 +257,9 @@ export function renderHandoff(handoff) {
 /** Encode and sign the marker. Base64url keeps arbitrary context from breaking the comment. */
 export function encodeHandoffMarker(handoff) {
   const validated = validateHandoff(handoff)
-  const payload = Buffer.from(JSON.stringify(validated), 'utf8').toString('base64url')
+  const body = JSON.stringify(validated)
+  if (Buffer.byteLength(body, 'utf8') > MAX_HANDOFF_BYTES) throw invalid('handoff is too large; send fewer facts or shorter references')
+  const payload = Buffer.from(body, 'utf8').toString('base64url')
   return `<!-- ${HANDOFF_MARKER}:v1:${payload}.${sign(payload)} -->`
 }
 

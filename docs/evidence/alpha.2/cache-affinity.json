@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "cache-affinity-evidence",
+  "wp": "WP07",
+  "targetVersion": "0.5.0-alpha.2",
+  "generatedAt": "2026-11-03T07:12:07.629Z",
+  "host": {
+    "version": "0.2.1-rc.5",
+    "source": "booted installed host"
+  },
+  "probe": {
+    "script": "scripts/cache-affinity-check.mjs",
+    "modelCalls": 0
+  },
+  "identityVerdicts": {
+    "sameChildStableAcrossTurnsAndRetries": {
+      "pass": true,
+      "detail": "agent A produced 3 stream dispatches (1 failed attempt + 1 retried + 1 second turn), all carrying one sessionId"
+    },
+    "newChildDistinctIdentity": {
+      "pass": true,
+      "detail": "agent B carried a different sessionId (1 dispatch)"
+    },
+    "retryKeepsIdentity": {
+      "pass": true,
+      "detail": "the retried attempt re-entered the adapter with the same sessionId"
+    },
+    "builtinAdapterHasNoSessionHeader": {
+      "pass": true,
+      "detail": "built-in dsh-llm header seam: absent (only attribution headers; no per-session identity header)"
+    }
+  },
+  "observedSessionIds": {
+    "childA": "omc-affinity-aaf2b9a7-2a27-46da-bc3c-d6530e2ceb7e",
+    "childB": "omc-affinity-e541f5dc-6259-43bd-b8e0-a3e7f20bc09b",
+    "dispatches": [
+      {
+        "sessionId": "omc-affinity-aaf2b9a7-2a27-46da-bc3c-d6530e2ceb7e",
+        "call": 1
+      },
+      {
+        "sessionId": "omc-affinity-aaf2b9a7-2a27-46da-bc3c-d6530e2ceb7e",
+        "call": 2
+      },
+      {
+        "sessionId": "omc-affinity-aaf2b9a7-2a27-46da-bc3c-d6530e2ceb7e",
+        "call": 3
+      },
+      {
+        "sessionId": "omc-affinity-e541f5dc-6259-43bd-b8e0-a3e7f20bc09b",
+        "call": 1
+      }
+    ],
+    "requestWaterfalls": 4
+  },
+  "adapterDecision": {
+    "status": "partial",
+    "seam": "GenerateOptions.sessionId reaches every registered adapter's stream boundary; ctx.llm.registerAdapter allows a custom route",
+    "builtin": "absent (only attribution headers; no per-session identity header)",
+    "decision": "alpha.2 keeps provider-side affinity at the session-resume level (codex native sessions are the verified path); shipping an OMC session-affinity adapter would create a new billing/auth surface and is deferred until the host exposes a per-session header interface",
+    "boundary": "no OMC adapter injects a per-session header in this release; do not list any protocol as cache-optimised"
+  },
+  "realUsageReconciliation": {
+    "status": "not-run",
+    "note": "A22 needs real provider calls; run scripts/efficiency-benchmark.mjs (WP09) with an explicit budget, then record the returned cache buckets and cost here"
+  }
+}

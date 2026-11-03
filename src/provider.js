@@ -22,6 +22,7 @@ import { harnessConfig } from './config.js'
 import { mintRunId } from './ids.js'
 import { maskSessionId } from './session-adapters.js'
 import { clip, harnessEnv, planTransport } from './transport.js'
+import { classifyCliResult } from '../integration/cli-result.js'
 
 /** Prompt content blocks → plain task text. Never invents capabilities. */
 export function blocksToText(blocks) {
@@ -135,10 +136,14 @@ export function makeProvider(ctx, def, cfg, options = {}) {
       const hasWorkspace = typeof request.cwd === 'string' && request.cwd.trim() !== ''
       // Only a signed marker built by this Host process may name a lane. A
       // legacy v0.4 brief or a direct dispatch prompt never resumes a session.
-      const capture = Boolean(
-        sessionsOn && sessionAdapter && adapterAllowed && handoff && identity.source === 'marker' && hasWorkspace && registry,
-      )
       const workspace = normalizeWorkspace(request.cwd ?? process.cwd())
+      const capture = Boolean(
+        sessionsOn && sessionAdapter && adapterAllowed && handoff && identity.source === 'marker' && hasWorkspace && registry
+        && handoff.workspace.path === workspace,
+      )
+      if (sessionCfg.resumePolicy === 'require-resume' && !capture) {
+        throw providerError('OMC/SESSION-REQUIRED', 'require-resume needs a trusted role handoff, an explicit workspace, an enabled registry and an allowed session adapter')
+      }
       const key = capture
         ? sessionKeyFor({
             projectId: handoff.projectId,
@@ -156,21 +161,12 @@ export function makeProvider(ctx, def, cfg, options = {}) {
       let resumeId = null
       let sessionNote = ''
 
-      if (capture && sessionCfg.resumePolicy === 'require-resume') {
-        const candidate = registry.find(key)
-        if (!candidate) {
-          throw providerError(
-            'OMC/SESSION-REQUIRED',
-            `resumePolicy is require-resume but no resumable session exists for lane "${handoff.laneId}"`,
-          )
-        }
-      }
-
       if (capture) {
         try {
-          lease = await registry.acquire(key)
+          lease = await registry.acquire(key, { signal: request.signal, requireResume: sessionCfg.resumePolicy === 'require-resume' })
           resumeId = lease.record?.native?.sessionId ?? null
         } catch (error) {
+          if (request.signal?.aborted) throw error
           if (sessionCfg.resumePolicy === 'require-resume') {
             lease = null
             throw error
@@ -202,7 +198,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
           // A role provider is a read-only surface. `dispatch.defaultMode` governs
           // the direct `coharness` tool only; letting a global default widen a
           // role would silently turn Oracle/Explorer/Council seats into writers.
-          mode: options.readOnly === true ? 'read-only' : cfg.dispatch.defaultMode,
+          mode: 'read-only',
           sessionId: resumeId ?? undefined,
           json: capture,
           env,
@@ -228,13 +224,34 @@ export function makeProvider(ctx, def, cfg, options = {}) {
         throw error
       }
 
+      const runId = mintRunId()
+      const taskRecord = options.tasks?.start({
+        id: runId, parentId: request.parent?.id, harness: def.id,
+        label: request.label, handoff,
+        cancel: () => {
+          const subagents = ctx.get?.('subagents')
+          if (!subagents?.interrupt) throw providerError('OMC/CANCEL-UNAVAILABLE', 'the host subagent interruption service is unavailable; use the host interrupt_agent tool')
+          return subagents.interrupt(runId, { kind: 'ancestor', agent: request.parent })
+        },
+      })
       const result = (async () => {
         try {
           const outcome = await launched.handle.done
           const captured = harnessAdapter.collect(launched.handle, collectBytes)
-          const status = harnessAdapter.status(outcome, launched.deadline, request.signal)
-          const ok = status === 'completed'
+          const transportStatus = harnessAdapter.status(outcome, launched.deadline, request.signal)
           const parsed = capture ? harnessAdapter.parse(captured.stdout) : null
+          const classification = classifyCliResult({
+            status: transportStatus,
+            exitCode: outcome.exitCode,
+            signal: outcome.signal,
+            captured,
+            parsed,
+            expectJson: Boolean(capture),
+            resumeId,
+            requireContent: true,
+          })
+          const status = classification.status
+          const ok = status === 'completed'
           const answer = clip(parsed?.text ?? captured.stdout ?? '', cfg.dispatch.maxOutputBytes).text
           const meta = [`omc:${def.id}`]
 
@@ -245,9 +262,10 @@ export function makeProvider(ctx, def, cfg, options = {}) {
             meta.push('session reuse off')
           }
           if (handoff?.taskId) meta.push(`task ${handoff.taskId}`)
-          if (parsed?.sessionId && resumeId && parsed.sessionId !== resumeId) {
+          if (classification.idChanged) {
             meta.push('session id changed: the CLI started a different native conversation')
           }
+          if (classification.code) meta.push(`${classification.code}: ${classification.message}`)
           const usage = sessionCfg.captureUsage !== false ? parsed?.usage : null
           if (usage) meta.push(`usage ${usageText(usage)}`)
           if (sessionNote) meta.push(sessionNote)
@@ -261,6 +279,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
                     format: sessionAdapter.format,
                     usage,
                     taskId: handoff.taskId,
+                    sessionOutcome: resumeId ? 'resumed' : 'new',
                   })
                 } else if (resumeId) {
                   registry.unconfirmed(lease, {
@@ -283,7 +302,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
             }
           }
 
-          return {
+          const value = {
             output: [
               {
                 type: 'text',
@@ -295,6 +314,16 @@ export function makeProvider(ctx, def, cfg, options = {}) {
             stopReason: ok ? 'completed' : status === 'cancelled' ? 'aborted' : 'error',
             diagnostic: meta.join(' · '),
           }
+          if (taskRecord) options.tasks.settle(runId, value)
+          return value
+        } catch (error) {
+          if (lease) {
+            try { registry.fail(lease, { code: error?.code, taskId: handoff?.taskId }) } catch { /* preserve original failure */ }
+          }
+          if (taskRecord) options.tasks.settle(runId, {
+            output: [{ type: 'text', text: `OMC/RUN-FAILED: ${error?.message ?? error}` }], stopReason: 'error',
+          })
+          throw error
         } finally {
           lease?.release()
           launched.deadline.dispose()
@@ -302,7 +331,7 @@ export function makeProvider(ctx, def, cfg, options = {}) {
       })()
 
       return {
-        id: mintRunId(),
+        id: runId,
         result,
         dispose: async () => {
           await harnessAdapter.cancel(launched.handle)

@@ -1,5 +1,7 @@
 # v0.4.0-alpha.1 集成验收记录
 
+> 本文是历史 rc.3 验收。2026-11-02 的 DSH rc.5 装载与 Codex 两轮 Provider 续接实测，另见 [可用化验收](USABILITY-ACCEPTANCE.zh-CN.md)。不要把本文旧的“v0.5 未验收”说明当作当前 Codex 状态；其他 CLI 与 Desktop 完整交互仍需分别验收。
+
 日期：2026-10-30。宿主：DSH **0.2.1-rc.3**（Windows，Desktop 安装的 `dsh` CLI）。
 基线：OMC v0.3.0 `b2f0d39` + OMD v0.8.6 `537d4c7`。
 

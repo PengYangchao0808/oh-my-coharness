@@ -8,7 +8,9 @@
  */
 
 import { spawnSync } from 'node:child_process'
+import { closeSync, openSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseFrontmatter, SKILLS } from '../src/skills.js'
@@ -37,24 +39,50 @@ async function readJson(relative) {
  */
 function loadInChild(absolutePath) {
   const url = pathToFileURL(absolutePath).href
-  const result = spawnSync(process.execPath, ['--input-type=module', '--eval', `await import(${JSON.stringify(url)})`], {
-    encoding: 'utf8',
-    timeout: 60_000,
-  })
-  if (result.status === 0) return null
-  const detail = `${result.stderr ?? ''}\n${result.stdout ?? ''}`
+  // The child's stdout/stderr go to a real file instead of a pipe: a confined
+  // host sandbox refuses to open pipes for a child process (EPERM), and that
+  // would report healthy modules as broken. A file fd behaves the same in a
+  // normal shell and keeps the sandbox from turning this audit into a false
+  // negative.
+  const scratch = mkdtempSync(join(tmpdir(), 'omc-check-'))
+  const capture = join(scratch, 'child.log')
+  const fd = openSync(capture, 'w')
+  let result
+  try {
+    result = spawnSync(process.execPath, ['--input-type=module', '--eval', `await import(${JSON.stringify(url)})`], {
+      stdio: ['ignore', fd, fd],
+      timeout: 60_000,
+    })
+  } finally {
+    closeSync(fd)
+  }
+  let captured = ''
+  try {
+    captured = readFileSync(capture, 'utf8')
+  } catch {
+    captured = ''
+  }
+  try {
+    rmSync(scratch, { recursive: true, force: true })
+  } catch {
+    /* best effort */
+  }
+  if (result.status === 0 && !result.error) return null
+  const detail = captured
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line !== '' && !line.startsWith('at '))
     .slice(0, 2)
     .join(' ')
-  return detail || `exit ${result.status ?? 'signal'}`
+  if (detail) return detail
+  if (result.error) return `spawn blocked: ${result.error.code ?? result.error.message}`
+  return `exit ${result.status ?? 'signal'}`
 }
 
 // ── manifest ─────────────────────────────────────────────────────────────────
 const pkg = await readJson('package.json')
 ok(pkg.name === 'oh-my-coharness', 'package.json name must be oh-my-coharness')
-ok(pkg.version === '0.5.0-alpha.1', `package.json version must be 0.5.0-alpha.1 (got ${pkg.version})`)
+ok(pkg.version === '0.5.0-alpha.2-practice.1', `package.json version must be 0.5.0-alpha.2-practice.1 (got ${pkg.version})`)
 ok(pkg.type === 'module', 'package.json must declare "type": "module"')
 ok(Boolean(pkg.dsh?.bundle?.patch), 'package.json must declare dsh.bundle.patch')
 ok(Boolean(pkg.engines?.dsh), 'package.json must declare engines.dsh')
@@ -102,12 +130,12 @@ try {
 }
 
 // ── modules load ─────────────────────────────────────────────────────────────
-const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry', 'session-adapters', 'adapters', 'connection']
+const modules = ['config', 'harnesses', 'ids', 'transport', 'provider', 'dispatch', 'doctor', 'skills', 'migrate', 'index', 'entry', 'session-adapters', 'adapters', 'connection', 'fleet']
 for (const name of modules) {
   const reason = loadInChild(join(root, 'src', `${name}.js`))
   if (reason) failures.push(`src/${name}.js failed to load: ${reason}`)
 }
-for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy']) {
+for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy', 'tasks', 'fleet', 'catalog', 'demo', 'state', 'file-lock', 'cli-result', 'graph', 'mailbox', 'project-policy', 'worktree', 'custom-roles', 'role-result', 'preset-snapshot', 'usage-ledger', 'execution-events', 'native-runtime', 'work-packet', 'artifact-store', 'context-view', 'retrieval-cache', 'budget', 'progress', 'managed-execution']) {
   const reason = loadInChild(join(root, 'integration', `${name}.js`))
   if (reason) failures.push(`integration/${name}.js failed to load: ${reason}`)
 }

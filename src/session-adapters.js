@@ -163,21 +163,25 @@ function parseCodexJsonl(text) {
     if (event.type === 'turn.completed' && event.usage) usage = normalizeUsage(event.usage)
     if (!usage && event.usage) usage = normalizeUsage(event.usage)
   }
+  let envelope = events.length > 0
   if (!events.length) {
     const whole = parseWholeJson(text)
-    if (whole) return { sessionId: findSessionId(whole), text: findText(whole), usage: normalizeUsage(whole) }
+    if (whole) {
+      return { sessionId: findSessionId(whole), text: findText(whole), usage: normalizeUsage(whole), envelope: true }
+    }
   }
-  return { sessionId, text: finalText, usage }
+  return { sessionId, text: finalText, usage, envelope }
 }
 
 function parseClaudeJson(text) {
   const whole = parseWholeJson(text)
-  if (!whole) return { sessionId: null, text: null, usage: null }
+  if (!whole) return { sessionId: null, text: null, usage: null, envelope: false }
   const object = Array.isArray(whole) ? [...whole].reverse().find((row) => row?.type === 'result') ?? whole.at(-1) : whole
   return {
     sessionId: findSessionId(object),
     text: textOf(object?.result) ?? textOf(object?.response) ?? findText(object),
     usage: normalizeUsage(object),
+    envelope: true,
   }
 }
 
@@ -185,25 +189,33 @@ function parseGenericJson(text) {
   const whole = parseWholeJson(text)
   if (!whole) {
     const events = parseJsonLines(text)
-    if (!events.length) return { sessionId: null, text: null, usage: null }
+    if (!events.length) return { sessionId: null, text: null, usage: null, envelope: false }
     const last = events.at(-1)
-    return { sessionId: findSessionId(last), text: findText(last), usage: normalizeUsage(last) }
+    return { sessionId: findSessionId(last), text: findText(last), usage: normalizeUsage(last), envelope: true }
   }
   return {
     sessionId: findSessionId(whole),
     text: findText(whole),
     usage: normalizeUsage(whole),
+    envelope: true,
   }
 }
 
 /**
  * Parse one captured CLI stream.
- * @returns {{ text: string|null, sessionId: string|null, usage: object|null, format: string }}
- *   `text` is the CLI's user-visible answer; null means "use the raw stream".
+ *
+ * `envelope` is true only when structured output was actually recognized
+ * (JSONL events or a whole JSON document). It is the difference between "the
+ * CLI answered in a form we cannot prove" and "the CLI answered": a caller
+ * that explicitly requested machine-readable output must treat
+ * envelope:false as a semantic failure, not fall back to the raw stream.
+ *
+ * @returns {{ text: string|null, sessionId: string|null, usage: object|null, format: string, envelope: boolean }}
+ *   `text` is the CLI's proven final message; null means "not proven".
  */
 export function parseSessionOutput(format, stdout) {
   const value = String(stdout ?? '')
-  if (value.trim() === '') return { text: null, sessionId: null, usage: null, format }
+  if (value.trim() === '') return { text: null, sessionId: null, usage: null, format, envelope: false }
   let parsed
   if (format === 'codex-jsonl') parsed = parseCodexJsonl(value)
   else if (format === 'claude-json') parsed = parseClaudeJson(value)
@@ -212,6 +224,7 @@ export function parseSessionOutput(format, stdout) {
     text: parsed.text ?? null,
     sessionId: parsed.sessionId && isSessionId(parsed.sessionId) ? parsed.sessionId : null,
     usage: parsed.usage ?? null,
+    envelope: parsed.envelope === true,
     format,
   }
 }

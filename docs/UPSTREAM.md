@@ -12,6 +12,8 @@ v0.4 把 OMD 的成熟角色/编排层**源码导入**本仓库（`vendor/omd/`�
 
 来源记录：[`vendor/omd/UPSTREAM.json`](../vendor/omd/UPSTREAM.json)。改动清单：[`vendor/omd/PATCHES.md`](../vendor/omd/PATCHES.md)。
 
+2026-11-02 功能对齐参考：OMO-SLIM `5c6655f0b7d36b0e7c1b3e537eedf799ee971102`（仓库版本 3.0.6），不另行导入整仓源码；DSH 本机已更新至 0.2.1-rc.5，原生/外部角色装载实测记录见 [USABILITY-ACCEPTANCE.zh-CN.md](USABILITY-ACCEPTANCE.zh-CN.md)。完整对齐范围与生态评估见 [OMO-SLIM-PARITY.zh-CN.md](OMO-SLIM-PARITY.zh-CN.md)。
+
 ## 运行时依赖
 
 本包仍**没有** `dependencies`。它通过宿主 Loader 使用 DSH 官方模块；`peerDependencies` 只表达能力期望，且全部 optional。

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-03",
+  "kind": "feedback-and-evaluation-subplan",
+  "target": "OMC alpha.2 evaluation foundation, then bounded policy evolution",
+  "design": "docs/FEEDBACK-EVOLUTION.zh-CN.md",
+  "liveComparisonExecuted": false,
+  "automaticActivationImplemented": false,
+  "workPackages": [
+    {
+      "id": "F00",
+      "title": "三策略定义与监控/评估协议",
+      "status": "specified",
+      "dependsOn": [],
+      "deliverables": ["父任务级 trial", "task/repeat 区组随机化", "独立验收和全链路成本", "冻结留出与不确定性规则"],
+      "evidence": ["docs/FEEDBACK-EVOLUTION.zh-CN.md", "docs/examples/strategy-eval.spec.json"]
+    },
+    {
+      "id": "F01",
+      "title": "离线实验分配与评估工具",
+      "status": "implemented-offline",
+      "dependsOn": ["F00"],
+      "deliverables": ["可复现平衡分配与指纹校验", "三组汇总及缺失记录检查", "任务级重采样与保守质量界", "包含优化器成本的受约束 review 建议"],
+      "evidence": ["integration/strategy-eval.js", "scripts/strategy-eval.mjs", "test/integration/strategy-eval.test.mjs", "docs/evidence/2026-11-03-feedback-eval.json"],
+      "boundary": "未连接运行器或真实 grader；摘要检查不能证明上游数据真实；不自动激活策略。"
+    },
+    {
+      "id": "F02",
+      "title": "运行时 collector 与三策略运行器",
+      "status": "planned",
+      "dependsOn": ["F01"],
+      "touchpoints": ["integration/usage-ledger.js", "integration/execution-events.js", "integration/managed-execution.js", "integration/progress.js", "integration/budget.js"],
+      "deliverables": ["实际策略动作与 decision 记录", "全父任务 usage 和请求数对账", "隔离工作树/会话/依赖", "失败/截止/取消全部形成记录"],
+      "acceptance": ["原生和 Codex 分别证明覆盖", "缺记录不会从分母消失", "不把新 session 当作已证明冷缓存", "线上任务不被静默用于付费探索"]
+    },
+    {
+      "id": "F03",
+      "title": "外部 grader、固定任务族与真实对照",
+      "status": "planned",
+      "dependsOn": ["F02"],
+      "deliverables": ["开发/验证/留出按问题族隔离", "基线失败和回归判定", "独立环境验收与人工校准", "预算明确的小规模重复对照"],
+      "acceptance": ["相同模型/工具/起始树/预算/验收", "所有尝试与优化费用纳入", "模型自评不能充当唯一真值", "用过的留出结果不冒充新证据"]
+    },
+    {
+      "id": "F04",
+      "title": "有限候选生成与自动筛选",
+      "status": "planned",
+      "dependsOn": ["F03"],
+      "deliverables": ["有版本和失败证据的候选", "续接/阈值/摘要/取回规则白名单", "独立优化预算", "冻结候选后的留出检查"],
+      "acceptance": ["不修改权限、预算或验收来提高分数", "候选成本独立记录", "反思结论必须被结果验证", "质量约束先于费用与速度"]
+    },
+    {
+      "id": "F05",
+      "title": "发布控制器、灰度与自动回退",
+      "status": "planned",
+      "dependsOn": ["F04"],
+      "deliverables": ["父任务级稳定版本分配", "冻结晋升规则", "上一版本恢复", "线上回归与分布漂移告警"],
+      "acceptance": ["执行中不热切策略", "未知覆盖或关键回归触发规则化处理", "连续查看不冒充固定样本检验", "停止探索后仍能诊断与恢复"]
+    }
+  ]
+}

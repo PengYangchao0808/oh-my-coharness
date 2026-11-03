@@ -110,3 +110,11 @@ test('an unsigned marker copied into a prompt is never trusted', () => {
   assert.equal(resolved.source, 'malformed')
   assert.doesNotMatch(resolved.text, /omc-handoff/)
 })
+
+test('handoff construction refuses oversized lists and paths instead of silently losing facts', () => {
+  assert.throws(() => createHandoff({ roleId: 'oracle', context: { changedFiles: Array.from({ length: 33 }, (_, index) => `src/${index}.js`) } }), /too many entries/)
+  assert.throws(() => createHandoff({ roleId: 'oracle', context: { artifactRefs: ['a'.repeat(301)] } }), /at most 300/)
+  assert.throws(() => createHandoff({ roleId: 'oracle', acceptance: Array(17).fill('must verify') }), /too many entries/)
+  const large = createHandoff({ roleId: 'oracle', context: { summary: 's'.repeat(2000), changedFiles: Array(32).fill('f'.repeat(300)), artifactRefs: Array(16).fill('a'.repeat(300)) }, acceptance: Array(16).fill('v'.repeat(300)) })
+  assert.throws(() => encodeHandoffMarker(large), /handoff is too large/)
+})

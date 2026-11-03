@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "kind": "development-plan",
+  "createdAt": "2026-11-03",
+  "package": "oh-my-coharness",
+  "baselineVersion": "0.5.0-alpha.1",
+  "targetVersion": "0.5.0-alpha.2",
+  "status": "in-progress (batch 1 WP00–WP03 + batch 2 WP04–WP07 implemented 2026-11-03; WP08/WP09 pending)",
+  "theme": "效率与协作闭环",
+  "plan": "docs/V0.5-ALPHA2-PLAN.zh-CN.md",
+  "acceptancePlan": "docs/ACCEPTANCE-V0.5-ALPHA2.zh-CN.md",
+  "defaultOnUpgrade": "observe",
+  "versionBumpAt": "WP09",
+  "implementationStarted": true,
+  "workPackages": [
+    {
+      "id": "WP00",
+      "title": "宿主能力探针与契约冻结",
+      "priority": "P0",
+      "phase": 1,
+      "size": "M",
+      "status": "implemented",
+      "dependsOn": [],
+      "goal": "证明逐步 usage、请求闸门、上下文视图、终态和动态会话身份的真实接入边界。",
+      "existingFiles": ["scripts/host-live-check.cjs", "vendor/omd/npm-package/preset/subagent-roles.js", "vendor/omd/npm-package/preset/role-composition.js"],
+      "proposedFiles": ["scripts/efficiency-capability-check.mjs", "docs/evidence/alpha.2/capabilities.json"],
+      "deliverables": ["分 native/provider/direct 的能力矩阵", "可重跑的时序探针", "身份、事件和验收字段的契约决定"],
+      "acceptance": ["A00"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "matrix": "docs/evidence/alpha.2/capabilities.json",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A00.json",
+        "probeResult": "static 14/14 + live 6/6 verdicts passed against installed dsh 0.2.1-rc.5, zero model calls"
+      },
+      "fallback": "无能力则关闭对应受控保证，阻塞依赖它的发布闸门；不修改安装 ASAR。"
+    },
+    {
+      "id": "WP01",
+      "title": "策略、解析与配置事实修复",
+      "priority": "P0",
+      "phase": 1,
+      "size": "M",
+      "status": "implemented",
+      "dependsOn": ["WP00"],
+      "goal": "修复最终请求策略绕过、解析组合假成功、快照误报与模型元数据误导。",
+      "existingFiles": ["integration/project-policy.js", "src/dispatch.js", "src/session-adapters.js", "integration/cli-result.js", "integration/preset-snapshot.js", "src/index.js", "vendor/omd/npm-package/preset/subagent-roles.js"],
+      "proposedFiles": [],
+      "deliverables": ["真实 cwd 后的最终策略允许集合校验", "parser 到执行结果的终态证明", "不可变启动基线与 manual 区分", "配置路由与实际请求路由分别记录"],
+      "acceptance": ["A01", "A02", "A03", "A04"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A01-A04.json",
+        "regressions": "test/integration/wp01-correctness.test.mjs (10/10) + extended preset-snapshot tests; full suite 27/27 files"
+      }
+    },
+    {
+      "id": "WP02",
+      "title": "幂等用量台账与验收状态",
+      "priority": "P0",
+      "phase": 1,
+      "size": "L",
+      "status": "implemented",
+      "dependsOn": ["WP01"],
+      "goal": "统一父任务、child 与 attempt 的真实用量、路由和执行/验收状态。",
+      "existingFiles": ["integration/state.js", "integration/tasks.js", "integration/role-result.js", "integration/sessions.js", "src/provider.js", "vendor/omd/npm-package/preset/subagent-result.js"],
+      "proposedFiles": ["integration/usage-ledger.js", "integration/execution-events.js"],
+      "deliverables": ["四桶归一化与价格来源", "来源事件幂等与跨进程恢复", "unknown/partial coverage", "兼容执行状态并新增 acceptanceState"],
+      "acceptance": ["A05", "A06", "A07", "A08"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A05-A10.json",
+        "regressions": "test/integration/wp02-usage-ledger.test.mjs (13/13); native live-event wiring deferred to WP05 as recorded"
+      }
+    },
+    {
+      "id": "WP03",
+      "title": "统一工作包与产物引用",
+      "priority": "P1",
+      "phase": 1,
+      "size": "M",
+      "status": "implemented",
+      "dependsOn": ["WP01"],
+      "goal": "native/external 使用同一最小事实交接语义，长材料以可验证产物按需读取。",
+      "existingFiles": ["integration/handoff.js", "integration/external-brief.js", "vendor/omd/npm-package/preset/roles.js"],
+      "proposedFiles": ["integration/work-packet.js", "integration/artifact-store.js"],
+      "deliverables": ["带验收/责任/基线的 WorkPacket", "带来源/版本/指纹的事实", "受限展开与失效检测", "超限外置或显式拒绝"],
+      "acceptance": ["A09", "A10"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A05-A10.json",
+        "regressions": "test/integration/wp03-packet.test.mjs (8/8)"
+      }
+    },
+    {
+      "id": "WP04",
+      "title": "上下文视图与重复检索控制",
+      "priority": "P1",
+      "phase": 2,
+      "size": "L",
+      "status": "implemented",
+      "dependsOn": ["WP02", "WP03"],
+      "goal": "减少长工具回显和可证明重复的检索，保留原始证据和阶段内稳定前缀。",
+      "existingFiles": ["integration/external-brief.js", "src/index.js", "vendor/omd/npm-package/preset/roles.js"],
+      "proposedFiles": ["integration/context-view.js", "integration/retrieval-cache.js"],
+      "deliverables": ["长文本到 Artifact 的短视图", "只读检索缓存及完整失效条件", "视图恢复/重放", "历史缩减能力独立标记"],
+      "acceptance": ["A11", "A12"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A11-A16.json",
+        "regressions": "test/integration/wp04-context.test.mjs (5/5); history transform stays honestly not-enabled"
+      },
+      "fallback": "宿主未支持历史视图时只启用自有回显与产物引用，不修改原始会话。"
+    },
+    {
+      "id": "WP05",
+      "title": "managed 执行图、消息与续派闭环",
+      "priority": "P1",
+      "phase": 2,
+      "size": "L",
+      "status": "implemented",
+      "dependsOn": ["WP02", "WP03"],
+      "goal": "将 claim/激活/验收/结算绑定，把消息可靠带入下一次合法续派。",
+      "existingFiles": ["integration/graph.js", "integration/mailbox.js", "integration/tasks.js", "src/index.js", "src/provider.js", "src/dispatch.js", "vendor/omd/npm-package/preset/roles.js"],
+      "proposedFiles": ["integration/managed-execution.js"],
+      "deliverables": ["managed/unmanaged 覆盖标识", "失败释放与重启对账", "单活动 writer 与依赖验收", "消息注入/消费幂等", "inspect 兼容与显式执行续派"],
+      "acceptance": ["A13", "A14", "A15", "A16"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A11-A16.json",
+        "regressions": "test/integration/wp05-managed.test.mjs (9/9); graph release/recover + idempotent complete; mailbox injection states",
+        "boundary": "dispatch+node_id covers the external surface; graph-aware native role activation is the remaining preset integration"
+      }
+    },
+    {
+      "id": "WP06",
+      "title": "预算检查点与无进展治理",
+      "priority": "P1",
+      "phase": 2,
+      "size": "L",
+      "status": "implemented",
+      "dependsOn": ["WP04", "WP05"],
+      "goal": "用程序化计数及进展证据治理长循环，在安全边界继续、调整或停止。",
+      "existingFiles": ["src/config.js", "src/provider.js", "src/dispatch.js", "integration/cli-result.js", "integration/graph.js"],
+      "proposedFiles": ["integration/budget.js", "integration/progress.js"],
+      "deliverables": ["父任务/attempt 双层预算", "并发与重试请求名额预留", "持久检查点与真实取消", "多信号无进展解释", "按错误分类与授权约束的一次升级"],
+      "acceptance": ["A17", "A18", "A19", "A20"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A17-A20.json",
+        "regressions": "test/integration/wp06-budget.test.mjs (7/7); efficiency config section validated",
+        "boundary": "A18 partial: stop verdicts + reconciliation delivered; automatic caller-side enforcement at tool boundaries is the remaining wiring"
+      },
+      "fallback": "无法验证逐请求闸门时只提供观察，不宣称硬调用上限或账单硬上限。"
+    },
+    {
+      "id": "WP07",
+      "title": "动态会话身份与缓存亲和验证",
+      "priority": "P1",
+      "phase": 2,
+      "size": "M",
+      "status": "implemented",
+      "dependsOn": ["WP00", "WP02"],
+      "goal": "在受支持 adapter 上验证每会话身份、稳定前缀和真实缓存桶。",
+      "existingFiles": ["vendor/omd/npm-package/preset/subagent-roles.js", "scripts/host-live-check.cjs"],
+      "proposedFiles": ["scripts/cache-affinity-check.mjs", "docs/evidence/alpha.2/cache-affinity.json"],
+      "deliverables": ["实际 adapter 接入决定", "同 child 稳定/新 child 独立/重试恢复探针", "辅助请求和声明支持协议覆盖", "真实缓存与费用对账"],
+      "acceptance": ["A21", "A22"],
+      "evidence": {
+        "implementedAt": "2026-11-03",
+        "acceptanceRecord": "docs/evidence/alpha.2/acceptance-A21-A22.json",
+        "probeResult": "OMC_CACHE_AFFINITY_PASS — 4/4 identity verdicts on booted host 0.2.1-rc.5, zero model calls",
+        "boundary": "A22 real-usage reconciliation deferred to the WP09 benchmark run with an explicit budget"
+      },
+      "fallback": "缺接口则形成可审阅的宿主适配改动与限制记录，不使用统一静态值或 ASAR 临时注入。"
+    },
+    {
+      "id": "WP08",
+      "title": "设置、迁移、诊断与回退",
+      "priority": "P1",
+      "phase": 3,
+      "size": "M",
+      "status": "planned",
+      "dependsOn": ["WP04", "WP05", "WP06", "WP07"],
+      "goal": "用户能看清新输入/缓存/输出、实际模型、检查点与能力覆盖，升级默认保持观察模式。",
+      "existingFiles": ["src/config.js", "src/index.js", "vendor/omd/npm-package/lib/config-settings.js", "vendor/omd/npm-package/client/client.js", "locale/zh.json", "locale/en.json", "skills/coharness/SKILL.md"],
+      "proposedFiles": [],
+      "deliverables": ["统一效率配置 schema 与设置卡", "能力不足的明确拒绝", "价格/用量 unknown 显示", "版本化数据兼容", "运行中会话与模式回退规则"],
+      "acceptance": ["A23", "A29"]
+    },
+    {
+      "id": "WP09",
+      "title": "对照评估与发布验收",
+      "priority": "P1",
+      "phase": 3,
+      "size": "L",
+      "status": "planned",
+      "dependsOn": ["WP01", "WP02", "WP03", "WP04", "WP05", "WP06", "WP07", "WP08"],
+      "goal": "以实际安装、Desktop 全链和同条件对照证明交付范围及效率收益。",
+      "existingFiles": ["package.json", "scripts/check.mjs", "scripts/pack-check.mjs", "scripts/session-live-check.mjs", "scripts/host-live-check.cjs", "README.md", "CHANGELOG.md", "vendor/omd/PATCHES.md"],
+      "proposedFiles": ["scripts/efficiency-benchmark.mjs", "docs/evidence/alpha.2/acceptance.json", "docs/evidence/alpha.2/benchmark.json", "docs/RELEASE-V0.5-ALPHA2.zh-CN.md"],
+      "deliverables": ["全部必要检查和 tarball 隔离安装", "native/Codex 真实 Desktop 证据", "冻结任务集与重复对照指标", "质量/成本/速度/已知限制报告", "验收后统一版本号与发布说明"],
+      "acceptance": ["A24", "A25", "A26", "A27", "A28"]
+    }
+  ],
+  "releaseGates": [
+    { "id": "G0", "title": "正确性与能力", "acceptance": ["A00", "A01", "A02", "A03", "A04"] },
+    { "id": "G1", "title": "状态与证据", "acceptance": ["A05", "A06", "A07", "A08", "A09", "A10"] },
+    { "id": "G2", "title": "受控协作", "acceptance": ["A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19", "A20"] },
+    { "id": "G3", "title": "兼容与产品", "acceptance": ["A21", "A22", "A23", "A24", "A25", "A29"] },
+    { "id": "G4", "title": "效率与质量报告", "acceptance": ["A26", "A27", "A28"] }
+  ],
+  "experimentalTargets": {
+    "scope": "预先冻结的长循环任务集；同条件对照后评价，不是收益承诺",
+    "callsReduction": 0.25,
+    "cumulativeInputReduction": 0.25,
+    "costPerAcceptedTaskReduction": 0.20,
+    "p50EndToEndReduction": 0.15,
+    "quality": "无新增关键回归或错误完成声明；报告成功率、预算截断及小样本限制",
+    "ifUnmet": "保持 observe 默认并如实报告，不宣传量化提效"
+  },
+  "deferred": [
+    "自动模型选举与自动扩大团队",
+    "原生多 writer 隔离与自动合并",
+    "Observer 与全面 AST/LSP 功能复刻",
+    "自由辩论和全员广播团队",
+    "构建/跨机器测试缓存",
+    "托管模型的跨供应商 KV 转移及 GPU 缓存控制"
+  ]
+}

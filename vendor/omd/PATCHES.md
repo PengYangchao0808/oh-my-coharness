@@ -1,5 +1,31 @@
 # Changes to the vendored OMD source
 
+## 2026-11-03 practice.1
+
+- `client/client.js`: the shipped version literal follows
+  `0.5.0-alpha.2-practice.1`. Nothing else in the card changed; the contract
+  test still compares the literal with `package.json`.
+
+## 2026-11-02 usability changes (Unreleased)
+
+- `preset/roles.js`: resolve the parent's working directory before signing an
+  external handoff; accept a stable lane and bounded context/artifact/acceptance
+  facts; consume the extension fields before calling the stock tool.
+- `preset/role-wording.js` / `preset/preset.js`: advertise the executable external
+  follow-up contract and the parent-scoped result controls. Native messaging stays
+  the host's `send_message`; external lane reuse is a new activation.
+- `preset/subagent-result.js`: do not report inherited fork messages as a child's
+  own answer; clarify that a latest message alone does not prove settlement.
+  The matching provenance test in `test/result.test.mjs` was updated deliberately.
+- `lib/config-settings.js`: preserve `harnesses.*.verify` and
+  `dispatch.allowDirectFallback` through the real host schema.
+- `client/client.js`: paint native controls with the opaque theme layer token,
+  following the independently documented OMD 0.8.8 popup diagnosis. No upstream
+  0.8.8 source import or wholesale baseline change was performed.
+
+The original 0.8.6 source pin below remains unchanged. Current behavior and test
+evidence are documented in `docs/USABILITY-ACCEPTANCE.zh-CN.md` at the repo root.
+
 This directory is a pinned source import of **oh-my-dsh-slim 0.8.6**
 (`537d4c7f5dc316c449de4ccfff8ab15d15901fa6`). See `UPSTREAM.json` for provenance.
 

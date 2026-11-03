@@ -1,0 +1,51 @@
+{
+  "at": "2026-11-02T20:45:00+08:00",
+  "batch": "durable-orchestration-and-policy",
+  "tests": {
+    "files": 27,
+    "pass": 268,
+    "fail": 0,
+    "new": {
+      "durability": 6,
+      "cliResult": 6,
+      "graph": 6,
+      "mailbox": 3,
+      "projectPolicy": 4,
+      "worktree": 7,
+      "customRoles": 7,
+      "roleResult": 7,
+      "presetSnapshot": 3
+    }
+  },
+  "crossProcessSessionLease": {
+    "method": "two independent Node processes, same profile session file",
+    "contender": "OMC/SESSION-BUSY",
+    "afterRelease": "resumed the holder's native session id",
+    "modelCalls": 0
+  },
+  "isolatedHost": {
+    "dsh": "0.2.1-rc.5",
+    "mountedRoleTools": 9,
+    "actions": ["fleet", "demo", "graph", "send", "inbox"],
+    "result": "PASS",
+    "modelCalls": 0
+  },
+  "runtimeTab": {
+    "clientBundleLoad": "PASS",
+    "clientContracts": 22,
+    "browserClickThrough": "not executed"
+  },
+  "dispatchFallback": {
+    "test": "retryable 429 on codex advances to explicit opencode fallback",
+    "result": "PASS"
+  },
+  "liveModelCalls": "not executed in this batch",
+  "limits": [
+    "External mid-turn steer is queued in the mailbox, not injected into a running CLI process; DSH exposes no prepareContinuable for external providers.",
+    "External/project custom roles and worktree acceptance are implemented; native custom roles and project-level role model/Prompt/Skill/MCP bindings remain constrained by static preset composition.",
+    "External dispatch has per-task worktrees and explicit graph-acceptance merge; native children still have no per-child cwd.",
+    "P1-6 current-session preset switching is locked by DSH after the first turn; snapshots/diff exist only.",
+    "P0-4 real Desktop mixed-orchestration acceptance has not been recorded."
+  ],
+  "documentation": "docs/DSH-CONTRACT-LIMITS.zh-CN.md"
+}

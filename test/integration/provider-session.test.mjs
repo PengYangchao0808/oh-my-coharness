@@ -103,6 +103,50 @@ test('Codex: first run stores a session, second run resumes it', async () => {
   assert.equal(registry.list()[0].turns, 2)
 })
 
+test('new policy never resumes an existing lane and resets its turn count', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'omc-provider-new-'))
+  const cfg = resolveConfig({ transport: 'native', sessions: { path: join(dir, 'sessions.json'), resumePolicy: 'new' } })
+  const registry = registryFor(cfg)
+  for (const id of ['thread-new-one', 'thread-new-two']) {
+    const fake = fakeCtx(codexStream(id, 'fresh answer'))
+    const provider = makeProvider(fake.ctx, harnessDef('codex'), cfg, { readOnly: true, registry })
+    await (await start(provider, 'E:\\repo')).result
+    assert.equal(fake.specs[0].argv.includes('resume'), false)
+    assert.equal(registry.list()[0].turns, 1)
+  }
+})
+
+test('require-resume cannot silently become a fresh run when capture is unavailable', async () => {
+  for (const sessions of [{ enabled: false }, { allowUnverified: false }, {}]) {
+    const dir = mkdtempSync(join(tmpdir(), 'omc-required-gate-'))
+    const cfg = resolveConfig({ transport: 'native', sessions: { path: join(dir, 'sessions.json'), resumePolicy: 'require-resume', ...sessions } })
+    const fake = fakeCtx('must not launch')
+    const provider = makeProvider(fake.ctx, harnessDef('kimi'), cfg, { readOnly: true, registry: registryFor(cfg) })
+    await assert.rejects(start(provider, 'E:\\repo'), { code: 'OMC/SESSION-REQUIRED' })
+    assert.equal(fake.specs.length, 0)
+  }
+})
+
+test('a signed handoff for a different workspace is not reused', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'omc-workspace-check-'))
+  const cfg = resolveConfig({ transport: 'native', sessions: { path: join(dir, 'sessions.json') } })
+  const registry = registryFor(cfg)
+  const fake = fakeCtx('standalone answer')
+  const provider = makeProvider(fake.ctx, harnessDef('codex'), cfg, { readOnly: true, registry })
+  const run = await provider.start({ prompt: [{ type: 'text', text: promptFor('oracle', 'E:\\other') }], cwd: 'E:\\repo', signal: new AbortController().signal })
+  assert.match((await run.result).diagnostic, /session reuse off/)
+  assert.equal(registry.stats().entries, 0)
+})
+
+test('provider factory remains read-only even without an explicit readOnly option', async () => {
+  const cfg = resolveConfig({ transport: 'native', dispatch: { defaultMode: 'in-place' }, sessions: { enabled: false } })
+  const fake = fakeCtx('answer')
+  const run = await start(makeProvider(fake.ctx, harnessDef('codex'), cfg), 'E:\\repo')
+  await run.result
+  const index = fake.specs[0].argv.indexOf('-s')
+  assert.equal(fake.specs[0].argv[index + 1], 'read-only')
+})
+
 test('session reuse off keeps the v0.4 argv and stores nothing', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'omc-provider-off-'))
   const cfg = resolveConfig({

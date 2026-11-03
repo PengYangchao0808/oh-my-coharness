@@ -10,6 +10,9 @@
 export const DEFAULTS = Object.freeze({
   surface: 'auto', // 'auto' | 'provider' | 'direct'
   transport: 'auto', // 'auto' | 'native' | 'wsl'
+  // Optional absolute state root for tests/embedded hosts. Empty means the
+  // profile-scoped `$DSH_HOME/omc/profiles/<profile>` default.
+  stateDir: '',
   harnesses: {
     opencode: { enabled: true },
     claude: { enabled: true },
@@ -68,6 +71,28 @@ export const DEFAULTS = Object.freeze({
     },
   },
   privacy: { reportBinaryPaths: false },
+  /**
+   * Efficiency features (0.5.0-alpha.2, V0.5-ALPHA2-PLAN §2). `observe` is the
+   * upgrade default: it records calls, routes, usage and progress hints
+   * without changing how tasks run. `balanced` turns on work packets, artifact
+   * references, checkpoints and the managed path — it must be enabled
+   * explicitly in a NEW session after the capability check. Correctness fixes
+   * (WP01) always apply and are not part of this switch.
+   */
+  efficiency: {
+    mode: 'observe', // 'off' | 'observe' | 'balanced'
+    team: { maxActiveWorkers: 2, maxActiveWriters: 1 },
+    checkpoints: {
+      explorerSteps: 16,
+      fixerSteps: 40,
+      oracleSteps: 12,
+      explorerInputTokens: 60000,
+      fixerInputTokens: 120000,
+    },
+    context: { maxToolTextChars: 12000, packetMaxChars: 24000 },
+    budget: { maxCalls: null, maxUsd: null },
+    progress: { repeatWindow: 6, repeatThreshold: 3 },
+  },
 })
 
 const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -97,6 +122,7 @@ export function resolveConfig(input) {
 
   merged.surface = ['auto', 'provider', 'direct'].includes(merged.surface) ? merged.surface : 'auto'
   merged.transport = ['auto', 'native', 'wsl'].includes(merged.transport) ? merged.transport : 'auto'
+  merged.stateDir = typeof merged.stateDir === 'string' ? merged.stateDir.trim() : ''
   merged.dispatch.maxParallel = intIn(merged.dispatch.maxParallel, 1, 8, DEFAULTS.dispatch.maxParallel)
   merged.dispatch.timeoutMs = intIn(merged.dispatch.timeoutMs, 5000, 86400000, DEFAULTS.dispatch.timeoutMs)
   merged.dispatch.maxOutputBytes = intIn(
@@ -111,6 +137,34 @@ export function resolveConfig(input) {
   merged.dispatch.allowDirectFallback = merged.dispatch.allowDirectFallback === true
   if (typeof merged.wsl.distro !== 'string') merged.wsl.distro = ''
   merged.privacy.reportBinaryPaths = Boolean(merged.privacy.reportBinaryPaths)
+
+  // ── efficiency (alpha.2 §2) ────────────────────────────────────────────────
+  const eff = isObject(merged.efficiency) ? merged.efficiency : {}
+  if (!['off', 'observe', 'balanced'].includes(eff.mode)) eff.mode = 'observe'
+  eff.team = {
+    maxActiveWorkers: intIn(eff.team?.maxActiveWorkers, 1, 8, DEFAULTS.efficiency.team.maxActiveWorkers),
+    maxActiveWriters: intIn(eff.team?.maxActiveWriters, 1, 4, DEFAULTS.efficiency.team.maxActiveWriters),
+  }
+  eff.checkpoints = {
+    explorerSteps: intIn(eff.checkpoints?.explorerSteps, 4, 400, DEFAULTS.efficiency.checkpoints.explorerSteps),
+    fixerSteps: intIn(eff.checkpoints?.fixerSteps, 4, 1000, DEFAULTS.efficiency.checkpoints.fixerSteps),
+    oracleSteps: intIn(eff.checkpoints?.oracleSteps, 4, 400, DEFAULTS.efficiency.checkpoints.oracleSteps),
+    explorerInputTokens: intIn(eff.checkpoints?.explorerInputTokens, 1000, 10_000_000, DEFAULTS.efficiency.checkpoints.explorerInputTokens),
+    fixerInputTokens: intIn(eff.checkpoints?.fixerInputTokens, 1000, 10_000_000, DEFAULTS.efficiency.checkpoints.fixerInputTokens),
+  }
+  eff.context = {
+    maxToolTextChars: intIn(eff.context?.maxToolTextChars, 500, 200_000, DEFAULTS.efficiency.context.maxToolTextChars),
+    packetMaxChars: intIn(eff.context?.packetMaxChars, 2000, 200_000, DEFAULTS.efficiency.context.packetMaxChars),
+  }
+  eff.budget = {
+    maxCalls: Number.isSafeInteger(eff.budget?.maxCalls) && eff.budget.maxCalls > 0 ? eff.budget.maxCalls : null,
+    maxUsd: typeof eff.budget?.maxUsd === 'number' && eff.budget.maxUsd >= 0 ? eff.budget.maxUsd : null,
+  }
+  eff.progress = {
+    repeatWindow: intIn(eff.progress?.repeatWindow, 2, 50, DEFAULTS.efficiency.progress.repeatWindow),
+    repeatThreshold: intIn(eff.progress?.repeatThreshold, 2, 10, DEFAULTS.efficiency.progress.repeatThreshold),
+  }
+  merged.efficiency = eff
 
   merged.sessions.enabled = merged.sessions.enabled !== false
   merged.sessions.path = typeof merged.sessions.path === 'string' ? merged.sessions.path : ''

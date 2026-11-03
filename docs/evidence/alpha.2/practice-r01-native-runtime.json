@@ -1,0 +1,509 @@
+{
+  "schemaVersion": 1,
+  "kind": "practice-native-runtime-probe",
+  "task": "R01",
+  "at": "2026-11-03T13:41:02.530Z",
+  "host": {
+    "version": "0.2.1-rc.5",
+    "preset": "oh-my-coharness",
+    "profile": "omc-test"
+  },
+  "modelCalls": 0,
+  "adapterDispatches": 3,
+  "facts": {
+    "sessions": {
+      "parent": {
+        "id": "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901",
+        "parentSession": null,
+        "events": 16
+      },
+      "child": {
+        "id": "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d",
+        "parentSession": "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901",
+        "events": 16
+      },
+      "nested": {
+        "id": "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774",
+        "parentSession": "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d",
+        "events": 20
+      }
+    },
+    "children": [],
+    "adapterCalls": [
+      {
+        "sessionId": "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901",
+        "call": 1
+      },
+      {
+        "sessionId": "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d",
+        "call": 1
+      },
+      {
+        "sessionId": "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774",
+        "call": 1
+      }
+    ],
+    "preSteps": [
+      {
+        "agent": "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774",
+        "turn": 1,
+        "decision": "reject"
+      }
+    ],
+    "hostVersion": "0.2.1-rc.5",
+    "events": {
+      "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901": [
+        {
+          "type": "permission/preset",
+          "seq": 0,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "sandbox/mode",
+          "seq": 1,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "approval/policy",
+          "seq": 2,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 3,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/start",
+          "seq": 4,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 5,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/start",
+          "seq": 6,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "system/message",
+          "seq": 7,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 8,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 9,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/header",
+          "seq": 10,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/context",
+          "seq": 11,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "session/title",
+          "seq": 12,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "assistant/attempt",
+          "seq": 13,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/end",
+          "seq": 14,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/end",
+          "seq": 15,
+          "usage": null,
+          "reason": "error"
+        }
+      ],
+      "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d": [
+        {
+          "type": "permission/preset",
+          "seq": 0,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "sandbox/mode",
+          "seq": 1,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "approval/policy",
+          "seq": 2,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 3,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/start",
+          "seq": 4,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 5,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/start",
+          "seq": 6,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "system/message",
+          "seq": 7,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 8,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 9,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/header",
+          "seq": 10,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/context",
+          "seq": 11,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "session/title",
+          "seq": 12,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "assistant/message",
+          "seq": 13,
+          "usage": {
+            "inputTokens": 123,
+            "cacheReadTokens": 40,
+            "cacheWriteTokens": 0,
+            "outputTokens": 7
+          },
+          "reason": null
+        },
+        {
+          "type": "step/end",
+          "seq": 14,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/end",
+          "seq": 15,
+          "usage": null,
+          "reason": "completed"
+        }
+      ],
+      "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774": [
+        {
+          "type": "permission/preset",
+          "seq": 0,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "sandbox/mode",
+          "seq": 1,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "approval/policy",
+          "seq": 2,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 3,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/start",
+          "seq": 4,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 5,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/end",
+          "seq": 6,
+          "usage": null,
+          "reason": "blocked"
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 7,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/start",
+          "seq": 8,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 9,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/start",
+          "seq": 10,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "system/message",
+          "seq": 11,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 12,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 13,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/header",
+          "seq": 14,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/context",
+          "seq": 15,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "session/title",
+          "seq": 16,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "assistant/message",
+          "seq": 17,
+          "usage": {
+            "inputTokens": 123,
+            "cacheReadTokens": 40,
+            "cacheWriteTokens": 0,
+            "outputTokens": 7
+          },
+          "reason": null
+        },
+        {
+          "type": "step/end",
+          "seq": 18,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/end",
+          "seq": 19,
+          "usage": null,
+          "reason": "completed"
+        }
+      ]
+    }
+  },
+  "bridge": {
+    "entries": 3,
+    "coverage": [
+      "unknown",
+      "complete"
+    ],
+    "summary": {
+      "entries": 3,
+      "tasks": 3,
+      "totals": {
+        "entries": 3,
+        "entriesWithUsage": 2,
+        "sums": {
+          "uncachedInputTokens": 246,
+          "cacheReadTokens": 80,
+          "cacheWriteTokens": 0,
+          "outputTokens": 14
+        },
+        "coverage": "partial",
+        "costUsd": null,
+        "costKnown": false,
+        "unknownCost": true
+      }
+    },
+    "diagnostics": {
+      "sessions": 3,
+      "bindings": 3,
+      "stats": {
+        "events": 52,
+        "booked": 3,
+        "duplicates": 0,
+        "settlements": 4,
+        "unboundSessions": 0,
+        "unboundEvents": 0,
+        "unboundUsage": 0,
+        "bindConflicts": 0,
+        "autoRoots": 0,
+        "handlerErrors": 0,
+        "replayRuns": 3,
+        "lastEventAt": "2026-11-03T13:41:02.529Z"
+      }
+    }
+  },
+  "mountedPlugin": {
+    "version": 1,
+    "installed": true,
+    "listeners": [
+      {
+        "event": "session/event",
+        "label": "omc: native runtime session/event"
+      },
+      {
+        "event": "agent/created",
+        "label": "omc: native runtime agent/created"
+      }
+    ],
+    "sessions": 3,
+    "bindings": 3,
+    "parents": [
+      "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901"
+    ],
+    "roles": {
+      "orchestrator": 1,
+      "(unknown role)": 2
+    },
+    "stats": {
+      "events": 52,
+      "booked": 3,
+      "duplicates": 0,
+      "settlements": 4,
+      "unboundSessions": 1,
+      "unboundEvents": 3,
+      "unboundUsage": 0,
+      "bindConflicts": 0,
+      "autoRoots": 1,
+      "handlerErrors": 0,
+      "replayRuns": 0,
+      "lastEventAt": "2026-11-03T13:41:02.522Z"
+    },
+    "lastEventAt": "2026-11-03T13:41:02.522Z"
+  },
+  "verdicts": {
+    "realLineagePersisted": {
+      "pass": true,
+      "detail": "child.parentSession=true; nested.parentSession=true"
+    },
+    "usageBookedFromRealEvents": {
+      "pass": true,
+      "detail": "entries=3; routes=[\"omc-native-probe/probe-1\"]"
+    },
+    "failedAttemptStayedUnknown": {
+      "pass": true,
+      "detail": "unknown rows=1"
+    },
+    "replayBookedNothingNew": {
+      "pass": true,
+      "detail": "before=3; after=3"
+    },
+    "childrenAttributedToParent": {
+      "pass": true,
+      "detail": "tasks=3; parents=[\"probe-parent\",\"probe-parent\",\"probe-parent\"]"
+    },
+    "parentRollupEqualsTasks": {
+      "pass": true,
+      "detail": "rollup entries=3; booked=3"
+    },
+    "settlementRecordedPerTurn": {
+      "pass": true,
+      "detail": "tasks with attempts=3/3"
+    },
+    "mountedPluginBridgeInstalled": {
+      "pass": true,
+      "detail": "installed=true; listeners=2"
+    },
+    "mountedPluginBookedItsOwnPreset": {
+      "pass": true,
+      "detail": "autoRoots=1; booked=3; unboundUsage=0; unboundSessions=1"
+    }
+  },
+  "limits": [
+    "The adapter is synthetic: this probe proves event wiring, attribution and settlement, not token cost against a real bill.",
+    "The cancelled (aborted) reason is covered by the unit regressions, not by this probe; the probe exercises completed, failed and blocked.",
+    "Replay here reuses the events captured during the run, not a cold restart of a persisted session log."
+  ]
+}

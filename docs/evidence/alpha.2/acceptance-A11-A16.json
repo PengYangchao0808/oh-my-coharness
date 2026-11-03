@@ -1,0 +1,26 @@
+{
+  "case": "A11-A16",
+  "workPackage": "WP04+WP05",
+  "date": "2026-11-03",
+  "result": "passed",
+  "codeVersion": "0.5.0-alpha.1 working tree @ git 68f9644 (uncommitted alpha.2 batch-2 implementation)",
+  "dsh": { "version": "0.2.1-rc.5" },
+  "layers": ["combination regressions (no model calls)"],
+  "modelCalls": 0,
+  "newModules": [
+    "integration/context-view.js — long tool echo becomes a bounded head/tail view + exit-code prefix + stable artifact reference; original evidence restorable and verifiable; HISTORY_VIEW_CAPABILITY honestly reports the host-level history transform as 'not-enabled' (WP00 found the seam; pairing/replay validation outstanding)",
+    "integration/retrieval-cache.js — keys over (workspace, tool, tool version, args, input digests); read-only allowlist only; failures/unreadable inputs/changed sources/tool-version changes are misses by construction; test results stored as evidenceOnly and never replace final acceptance",
+    "integration/managed-execution.js — the managed frame: packet/policy → graph claim → execution attempt → mailbox injection (per-attempt keys) → dispatch → settlement → acceptance → release; activation failure releases the claim; unmanaged paths are labeled managed:false"
+  ],
+  "changedModules": [
+    "integration/graph.js — release() for pre-settlement claim failures; complete() idempotent per identical status and refuses contradictions (OMC/GRAPH-CONFLICT); recover() returns dead running nodes to pending while live workers keep their claims",
+    "integration/mailbox.js — pendingInjections/recordInjection/confirmConsumed with queued → injected → consumed states; injection keyed (message, attempt); consumption confirmed only after a durable injection record; native send_message deliveries stay out of the injection batch",
+    "src/index.js — dispatch with node_id takes the managed path; reuse execute:true re-validates policy/harness and opens a new attempt via managed.reexecute; contextView/retrievalCache/budget/progress instantiated per host from the efficiency config"
+  ],
+  "regressions": "test/integration/wp04-context.test.mjs (5/5) + test/integration/wp05-managed.test.mjs (9/9); graph/mailbox suites unchanged and green",
+  "boundaries": [
+    "A11's host history-view transform stays experimental/not-enabled per plan §4.4; only OMC's own echo is reduced",
+    "managed dispatch covers the external dispatch surface in this batch; native subagent role tools route through it when their dispatcher passes node_id (graph-aware role activation is WP05's later integration with the vendored preset)",
+    "mailbox injection reaches the next legal re-dispatch of the same task/lane; steering a live external CLI mid-run remains impossible by design"
+  ]
+}

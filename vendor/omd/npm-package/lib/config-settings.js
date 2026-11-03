@@ -104,6 +104,7 @@ export function buildConfigSchema(z) {
       billing: z.union(['subscription', 'api', 'unknown']),
       transport: z.union(['auto', 'native', 'wsl']), distro: z.string(),
       timeoutMs: z.number().min(0).step(1), env: z.dict(z.string()), envFile: z.string(),
+      verify: z.object({ accepted: z.boolean(), at: z.string(), mode: z.union(['read-only', 'patch']), note: z.string() }),
     })),
     wsl: z.object({ distro: z.string() }),
     sessions: z.object({
@@ -129,6 +130,7 @@ export function buildConfigSchema(z) {
       defaultMode: z.union(['read-only', 'in-place', 'worktree']),
       timeoutMs: z.number().min(5000).step(1),
       maxOutputBytes: z.number().min(1024).step(1),
+      allowDirectFallback: z.boolean(),
     }),
     privacy: z.object({ reportBinaryPaths: z.boolean() }),
   }).description('Oh My CoHarness configuration: the Orchestrator role roster, the native Council, and the external-harness execution settings. Edits persist in the active DSH profile. Select the default preset in native Agent preset settings; named profiles persist in the companion profiles configuration row.');

@@ -50,7 +50,7 @@ window.__ModuleLoader__.load({
     // no build step or package metadata, so this is a literal; the contract
     // tests compare it with package.json so a release bump cannot leave the
     // header stale.
-    const VERSION = '0.5.0-alpha.1';
+    const VERSION = '0.5.0-alpha.2-practice.1';
     const UPSTREAM_ROLE_IDS = ['oracle', 'designer', 'fixer', 'explorer', 'librarian', 'observer'];
     const COUNCILLOR_ROLE_IDS = ['councillor-alpha', 'councillor-beta', 'councillor-gamma'];
     // Council's synthesizer has no user-facing enable switch: it is active
@@ -604,6 +604,22 @@ window.__ModuleLoader__.load({
       tabRoles: '角色与模型',
       tabsLabel: '设置分区',
       cliTabHint: '启用一个 Harness 会消耗该 CLI 自己的订阅额度；只有已验证且已认证的连接才会被自动路由。',
+      tabRuntime: '运行状态',
+      runtimeHint: '会话复用、自动路由与用量属于 Host 级设置；这里直接写入当前 profile。',
+      sessionReuse: '会话复用',
+      resumePolicy: '续接策略',
+      resumePolicyHint: 'auto=有匹配就续接；new=每次新开；require-resume=没有可续接就失败。',
+      maxTurns: '会话轮数上限',
+      maxTurnsHint: '达到上限后新建 native 会话；范围 1-200。',
+      allowUnverified: '允许未验证 CLI 续接',
+      allowUnverifiedHint: '只对 documented/unverified 适配器生效；enforced 适配器不受影响。',
+      usageTitle: '用量',
+      routingTitle: '自动路由',
+      routingHint: '只推荐 routable 且计费已授权的线路。',
+      allowPaidApi: '允许 API 计费',
+      allowUnknownBilling: '允许未知计费',
+      laneClearHint: '逐 Lane 清除：/coharness sessions --clear --lane=<id>',
+      runtimeUnavailable: '状态不可用',
       orchestratorNote: 'orchestrator 即当前会话主模型：在对话输入框的模型选择器中更换，默认模型在 设置-模型 维护。未单独选模型/档位的角色跟随它；固定档位不被主模型支持时会在委派时退回会话档位。',
       enabled: '启用',
       model: '模型',
@@ -750,6 +766,22 @@ window.__ModuleLoader__.load({
       tabRoles: 'Roles & models',
       tabsLabel: 'Settings sections',
       cliTabHint: 'Enabling a harness spends that CLI\u2019s own subscription; only verified and authenticated connections are auto-routable.',
+      tabRuntime: 'Runtime',
+      runtimeHint: 'Session reuse, automatic routing and usage are Host settings; this tab writes the current profile directly.',
+      sessionReuse: 'Session reuse',
+      resumePolicy: 'Resume policy',
+      resumePolicyHint: 'auto = resume a matching session; new = always start fresh; require-resume = fail without one.',
+      maxTurns: 'Turn cap',
+      maxTurnsHint: 'A new native session starts after this cap; 1-200.',
+      allowUnverified: 'Allow unverified CLI resume',
+      allowUnverifiedHint: 'Only affects documented/unverified adapters; enforced adapters are unaffected.',
+      usageTitle: 'Usage',
+      routingTitle: 'Automatic routing',
+      routingHint: 'Only routable, billing-authorized routes are recommended.',
+      allowPaidApi: 'Allow paid API',
+      allowUnknownBilling: 'Allow unknown billing',
+      laneClearHint: 'Per-Lane clear: /coharness sessions --clear --lane=<id>',
+      runtimeUnavailable: 'Status unavailable',
       orchestratorNote: 'The orchestrator is the session\u2019s main model: change it in the composer\u2019s model picker; defaults live in Settings \u2192 Models. Roles without their own model or level follow it; a fixed level the model does not offer falls back to the session\u2019s level.',
       enabled: 'Enabled',
       model: 'Model',
@@ -1565,7 +1597,7 @@ window.__ModuleLoader__.load({
     }
 
     const controlStyle = {
-      height: 30, fontSize: 13, color: color.text, background: 'transparent',
+      height: 30, fontSize: 13, color: color.text, background: 'var(--dsw-alias-bg-layer-3)',
       border: `1px solid ${color.border}`, borderRadius: 8, padding: '0 8px', minWidth: 0, width: '100%',
     };
 
@@ -2098,6 +2130,89 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * Tab C — session reuse, routing switches and the usage view. These are
+     * HOST settings, not role-profile fields, so they are written directly
+     * through the settings scope instead of the profile adapter.
+     */
+    function RuntimeTab({ value, status, onWrite, t }) {
+      const sessions = value?.sessions ?? {};
+      const routing = value?.routing ?? {};
+      const execution = status?.execution ?? {};
+      const stats = execution.sessions;
+      const usage = stats?.usage;
+      const row = (label, control, hint) => React.createElement('div', {
+        style: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 },
+      },
+        React.createElement('span', { style: { fontSize: 12, lineHeight: '18px', color: color.secondary } }, label),
+        control,
+        hint ? React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, hint) : null,
+      );
+      return React.createElement('div', {
+        role: 'tabpanel', id: `${NS}-panel-runtime`, 'aria-labelledby': `${NS}-tab-runtime`, tabIndex: -1,
+        style: { display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 },
+      },
+        React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('runtimeHint')),
+        row(t('sessionReuse'), React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          React.createElement(Switch, {
+            checked: sessions.enabled !== false,
+            onChange: () => onWrite(['sessions', 'enabled'], sessions.enabled === false),
+            label: t('sessionReuse'),
+          }),
+          React.createElement('span', { style: { fontSize: 12, color: color.secondary } },
+            stats
+              ? `${stats.entries ?? 0} refs · ${stats.lanes ?? 0} lane(s) · ${stats.resumable ?? 0} resumable`
+              : t('runtimeUnavailable')),
+        )),
+        row(t('resumePolicy'), React.createElement('select', {
+          value: sessions.resumePolicy ?? 'auto',
+          onChange: (event) => onWrite(['sessions', 'resumePolicy'], event.target.value),
+          style: controlStyle,
+        },
+          React.createElement('option', { value: 'auto' }, 'auto'),
+          React.createElement('option', { value: 'new' }, 'new'),
+          React.createElement('option', { value: 'require-resume' }, 'require-resume'),
+        ), t('resumePolicyHint')),
+        row(t('maxTurns'), React.createElement('input', {
+          type: 'number', min: 1, max: 200, defaultValue: sessions.maxTurns ?? 24,
+          onBlur: (event) => {
+            const parsed = Number(event.target.value);
+            if (Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 200) onWrite(['sessions', 'maxTurns'], parsed);
+          },
+          style: controlStyle,
+        }), t('maxTurnsHint')),
+        row(t('allowUnverified'), React.createElement(Switch, {
+          checked: sessions.allowUnverified === true,
+          onChange: () => onWrite(['sessions', 'allowUnverified'], sessions.allowUnverified !== true),
+          label: t('allowUnverified'),
+        }), t('allowUnverifiedHint')),
+        row(t('usageTitle'), React.createElement('span', { style: { fontSize: 12, color: color.secondary } },
+          usage
+            ? `in ${usage.inputTokens ?? 0} · out ${usage.outputTokens ?? 0}` +
+              (usage.costKnown ? ` · $${Number(usage.costUsd ?? 0).toFixed(4)}` : ' · cost unknown')
+            : t('runtimeUnavailable'),
+        )),
+        React.createElement('div', { style: { borderTop: '1px solid var(--dsw-alias-border-l2)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 } },
+          row(t('routingTitle'), React.createElement(Switch, {
+            checked: routing.enabled === true,
+            onChange: () => onWrite(['routing', 'enabled'], routing.enabled !== true),
+            label: t('routingTitle'),
+          }), t('routingHint')),
+          row(t('allowPaidApi'), React.createElement(Switch, {
+            checked: routing.allowPaidApi === true,
+            onChange: () => onWrite(['routing', 'allowPaidApi'], routing.allowPaidApi !== true),
+            label: t('allowPaidApi'),
+          })),
+          row(t('allowUnknownBilling'), React.createElement(Switch, {
+            checked: routing.allowUnknownBilling === true,
+            onChange: () => onWrite(['routing', 'allowUnknownBilling'], routing.allowUnknownBilling !== true),
+            label: t('allowUnknownBilling'),
+          })),
+          React.createElement('span', { style: { fontSize: 11, lineHeight: '16px', color: color.tertiary } }, t('laneClearHint')),
+        ),
+      );
+    }
+
+    /**
      * The tab strip. Plain buttons with `role="tab"`: every tab is its own
      * keyboard stop, so the strip works with Tab + Enter without a roving
      * tabindex (and without a focus jail when the panel is empty).
@@ -2106,6 +2221,7 @@ window.__ModuleLoader__.load({
       const tabs = [
         { id: 'cli', label: t('tabCli') },
         { id: 'roles', label: t('tabRoles') },
+        { id: 'runtime', label: t('tabRuntime') },
       ];
       return React.createElement('div', {
         role: 'tablist', 'aria-label': t('tabsLabel'),
@@ -2389,6 +2505,10 @@ window.__ModuleLoader__.load({
           setSaving(false);
         }
       };
+      // Host-level runtime fields are written as one atomic mutate, exactly like
+      // a role edit; the same revision fence prevents a stale tab overwriting a
+      // newer settings change.
+      const writeRuntime = (path, value) => run([{ op: 'set', path, value }], t('saved'), { keepRoleDraft: true });
 
       // Persist a CUSTOM profile: an atomic whole-document snapshot write with
       // a revision fence (the host refuses stale writers).
@@ -2743,6 +2863,11 @@ window.__ModuleLoader__.load({
           executionStatus, onRefreshExecution: loadExecutionStatus,
         })
         : null;
+      const runtimePanel = tab === 'runtime'
+        ? React.createElement(RuntimeTab, {
+          value: effective, status: executionStatus, onWrite: writeRuntime, t,
+        })
+        : null;
 
       // The profile strip lives at the top of the expanded card: choosing a
       // profile only changes WHAT is edited; the session is untouched.
@@ -2894,6 +3019,7 @@ window.__ModuleLoader__.load({
         React.createElement(TabStrip, { active: tab, onChange: setTab, t }),
         cliPanel,
         rolesPanel,
+        runtimePanel,
         !writable ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: color.warn, fontSize: 12 } },
           renderIcon(ui, ICON_WARNING, { size: 14 }), t('readOnly')) : null,
         React.createElement('span', { style: { fontSize: 11, color: color.tertiary } }, t('effectiveHint')),

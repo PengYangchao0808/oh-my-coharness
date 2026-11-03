@@ -248,7 +248,7 @@ test('the patch brief replaces the read-only instruction with a patch contract',
   assert.doesNotMatch(brief, /Return:\n- Summary\n- Evidence/)
   // The environment paragraph and the one-report rule are common to both modes.
   assert.match(brief, /\*\*Execution environment\*\*/)
-  assert.match(brief, /cannot resume this run/)
+  assert.match(brief, /same lane may continue your native CLI session/)
   // The designer entry is appended to the shared constraints, never instead of them.
   const consultant = defaultExternalConstraints('designer')
   for (const sharedLine of [

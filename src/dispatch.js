@@ -1,14 +1,14 @@
 /**
- * Dispatch: DispatchRequest → real execution → DispatchResult[].
+ * Dispatch: DispatchRequest 閳?real execution 閳?DispatchResult[].
  *
  * Provider first, and the direct surface only when it was asked for: `surface: 'direct'`
  * or a non-read-only mode are explicit requests, and `dispatch.allowDirectFallback`
- * unlocks the implicit one. A missing or rejecting provider never degrades silently —
- * it fails and names both the reason and the switch (V0.2-PLAN §6.2). The difference
+ * unlocks the implicit one. A missing or rejecting provider never degrades silently 閳?
+ * it fails and names both the reason and the switch (V0.2-PLAN 鎼?.2). The difference
  * matters: with a provider the host owns capacity, cancellation and the completion
  * notice, while a direct run is a degraded surface that doctor reports as such
- * (ADAPTER §6.3). Every result therefore names the surface it used — or, for a refusal,
- * the one that was asked for — and, when it had to degrade, why.
+ * (ADAPTER 鎼?.3). Every result therefore names the surface it used 閳?or, for a refusal,
+ * the one that was asked for 閳?and, when it had to degrade, why.
  */
 
 import { harnessDef, normalizeId } from './harnesses.js'
@@ -17,6 +17,10 @@ import { adapterFor } from './adapters.js'
 import { harnessEnv, planTransport, withTimeout } from './transport.js'
 import { blocksToText } from './provider.js'
 import { maskSessionId } from './session-adapters.js'
+import { classifyCliResult } from '../integration/cli-result.js'
+import { applyProjectPolicy, MODE_RANK, readProjectPolicy } from '../integration/project-policy.js'
+import { captureTaskWorktree, createTaskWorktree } from '../integration/worktree.js'
+import { isAbsolute, resolve } from 'node:path'
 
 function omcError(code, message) {
   const error = new Error(`${code}: ${message}`)
@@ -123,7 +127,7 @@ async function resolveTarget(rt, raw) {
   const eligible = rows.filter((row) => row.auth !== 'missing' && row.auth !== 'signed-out')
   if (!eligible.length) {
     const detail = rows.length ? rows.map(unusableReason).join('; ') : 'no harness is enabled in config'
-    throw omcError('OMC/CLI-MISSING', `no usable harness for auto — ${detail}; run /coharness doctor`)
+    throw omcError('OMC/CLI-MISSING', `no usable harness for auto 閳?${detail}; run /coharness doctor`)
   }
   const [best] = [...eligible].sort((a, b) => autoRank(a) - autoRank(b))
   return { def: harnessDef(best.id) }
@@ -131,7 +135,10 @@ async function resolveTarget(rt, raw) {
 
 async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, notes = []) {
   const { ctx, cfg } = rt
-  const hcfg = harnessConfig(cfg, def.id)
+  const baseHcfg = harnessConfig(cfg, def.id)
+  const hcfg = typeof shared.model === 'string' && shared.model.trim() !== ''
+    ? { ...baseHcfg, model: shared.model.trim() }
+    : baseHcfg
   const harnessAdapter = adapterFor(def, cfg)
   if (harnessAdapter.supported !== true) {
     return {
@@ -157,17 +164,35 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
       mode: shared.mode,
       env: harnessEnv(def, hcfg),
       plan,
-      timeoutMs: hcfg.timeoutMs || shared.timeoutMs,
+      // The project ceiling bounds harness-level timeouts too: a per-harness
+      // override must not outlive a project policy that tightened the deadline.
+      timeoutMs: Math.min(
+        hcfg.timeoutMs || shared.timeoutMs,
+        shared.projectTimeoutMs ?? Number.MAX_SAFE_INTEGER,
+      ),
       maxOutputBytes: cfg.dispatch.maxOutputBytes,
       signal: exec.signal,
     })
     deadline = launched.deadline
     const outcome = await launched.handle.done
     const captured = harnessAdapter.collect(launched.handle, cfg.dispatch.maxOutputBytes)
-    const status = harnessAdapter.status(outcome, deadline, exec.signal)
+    const transportStatus = harnessAdapter.status(outcome, deadline, exec.signal)
     // Direct runs do not resume (no lane identity), but reporting the session id
     // and usage the CLI already returned makes the cost observable.
     const parsed = harnessAdapter.parse(captured.stdout)
+    // Direct runs never pass `json: true`, so the CLI answers in human text:
+    // expectJson stays false (the raw stream IS the answer), and the session
+    // adapter merely opportunistically picks up any ids/usage it can find.
+    const classification = classifyCliResult({
+      status: transportStatus,
+      exitCode: outcome.exitCode,
+      signal: outcome.signal,
+      captured,
+      parsed,
+      expectJson: false,
+      requireContent: true,
+    })
+    const status = classification.status
 
     return withNotes(
       {
@@ -177,7 +202,9 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
         output: parsed?.text || captured.stdout || captured.stderr,
         exitCode: outcome.exitCode,
         signal: outcome.signal,
-        truncated: captured.truncated,
+        truncated: classification.truncated,
+        code: classification.code,
+        retryable: classification.retryable,
         spillPath: captured.spillPath,
         elapsedMs: Date.now() - started,
         ...(parsed?.sessionId
@@ -185,7 +212,12 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
           : {}),
         ...(parsed?.usage ? { usage: parsed.usage } : {}),
       },
-      [...notes, status === 'failed' ? `OMC/CLI-EXIT: ${def.id} exited ${outcome.exitCode ?? outcome.signal}` : ''],
+      [
+        ...notes,
+        classification.code
+          ? `${classification.code}: ${classification.message}`
+          : status === 'failed' ? `OMC/CLI-EXIT: ${def.id} exited ${outcome.exitCode ?? outcome.signal}` : '',
+      ],
     )
   } catch (error) {
     return {
@@ -206,6 +238,9 @@ async function runOne(rt, def, task, shared, exec, warning) {
   const started = Date.now()
   const cwd = shared.cwd
   const notes = warning ? [warning] : []
+  const directShared = typeof task.model === 'string' && task.model.trim() !== ''
+    ? { ...shared, model: task.model.trim() }
+    : shared
   const eligibility = providerEligibility(rt, def, shared, exec)
 
   if (!eligibility.ok && shared.delivery === 'background') {
@@ -278,6 +313,11 @@ async function runOne(rt, def, task, shared, exec, warning) {
       }
 
       const timedOut = Boolean(deadline?.timedOut())
+      const diagnostic = timedOut
+        ? `OMC/CLI-TIMEOUT: stopped after ${shared.timeoutMs}ms`
+        : settled.diagnostic || ''
+      const code = /OMC\/CLI-[A-Z-]+/.exec(diagnostic)?.[0] ?? null
+      const retryable = /OMC\/CLI-(RATE-LIMIT|NETWORK|TIMEOUT)/.test(diagnostic)
       return withNotes(
         {
           status: timedOut
@@ -292,13 +332,18 @@ async function runOne(rt, def, task, shared, exec, warning) {
           childId: activation.childId,
           output: blocksToText(settled.output),
           stopReason: settled.stopReason,
+          sessionOutcome: /resume unconfirmed/.test(diagnostic)
+            ? 'unconfirmed'
+            : /session resumed/.test(diagnostic)
+              ? 'resumed'
+              : /session new/.test(diagnostic)
+                ? 'new'
+                : null,
+          code,
+          retryable,
           elapsedMs: Date.now() - started,
         },
-        [
-          ...notes,
-          timedOut
-            ? `OMC/CLI-TIMEOUT: stopped after ${shared.timeoutMs}ms`
-            : settled.diagnostic || '',
+        [...notes, diagnostic,
         ],
       )
     } catch (error) {
@@ -329,8 +374,8 @@ async function runOne(rt, def, task, shared, exec, warning) {
           [...notes, code || String(error?.message ?? 'activation failed')],
         )
       }
-      // Explicit direct intent never reaches this branch — providerEligibility rejects it
-      // first — so only the flag can unlock the fallback here.
+      // Explicit direct intent never reaches this branch 閳?providerEligibility rejects it
+      // first 閳?so only the flag can unlock the fallback here.
       if (rt.cfg.dispatch.allowDirectFallback !== true) {
         return providerUnavailable(def, started, `provider activation rejected the call (${code})`, notes)
       }
@@ -341,7 +386,7 @@ async function runOne(rt, def, task, shared, exec, warning) {
         def,
         task.prompt,
         cwd,
-        shared,
+        directShared,
         exec,
         started,
         `provider activation rejected the call (${code}); direct runs have no child session or host capacity`,
@@ -352,7 +397,29 @@ async function runOne(rt, def, task, shared, exec, warning) {
     }
   }
 
-  return directRun(rt, def, task.prompt, cwd, shared, exec, started, eligibility.reason, notes)
+  return directRun(rt, def, task.prompt, cwd, directShared, exec, started, eligibility.reason, notes)
+}
+
+/**
+ * The real working directory of one dispatch, resolved before any policy or
+ * spawn decision (V0.5-ALPHA2 §9: a per-call mode/timeout/fallback or an
+ * omitted cwd must not slip past the project policy of the actual project).
+ * Mirrors the host's own rule: an absolute request cwd wins; anything else
+ * resolves against the calling agent's working directory, never the Host
+ * process directory.
+ */
+async function resolveDispatchCwd(rt, request, exec) {
+  const raw = typeof request.cwd === 'string' && request.cwd.trim() !== '' ? request.cwd.trim() : null
+  if (raw && isAbsolute(raw)) return raw
+  let base = null
+  try {
+    base = (await rt.ctx.get?.('workingDirectory')?.ensure?.(exec?.agent)) ?? null
+  } catch {
+    base = null
+  }
+  if (!base && typeof exec?.agent?.session?.header?.cwd === 'string') base = exec.agent.session.header.cwd
+  if (!base) base = process.cwd()
+  return raw ? resolve(base, raw) : base
 }
 
 /**
@@ -366,9 +433,15 @@ async function runOne(rt, def, task, shared, exec, warning) {
  */
 export async function dispatchTasks(rt, request, exec) {
   const cfg = rt.cfg
+  // A project may only tighten the operator's policy. The constrained copy is
+  // used for this dispatch call; it never mutates the live configuration.
+  const cwd = await resolveDispatchCwd(rt, request, exec)
+  const project = readProjectPolicy(cwd)
+  const effectiveCfg = project.exists && project.usable !== false ? applyProjectPolicy(cfg, project.policy) : cfg
+  const callRt = effectiveCfg === cfg ? rt : { ...rt, cfg: effectiveCfg }
   const tasks = Array.isArray(request.tasks) && request.tasks.length
     ? request.tasks
-    : [{ harness: request.harness ?? 'auto', prompt: request.prompt ?? '' }]
+    : [{ harness: request.harness ?? 'auto', model: request.model, prompt: request.prompt ?? '' }]
 
   if (tasks.some((task) => !String(task.prompt ?? '').trim())) {
     throw omcError('OMC/EMPTY-TASK', 'every task needs a non-empty prompt')
@@ -376,27 +449,64 @@ export async function dispatchTasks(rt, request, exec) {
 
   // Over-limit used to drop tasks silently. Losing work is never the safer option:
   // fail loudly and tell the caller how to split the batch.
-  if (tasks.length > cfg.dispatch.maxParallel) {
-    const calls = Math.ceil(tasks.length / cfg.dispatch.maxParallel)
+  if (tasks.length > effectiveCfg.dispatch.maxParallel) {
+    const calls = Math.ceil(tasks.length / effectiveCfg.dispatch.maxParallel)
     throw omcError(
       'OMC/TOO-MANY-TASKS',
-      `${tasks.length} tasks exceed maxParallel=${cfg.dispatch.maxParallel}; split them into ${calls} calls of at most ${cfg.dispatch.maxParallel}`,
+      `${tasks.length} tasks exceed maxParallel=${effectiveCfg.dispatch.maxParallel}; split them into ${calls} calls of at most ${effectiveCfg.dispatch.maxParallel}`,
+    )
+  }
+  // A policy limit is only real when the dispatch path enforces it. This is the
+  // external fan-out bound; the graph tool owns the per-task oracle/review caps.
+  const externalLimit = effectiveCfg.routing?.enabled === true ? effectiveCfg.routing.limits?.maxParallelExternal : undefined
+  if (Number.isSafeInteger(externalLimit) && tasks.length > externalLimit) {
+    throw omcError(
+      'OMC/ROUTING-LIMIT',
+      `${tasks.length} external tasks exceed routing.limits.maxParallelExternal=${externalLimit}; split the batch`,
     )
   }
 
+  // An existing project policy that cannot be understood is not an empty
+  // policy: side-effect dispatch is refused with the reason, while read-only
+  // work may continue (it cannot violate an unknown restriction it can see).
+  const requestedMode = ['read-only', 'in-place', 'worktree'].includes(request.mode) ? request.mode : effectiveCfg.dispatch.defaultMode
+  if (project.exists && project.usable === false && requestedMode !== 'read-only') {
+    throw omcError(
+      'OMC/PROJECT-POLICY-UNREADABLE',
+      `${project.path}: ${project.warnings[0] ?? 'the project policy exists but cannot be read'}; ` +
+      `mode "${requestedMode}" could bypass unknown project limits — fix or remove the file, or dispatch read-only`,
+    )
+  }
+  // A project ceiling is only real when it also bounds the per-call request
+  // (A01): a single long timeout or a write mode must not slip past a project
+  // that tightened the operator's defaults.
+  const projectTimeoutMs = project.usable !== false ? project.policy?.dispatch?.timeoutMs : undefined
+  const projectMode = project.usable !== false ? project.policy?.dispatch?.defaultMode : undefined
+  if (projectMode && MODE_RANK[requestedMode] > MODE_RANK[projectMode]) {
+    throw omcError(
+      'OMC/PROJECT-POLICY-MODE',
+      `mode "${requestedMode}" exceeds the project policy ceiling "${projectMode}" (${project.path}); ` +
+      'the project may only tighten the operator policy and a single call cannot widen it',
+    )
+  }
+  const perCallTimeoutMs = Number.isSafeInteger(request.timeoutMs) ? request.timeoutMs : effectiveCfg.dispatch.timeoutMs
+
   const shared = {
-    cwd: request.cwd,
+    cwd,
     delivery: request.delivery === 'background' ? 'background' : 'await',
-    timeoutMs: Number.isSafeInteger(request.timeoutMs) ? request.timeoutMs : cfg.dispatch.timeoutMs,
-    mode: ['read-only', 'in-place', 'worktree'].includes(request.mode) ? request.mode : cfg.dispatch.defaultMode,
+    timeoutMs: Number.isSafeInteger(projectTimeoutMs) ? Math.min(perCallTimeoutMs, projectTimeoutMs) : perCallTimeoutMs,
+    mode: requestedMode,
+    // The project timeout also bounds harness-level timeouts on the direct
+    // surface, where hcfg.timeoutMs would otherwise override the ceiling.
+    projectTimeoutMs: Number.isSafeInteger(projectTimeoutMs) ? projectTimeoutMs : null,
   }
 
   // 0.2.0 never runs parallel writes: a single writer per stage is the whole reason
-  // the write path has no isolation yet (V0.2-PLAN §7, R3). Sequential calls still work.
+  // the write path has no isolation yet (V0.2-PLAN 鎼?, R3). Sequential calls still work.
   if (shared.mode === 'in-place' && tasks.length > 1) {
     throw omcError(
       'OMC/PARALLEL-WRITE',
-      `${tasks.length} in-place tasks would write concurrently; 0.2.0 is single-writer — run them one call at a time`,
+      `${tasks.length} in-place tasks would write concurrently; 0.2.0 is single-writer 閳?run them one call at a time`,
     )
   }
 
@@ -404,24 +514,112 @@ export async function dispatchTasks(rt, request, exec) {
   // target must not reject the whole batch and discard the other results.
   const results = await Promise.all(
     tasks.map(async (task) => {
-      try {
-        const target = await resolveTarget(rt, task.harness)
-        return await runOne(rt, target.def, task, shared, exec, target.warning)
-      } catch (error) {
-        return {
-          status: 'failed',
-          harnessId: normalizeId(task.harness) || 'auto',
-          output: '',
-          elapsedMs: 0,
-          diagnostics: [String(error?.message ?? error?.code ?? 'dispatch failed')],
+      let taskShared = shared
+      let taskWorktree = null
+      if (shared.mode === 'worktree') {
+        const created = await createTaskWorktree(callRt.ctx, {
+          repo: request.cwd,
+          name: 'task-' + String(task.harness ?? 'auto'),
+          signal: exec.signal,
+        })
+        if (!created.ok) {
+          return {
+            status: 'failed',
+            harnessId: normalizeId(task.harness) || 'auto',
+            output: '',
+            elapsedMs: 0,
+            diagnostics: [created.code + ': ' + created.output],
+            code: created.code,
+            retryable: false,
+          }
+        }
+        taskWorktree = created
+        // Record the latest dispatch worktree so `worktree merge:true` can
+        // accept it explicitly. A multi-task batch keeps each branch in its
+        // result; the record is only the most recent one.
+        callRt.worktrees?.record?.(exec?.agent?.id, created)
+        // The disposable checkout is the write target. The CLI still sees the
+        // same in-place argv; the isolation comes from the checkout, not a
+        // different permission mode.
+        taskShared = { ...shared, cwd: created.path, mode: 'in-place' }
+      }
+      const fallbacks = [
+        ...(Array.isArray(request.fallbacks) ? request.fallbacks : []),
+        ...(Array.isArray(task.fallbacks) ? task.fallbacks : []),
+      ]
+      const candidates = []
+      for (const candidate of [task.harness, ...fallbacks]) {
+        const id = normalizeId(candidate) || 'auto'
+        if (!candidates.includes(id)) candidates.push(id)
+      }
+      const attempts = []
+      let last = null
+      for (const candidate of candidates) {
+        try {
+          const target = await resolveTarget(callRt, candidate)
+          last = await runOne(callRt, target.def, task, taskShared, exec, target.warning)
+          attempts.push({
+            harness: target.def.id,
+            status: last.status,
+            ...(last.code ? { code: last.code } : {}),
+            retryable: last.retryable === true,
+          })
+          // A running background task has no result to classify yet; a
+          // completed/cancelled result is final. Only a failed retryable result
+          // advances to the next fallback.
+          if (last.status === 'completed' || last.status === 'cancelled' || last.status === 'started') break
+          if (last.retryable !== true) break
+        } catch (error) {
+          attempts.push({ harness: candidate, status: 'failed', code: error?.code ?? null, retryable: false })
+          last = {
+            status: 'failed',
+            harnessId: candidate,
+            output: '',
+            elapsedMs: 0,
+            diagnostics: [String(error?.message ?? error?.code ?? 'dispatch failed')],
+            retryable: false,
+          }
+          // An unknown/disabled primary should still let an explicitly listed
+          // fallback run; a bad fallback is just the next failed attempt.
         }
       }
+      if (last && taskWorktree) {
+        const captured = await captureTaskWorktree(callRt.ctx, taskWorktree.path, { signal: exec.signal })
+        last = {
+          ...last,
+          code: last.code ?? (captured.ok ? null : 'OMC/WORKTREE-CAPTURE'),
+          worktree: {
+            path: taskWorktree.path,
+            branch: taskWorktree.branch,
+            baseCommit: taskWorktree.baseCommit,
+            repositoryRoot: taskWorktree.repositoryRoot,
+          },
+          files: captured.files,
+          diff: captured.diff,
+          statusText: captured.status,
+        }
+      }
+      return last
+        ? { ...last, ...(attempts.length > 1 ? { attempts } : {}) }
+        : {
+            status: 'failed',
+            harnessId: 'auto',
+            output: '',
+            elapsedMs: 0,
+            diagnostics: ['no harness candidate was provided'],
+            retryable: false,
+          }
     }),
   )
 
   return {
     results: results.map(clean),
-    maxParallel: cfg.dispatch.maxParallel,
+    maxParallel: effectiveCfg.dispatch.maxParallel,
     delivery: shared.delivery,
+    ...(project.exists ? {
+      project: { path: project.path, warnings: project.warnings ?? [] },
+    } : {}),
   }
 }
+
+

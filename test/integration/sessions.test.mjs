@@ -53,6 +53,7 @@ test('a completed run stores exactly one native reference', async () => {
   assert.equal(stats.entries, 1)
   assert.equal(stats.resumable, 1)
   assert.equal(stats.states.idle, 1)
+  assert.equal(stats.outcomes.new, 1)
 
   const body = JSON.parse(readFileSync(path, 'utf8'))
   assert.equal(body.schemaVersion, 1)
@@ -115,7 +116,7 @@ test('the turn cap and the idle window both stop reuse', async () => {
 
   for (let turn = 1; turn <= 2; turn += 1) {
     const lease = await registry.acquire(lane)
-    registry.complete(lease, { sessionId: `thread-${turn}` })
+    registry.complete(lease, { sessionId: 'thread-same-conversation' })
     lease.release()
   }
   assert.equal(registry.stats().resumable, 0)
@@ -193,4 +194,54 @@ test('the key hash is stable and ignores property order', () => {
   const two = sessionKeyFor({ workspace: 'e:/repo', harness: 'codex', role: 'oracle' })
   assert.equal(sessionKeyHash(one), sessionKeyHash(two))
   assert.equal(canResumeRecord(null, one), false)
+})
+
+test('a replacement session gets a fresh turn budget after reaching the cap', async () => {
+  const { registry } = tempRegistry({ maxTurns: 1 })
+  const first = await registry.acquire(key())
+  registry.complete(first, { sessionId: 'thread-old' })
+  first.release()
+  const replacement = await registry.acquire(key())
+  assert.equal(replacement.record, null)
+  registry.complete(replacement, { sessionId: 'thread-replacement' })
+  replacement.release()
+  assert.equal(registry.list()[0].turns, 1)
+})
+
+test('cancellation while waiting for a lane never takes its lease', async () => {
+  const { registry } = tempRegistry()
+  const held = await registry.acquire(key())
+  const controller = new AbortController()
+  controller.abort()
+  await assert.rejects(registry.acquire(key(), { signal: controller.signal }), { name: 'AbortError' })
+  held.release()
+  const next = await registry.acquire(key())
+  next.release()
+})
+
+test('forgetting or invalidating a running reference prevents late completion from reviving it', async () => {
+  const { registry } = tempRegistry()
+  const held = await registry.acquire(key())
+  registry.invalidate(key())
+  registry.complete(held, { sessionId: 'thread-must-stay-invalid' })
+  held.release()
+  assert.equal(registry.list()[0].state, 'invalidated')
+  assert.equal(registry.find(key()), null)
+  const next = await registry.acquire(key())
+  registry.clear()
+  registry.complete(next, { sessionId: 'thread-must-stay-cleared' })
+  next.release()
+  assert.equal(registry.stats().entries, 0)
+})
+
+test('require-resume does not create a phantom running record or strand its lease', async () => {
+  const { registry } = tempRegistry()
+  await assert.rejects(registry.acquire(key(), { requireResume: true }), { code: 'OMC/SESSION-REQUIRED' })
+  assert.equal(registry.stats().entries, 0)
+  const next = await registry.acquire(key())
+  registry.complete(next, { sessionId: 'thread-after-required' })
+  next.release()
+  const resumed = await registry.acquire(key(), { requireResume: true })
+  assert.equal(resumed.record.native.sessionId, 'thread-after-required')
+  resumed.release()
 })

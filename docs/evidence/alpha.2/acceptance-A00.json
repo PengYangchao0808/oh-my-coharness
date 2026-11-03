@@ -1,0 +1,42 @@
+{
+  "case": "A00",
+  "workPackage": "WP00",
+  "date": "2026-11-03",
+  "result": "passed",
+  "codeVersion": "0.5.0-alpha.1 working tree @ git 68f9644de3d6458aaa4f9d50d380ec469587e55d",
+  "workTreeFingerprint": "uncommitted working tree; probe script sha256:4E566927A1D5C1A0 (scripts/efficiency-capability-check.mjs)",
+  "dsh": {
+    "version": "0.2.1-rc.5",
+    "install": "C:/Users/彭扬超/AppData/Local/Programs/DeepSeek Harness/resources/app.asar",
+    "profile": ".ops/dsh-home/profiles/omc-test (isolated, links this checkout)"
+  },
+  "layers": ["no-model host probe (static + live boot, synthetic adapter)"],
+  "modelCalls": 0,
+  "procedure": [
+    "static: node scripts/efficiency-capability-check.mjs — reads the installed app.asar, verifies 14 contract markers across dsh-agent-loop/dsh-session/dsh-llm/dsh-tool-subagent",
+    "live: ELECTRON_RUN_AS_NODE=1 \"DeepSeek Harness.exe\" --expose-internals scripts/efficiency-capability-check.mjs --live --out docs/evidence/alpha.2/capabilities.json — boots the real host, registers provider omc-probe with a synthetic stream adapter, drives agent A (fail → agent/request-error retry → success), a rejected turn 2 (agent/pre-step), and agent B (distinct session identity)"
+  ],
+  "expectations": [
+    "a support matrix exists per capability × surface (native / external provider / direct) with version and timing evidence",
+    "agent/request is not assumed to be a per-step interceptor without proof; retry re-entry and pre-step rejection are observed live",
+    "missing host seams are recorded as unsupported/partial with the boundary that follows"
+  ],
+  "observed": {
+    "staticChecks": "14/14 passed against installed 0.2.1-rc.5",
+    "liveVerdicts": {
+      "requestGatePerAttempt": true,
+      "preStepRejectionBlocksSend": true,
+      "usageSettledOnAssistantMessage": true,
+      "failedAttemptRecordedWithoutUsage": true,
+      "settlementReasonsDurable": true,
+      "sessionIdAtAdapterBoundary": true
+    },
+    "exitCode": "OMC_CAPABILITY_PASS mode=live (and mode=static)"
+  },
+  "artifacts": ["docs/evidence/alpha.2/capabilities.json", "scripts/efficiency-capability-check.mjs"],
+  "consequences": [
+    "external lanes get no per-call request gate guarantee (unsupported): maxCalls stays a native-lane-only controlled promise",
+    "history view transform and core tool/result rewriting stay partial/experimental; OMC ships its own echo + artifact references first",
+    "built-in adapters send no per-session identity header; cache affinity (WP07) must go through a registered adapter seam and re-probe after host upgrades"
+  ]
+}

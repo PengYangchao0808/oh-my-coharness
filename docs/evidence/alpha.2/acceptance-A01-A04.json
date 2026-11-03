@@ -1,0 +1,28 @@
+{
+  "case": "A01-A04",
+  "workPackage": "WP01",
+  "date": "2026-11-03",
+  "result": "passed",
+  "codeVersion": "0.5.0-alpha.1 working tree @ git 68f9644 (uncommitted alpha.2 batch-1 implementation)",
+  "dsh": { "version": "0.2.1-rc.5" },
+  "layers": ["real-parameter combination regressions (no model calls)"],
+  "modelCalls": 0,
+  "changes": [
+    "integration/project-policy.js: MODE_RANK exported; readProjectPolicy reports usable:false for an existing-but-unreadable file; renderProjectPolicy explains the refusal",
+    "src/dispatch.js: resolveDispatchCwd resolves an omitted/relative cwd against the calling agent's working directory (host workingDirectory service, session header cwd, process cwd fallback) before any policy read or spawn; per-call mode and timeout are clamped/refused to the project ceiling; the harness-level timeout is also bounded on the direct surface; OMC/PROJECT-POLICY-UNREADABLE refuses side-effect dispatch when the project file exists but cannot be understood",
+    "integration/cli-result.js + src/session-adapters.js: parseSessionOutput reports envelope (structured output actually recognized); with expectJson (requested machine-readable output) a missing envelope or an envelope without a terminal message is OMC/CLI-SEMANTIC-FAILURE — never a stdout fallback; a deadline kill is classified timeout, not cancelled",
+    "src/dispatch.js directRun: expectJson is now false for direct runs, which never request JSON output",
+    "integration/preset-snapshot.js: startup baseline is written once per parent session (ensureStartup) and manual snapshots are labeled and stored beside it; COMPARED_FIELDS now covers execution and maxTokens",
+    "vendor preset subagent-roles.js + integration/status.js: every role's observed request route (with reroute marker) is recorded beside the configured route and surfaced as actualRoute in status"
+  ],
+  "regressions": "test/integration/wp01-correctness.test.mjs (10 tests: A01 gate/timeout/fallback, A02 cwd resolution + unreadable policy, A03 parser→classifier combinations, A04 observed route); test/integration/preset-snapshot.test.mjs extended (startup immutability, manual labeling, execution/maxTokens diff)",
+  "observed": {
+    "wp01Tests": "10/10 pass",
+    "fullSuite": "27/27 files pass (node test chain, Desktop node v24.21.0)"
+  },
+  "boundaries": [
+    "the project mode ceiling keeps the shipped rank semantics (read-only < in-place < worktree); a per-kind allow set is a future config-schema change, not a per-call decision",
+    "the provider surface's own spawn timeout stays at its harness config; the dispatch-level deadline signal still bounds the observable run",
+    "startup baseline means 'frozen at this session's first OMC observation', not literally process start; the status note says so"
+  ]
+}

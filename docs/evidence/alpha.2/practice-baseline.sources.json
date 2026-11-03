@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "kind": "practice-baseline-claims",
+  "task": "R00",
+  "authoredAt": "2026-11-03",
+  "packageVersion": "0.5.0-alpha.2-practice.1",
+  "note": "Authored claims. scripts/practice-baseline.mjs resolves every ref and demotes a claimed pass whose evidence is missing or whose suite did not run. Status vocabulary: passed | partial | not-run | blocked. A layer only proves its own scope: implementation presence is not usability, and a CI placeholder is never a hostProbe.",
+  "capabilities": [
+    {
+      "id": "native-event-bridge",
+      "title": "原生事件桥：父任务 / 节点 / child / 尝试归集（R01）",
+      "releaseScope": "alpha.2 R01",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "session/event + agent/created only; lineage from the host's own session header, owned-preset roots auto-bound, one booking per (native, session, seq), turn/end settlement that never fills acceptance",
+          "refs": ["integration/native-runtime.js", "src/index.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "11 bridge regressions: two children, a nested child, retry, cancel, replay, duplicate delivery, route switch, scope isolation, handler containment",
+          "refs": ["test/integration/native-runtime.test.mjs", "suite:test/integration/native-runtime.test.mjs", "suite:test/integration/wp02-usage-ledger.test.mjs"]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "note": "installed host booted with a synthetic adapter (0 model calls): real lineage persisted, 3 tasks attributed, replay added nothing, mounted plugin bridge installed and booked its own preset",
+          "refs": ["docs/evidence/alpha.2/practice-r01-native-runtime.json"]
+        },
+        "realModel": { "status": "not-run", "note": "no billed run yet: the probe adapter is synthetic, so this proves wiring, not cost" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": {
+          "status": "partial",
+          "note": "four-bucket totals and unknown-cost flags are derived from real events; no price table is embedded, so a fee stays unknown unless a priced record is supplied"
+        }
+      }
+    },
+    {
+      "id": "native-per-request-usage",
+      "title": "原生逐步 usage 归集（四桶 + 未知不填零）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "usage-ledger four-bucket normalization + idempotent booking keyed by (backend, session/run, event); nativeSessionUsageEntries replays assistant/attempt events",
+          "refs": ["integration/usage-ledger.js", "docs/evidence/alpha.2/acceptance-A05-A10.json"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "13 ledger regressions including duplicate/reordered/restart events",
+          "refs": ["test/integration/wp02-usage-ledger.test.mjs", "suite:test/integration/wp02-usage-ledger.test.mjs"]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "note": "installed host booted with a synthetic adapter, 0 model calls: assistant/message settles usage, assistant/attempt carries none",
+          "refs": ["docs/evidence/alpha.2/capabilities.json"]
+        },
+        "realModel": {
+          "status": "partial",
+          "note": "observational replay of real local sessions matches the host projection (matchesProjection); not a controlled run and not a per-request live capture",
+          "refs": ["docs/evidence/2026-11-03-native-token-audit.json"]
+        },
+        "desktop": { "status": "not-run", "note": "no Desktop click-through recorded" },
+        "costCoverage": {
+          "status": "partial",
+          "note": "no embedded prices: a cost row requires a caller-supplied priced record; unknown cost renders unknown",
+          "refs": ["integration/usage-ledger.js"]
+        }
+      }
+    },
+    {
+      "id": "native-request-gate",
+      "title": "原生逐尝试发送闸门（agent/request、retry 重入、pre-step 拒绝）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "static checks confirm agent/request runs per attempt and a retry re-enters it",
+          "refs": ["docs/evidence/alpha.2/capabilities.json", "scripts/efficiency-capability-check.mjs"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "budget/progress regressions cover the decision function; the live gate is proven by the host probe, not by mocks",
+          "refs": ["test/integration/wp06-budget.test.mjs", "suite:test/integration/wp06-budget.test.mjs"]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "note": "live probe: 2 adapter dispatches with 1 induced retry; pre-step reject leaves turn/end blocked with no third dispatch",
+          "refs": ["docs/evidence/alpha.2/capabilities.json"]
+        },
+        "realModel": { "status": "not-run", "note": "the gate has not been exercised against a real billed request" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    },
+    {
+      "id": "budget-stop-execution",
+      "title": "达到上限后阻止下一次真实请求（逐请求闸门 + 跨进程预留）",
+      "releaseScope": "alpha.2 R02",
+      "layers": {
+        "implementation": {
+          "status": "partial",
+          "note": "checkpoint and no-progress explanation exist; reservations live in a process-local Map, so a cross-process last-slot race is NOT yet implemented",
+          "refs": ["integration/budget.js", "integration/file-lock.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "in-process reservation and checkpoint regressions only; they cannot prove cross-process atomicity",
+          "refs": ["test/integration/wp06-budget.test.mjs", "suite:test/integration/wp06-budget.test.mjs"]
+        },
+        "hostProbe": { "status": "not-run", "note": "no probe shows a refused send at the native boundary" },
+        "realModel": { "status": "not-run" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": {
+          "status": "blocked",
+          "note": "fees arrive with delay and may be in flight; no strict bill cap can be promised"
+        }
+      }
+    },
+    {
+      "id": "managed-collaboration",
+      "title": "工作包 / 任务图 / 消息 / 执行结果闭环",
+      "releaseScope": "alpha.2 R03",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "claim/settle, mailbox injection, artifact store and role results implemented; native role auto-claim is NOT yet wired",
+          "refs": ["integration/managed-execution.js", "integration/graph.js", "integration/mailbox.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "graph/mailbox/managed regressions",
+          "refs": [
+            "test/integration/wp05-managed.test.mjs",
+            "suite:test/integration/wp05-managed.test.mjs",
+            "suite:test/integration/graph.test.mjs",
+            "suite:test/integration/mailbox.test.mjs"
+          ]
+        },
+        "hostProbe": {
+          "status": "partial",
+          "note": "isolated host exposes graph/send/inbox actions with 0 model calls; no native role claim/settle probe yet",
+          "refs": ["docs/evidence/2026-11-02-durable-orchestration.json"]
+        },
+        "realModel": { "status": "not-run", "note": "no native Explorer to Fixer run recorded end to end" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    },
+    {
+      "id": "work-packet-artifact",
+      "title": "工作包契约与产物存储（超限外置或拒绝）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "fitWorkPacket externalises or refuses; acceptance/budget/scope are never trimmed",
+          "refs": ["integration/work-packet.js", "integration/artifact-store.js", "docs/evidence/alpha.2/acceptance-A05-A10.json"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "8 packet regressions",
+          "refs": ["suite:test/integration/wp03-packet.test.mjs"]
+        },
+        "hostProbe": { "status": "partial", "note": "artifact stores are instantiated per host process; not exercised through a real role dispatch" },
+        "realModel": { "status": "not-run" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    },
+    {
+      "id": "execution-acceptance-separation",
+      "title": "执行状态与验收状态分离（不把 stop-partial 当完成）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "running|completed|failed|cancelled|unknown kept apart from pending|passed|failed|unknown; cancelRequested is its own flag",
+          "refs": ["integration/execution-events.js", "integration/role-result.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "attempt lifecycle, contradiction and restart reconciliation regressions",
+          "refs": ["suite:test/integration/wp02-usage-ledger.test.mjs", "suite:test/integration/role-result.test.mjs"]
+        },
+        "hostProbe": { "status": "partial", "note": "turn/end reasons observed live (completed|blocked); not yet bound to a managed task" },
+        "realModel": { "status": "not-run" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    },
+    {
+      "id": "external-codex-session",
+      "title": "外部 Codex：真实模型会话续接与用量",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "refs": ["integration/sessions.js", "src/session-adapters.js", "src/harnesses.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "refs": ["suite:test/integration/sessions.test.mjs", "suite:test/integration/provider-session.test.mjs"]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "note": "isolated native + external Oracle mount, 9 tools, 0 model calls",
+          "refs": ["docs/evidence/2026-11-02-session-live.json"]
+        },
+        "realModel": {
+          "status": "passed",
+          "note": "two real Codex rounds (new + resumed) with usage; workspace unchanged",
+          "refs": ["docs/evidence/2026-11-02-session-live.json"]
+        },
+        "desktop": { "status": "not-run", "note": "explicitly not a Desktop UI end-to-end test" },
+        "costCoverage": {
+          "status": "partial",
+          "note": "usage is per dispatch from CLI JSON; gaps stay null"
+        }
+      }
+    },
+    {
+      "id": "cache-affinity",
+      "title": "会话身份 / 缓存桶（身份可用与真实费用分开）",
+      "releaseScope": "alpha.2 R08",
+      "layers": {
+        "implementation": {
+          "status": "partial",
+          "note": "the sessionId seam is verified and a custom adapter can be registered, but no adapter ships a per-session header; nothing here may be sold as cache optimisation",
+          "refs": ["docs/evidence/alpha.2/capabilities.json", "scripts/cache-affinity-check.mjs"]
+        },
+        "tests": {
+          "status": "passed",
+          "refs": ["suite:test/integration/report-cache.test.mjs", "suite:test/integration/wp04-context.test.mjs"]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "note": "identity verified live: A stable across attempts, B distinct",
+          "refs": ["docs/evidence/alpha.2/cache-affinity.json"]
+        },
+        "realModel": { "status": "not-run", "note": "no per-request cache bucket reconciliation against a real bill" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    },
+    {
+      "id": "settings-and-monitoring",
+      "title": "设置卡与监控展示真实状态（observe 为默认）",
+      "releaseScope": "alpha.2 R05",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "off|observe|balanced schema with capability fallback; Runtime tab exists",
+          "refs": ["src/config.js", "vendor/omd/npm-package/lib/config-settings.js", "vendor/omd/npm-package/client/client.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "refs": ["suite:test/integration/client.test.mjs", "suite:test/integration/usability.test.mjs", "suite:test/integration/migration.test.mjs"]
+        },
+        "hostProbe": { "status": "partial", "note": "client bundle loads and contracts pass; no browser click-through" },
+        "realModel": { "status": "not-run" },
+        "desktop": { "status": "not-run", "note": "save/reload/concurrent edit/fallback have no Desktop evidence" },
+        "costCoverage": { "status": "not-run", "note": "four-bucket display is not yet wired to the ledger" }
+      }
+    },
+    {
+      "id": "strategy-eval-offline",
+      "title": "三策略离线分配与汇总（不含真实对照）",
+      "releaseScope": "alpha.2 R06",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "offline allocation, summarising, uncertainty and review rules only; no collector and no runner",
+          "refs": ["integration/strategy-eval.js", "scripts/strategy-eval.mjs"]
+        },
+        "tests": {
+          "status": "passed",
+          "refs": ["suite:test/integration/strategy-eval.test.mjs"]
+        },
+        "hostProbe": { "status": "not-run" },
+        "realModel": { "status": "not-run", "note": "no A/B/C comparison has been run" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": {
+          "status": "not-run",
+          "note": "all inputs are synthetic fixtures; the record digests do not attest runtime truthfulness",
+          "refs": ["docs/evidence/2026-11-03-feedback-eval.json"]
+        }
+      }
+    },
+    {
+      "id": "independent-acceptance",
+      "title": "外部独立验收（worker 不能自己改分）",
+      "releaseScope": "alpha.2 R07",
+      "layers": {
+        "implementation": { "status": "not-run", "note": "integration/acceptance-runner.js does not exist yet" },
+        "tests": { "status": "not-run" },
+        "hostProbe": { "status": "not-run" },
+        "realModel": { "status": "not-run" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    },
+    {
+      "id": "install-and-release",
+      "title": "打包清单、CI 与真实安装",
+      "releaseScope": "alpha.2 R09",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "pack-check validates the manifest only",
+          "refs": ["scripts/pack-check.mjs", ".github/workflows/ci.yml"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "self-check and the 34-file suite run locally; the CI host runtime step is still a placeholder and is NOT host evidence",
+          "refs": ["scripts/check.mjs", "suite:test/smoke.test.mjs"]
+        },
+        "hostProbe": { "status": "partial", "note": "installless isolated profile probes only; CI host step is a placeholder" },
+        "realModel": { "status": "not-run" },
+        "desktop": { "status": "not-run", "note": "no tarball install into Desktop, no support matrix run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    }
+  ]
+}

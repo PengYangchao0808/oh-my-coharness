@@ -14,6 +14,7 @@ import { describeExecution, EXTERNAL_ROLE_IDS } from './compatibility.js'
 import { harnessReadOnlyClass, resolveExecution } from './execution.js'
 import { createSessionRegistry } from './sessions.js'
 import { policySummary, recommendRoute } from './model-policy.js'
+import { catalogIndex, listProviderRoutes, readModelCatalog } from './catalog.js'
 
 /** The single public preset id of the merged bundle. */
 export const PRESET_ID = 'oh-my-coharness'
@@ -53,6 +54,11 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
   const registry = options.registry ?? createSessionRegistry(cfg.sessions)
   const providers = liveProviders(ctx)
   const loaded = await readRoleConfiguration(ctx)
+  const catalog = await readModelCatalog(ctx).catch(() => [])
+  const models = catalogIndex(catalog)
+  // `subagents.list()` names subagent providers, not LLM routes. Native role
+  // availability is a question about the LLM catalog, so check it separately.
+  const nativeProviders = new Set(listProviderRoutes(ctx).map((row) => row.id))
   const billing = Object.fromEntries(
     HARNESSES.map((def) => [def.id, cfg.harnesses[def.id]?.billing ?? def.billing ?? 'unknown']),
   )
@@ -63,6 +69,18 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
     rows: report?.rows ?? [],
   })
   const roles = []
+  // The observed request routes recorded by the preset's agent/request
+  // listener (configured vs actual, so a stale creation description cannot be
+  // mistaken for the route a child really runs on). Absent when the preset
+  // plugin has not served any request in this process yet.
+  let actualRoutes = {}
+  try {
+    let reader = null
+    try { ({ readActualRoutes: reader } = await import('../vendor/omd/npm-package/preset/subagent-roles.js')) } catch { reader = null }
+    actualRoutes = reader ? reader() : {}
+  } catch {
+    actualRoutes = {}
+  }
   if (loaded.ok) {
     for (const [roleId, roleConfig] of Object.entries(loaded.config.roles)) {
       let resolved
@@ -85,14 +103,28 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
         })
         continue
       }
+      const nativeProvider = typeof roleConfig.provider === 'string' ? roleConfig.provider.trim() : ''
+      const nativeModel = typeof roleConfig.model === 'string' ? roleConfig.model.trim() : ''
+      const nativeLabel = nativeProvider !== '' && nativeModel !== '' ? nativeProvider + '/' + nativeModel : ''
+      const modelAvailable = nativeLabel !== '' && catalog.length > 0 ? models.has(nativeLabel) : undefined
       roles.push({
         roleId,
         enabled: roleConfig.enabled !== false,
-        execution: resolved.external ? `omc:${resolved.harness}` : describeExecution(roleConfig),
+        execution: resolved.external
+          ? `omc:${resolved.harness}`
+          : nativeLabel !== '' ? `native · ${nativeLabel}` : 'native · inherit session model',
         backend: resolved.backend,
         harness: resolved.harness,
-        provider: resolved.provider,
-        providerAvailable: resolved.external ? providers.includes(resolved.provider) : true,
+        provider: resolved.external ? resolved.provider : nativeProvider,
+        providerAvailable: resolved.external
+          ? providers.includes(resolved.provider)
+          : nativeProvider !== ''
+            ? nativeProviders.size === 0 ? undefined : nativeProviders.has(nativeProvider)
+            : true,
+        // Native rows carry the DSH LLM route; external rows carry the CLI route
+        // above and leave this empty.
+        model: resolved.external ? '' : nativeModel,
+        modelAvailable,
         readOnly: resolved.readOnly,
         // What an external run of this role may do; native rows have no mode.
         mode: resolved.mode,
@@ -101,6 +133,10 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
         reason: resolved.reason,
         fallbackReason: resolved.fallbackReason,
         policy: resolved.policy,
+        // The observed route of this role's latest request, when the preset
+        // has served one in this process. Separate from the configured route
+        // above on purpose: a reroute must stay visible.
+        ...(actualRoutes[roleId] ? { actualRoute: actualRoutes[roleId] } : {}),
         // The connection an external row actually depends on; native rows have
         // no external target, so there is nothing to check.
         connection: resolved.external ? connections[resolved.harness] ?? null : null,
@@ -120,6 +156,8 @@ export async function buildExecutionStatus(ctx, rowConfig = {}, options = {}) {
     configError: loaded.ok ? undefined : loaded.error,
     providers,
     roles,
+    // Observed per-role request routes, keyed by role id plus 'orchestrator'.
+    actualRoutes,
     sessions: registry.stats(),
     routing: policy,
     connections,
@@ -209,7 +247,14 @@ export function renderExecutionStatus(status, { legacy } = {}) {
     // A patch producer is read-only toward the tree but returns a diff a native
     // implementer applies; the flag keeps that distinction visible in doctor.
     if (row.mode === 'patch') flags.push('patch producer')
-    if (row.external && row.providerAvailable === false) flags.push('provider unavailable')
+    if (row.providerAvailable === false) {
+      flags.push(row.backend === 'native' ? 'model provider not registered' : 'provider unavailable')
+    }
+    // A pinned native model that is not in the live catalog is a configuration
+    // error, not a runtime surprise; say it in the status line.
+    if (row.backend === 'native' && row.model && row.modelAvailable === false) {
+      flags.push('model not in the DSH catalog')
+    }
     // Registered is not usable: an external row says so when its connection is
     // not routable, and a native row explains the automatic route it refused.
     if (row.connection && row.connection.routable !== true) {
@@ -230,9 +275,16 @@ export function renderExecutionStatus(status, { legacy } = {}) {
     const states = sessions.states ?? {}
     lines.push(
       `session reuse: ${sessions.enabled === false ? 'off' : 'on'} · policy ${sessions.resumePolicy ?? 'auto'} · ` +
-        `${sessions.entries ?? 0} refs · ${sessions.resumable ?? 0} resumable · ` +
+        `${sessions.entries ?? 0} refs · ${sessions.lanes ?? 0} lane(s) · ${sessions.resumable ?? 0} resumable · ` +
         `idle ${states.idle ?? 0} / running ${states.running ?? 0} / failed ${states.failed ?? 0}`,
     )
+    if (sessions.usage) {
+      const usage = sessions.usage
+      lines.push(
+        `  usage: in ${usage.inputTokens ?? 0} · out ${usage.outputTokens ?? 0}` +
+        (usage.costKnown ? ` · cost $${Number(usage.costUsd ?? 0).toFixed(4)}` : ' · cost unknown'),
+      )
+    }
     if (sessions.loadError) lines.push(`  session registry unreadable: ${sessions.loadError}`)
   }
   if (status.routing) {

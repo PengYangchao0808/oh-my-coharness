@@ -1,0 +1,30 @@
+{
+  "case": "A21-A22",
+  "workPackage": "WP07",
+  "date": "2026-11-03",
+  "result": "A21 passed (zero-model live probe); A22 not-run by design this batch",
+  "codeVersion": "0.5.0-alpha.1 working tree @ git 68f9644 (uncommitted alpha.2 batch-2 implementation)",
+  "dsh": { "version": "0.2.1-rc.5" },
+  "layers": ["no-model live host probe (synthetic adapter) + static archive check"],
+  "modelCalls": 0,
+  "probe": {
+    "script": "scripts/cache-affinity-check.mjs",
+    "result": "OMC_CACHE_AFFINITY_PASS (exit 0)",
+    "evidence": "docs/evidence/alpha.2/cache-affinity.json",
+    "identityVerdicts": {
+      "sameChildStableAcrossTurnsAndRetries": true,
+      "newChildDistinctIdentity": true,
+      "retryKeepsIdentity": true,
+      "builtinAdapterHasNoSessionHeader": true
+    }
+  },
+  "caseResults": {
+    "A21": "passed for the declared Go/managed seams: per-session identity is available and stable at every registered adapter's stream boundary (same child across turns and retries, new child distinct, orchestrator/child separate); the built-in dsh-llm adapters send no per-session identity header (verified in the installed archive)",
+    "A22": "not-run — real cache-bucket and cost reconciliation needs real provider calls with an explicit budget; run the WP09 benchmark harness against a real provider, then record the returned buckets and cost in docs/evidence/alpha.2/cache-affinity.json (its realUsageReconciliation field documents this)"
+  },
+  "decision": "alpha.2 keeps provider-side affinity at the session-resume level (codex native sessions are the verified path); shipping an OMC session-affinity adapter would create a new billing/auth surface and is deferred until the host exposes a per-session header interface",
+  "boundaries": [
+    "no protocol is listed as cache-optimised in this release",
+    "the probe re-runs after every host upgrade (same env contract as scripts/host-live-check.cjs)"
+  ]
+}

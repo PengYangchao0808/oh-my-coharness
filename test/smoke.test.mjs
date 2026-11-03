@@ -32,6 +32,7 @@ function fakeCtx({
   toolNames = [],
   delayMs = 0,
   subagents = null,
+  byBin = {},
 } = {}) {
   const specs = []
   const subprocess = {
@@ -47,10 +48,15 @@ function fakeCtx({
     },
     spawn(spec) {
       specs.push(spec)
+      const bin = String(spec?.argv?.[0] ?? '').toLowerCase()
+      const per = Object.entries(byBin).find(([id]) => bin.includes(id.toLowerCase()))?.[1] ?? {}
+      const out = per.stdout ?? stdout
+      const err = per.stderr ?? stderr
+      const code = per.exitCode ?? exitCode
       const read = (text) => ({ readFrom: () => ({ text, nextOffset: Buffer.byteLength(text), lossy: false }) })
-      const outcome = { exitCode, signal: null }
+      const outcome = { exitCode: code, signal: null }
       return {
-        collected: { stdout: read(stdout), stderr: read(stderr) },
+        collected: { stdout: read(out), stderr: read(err) },
         done: delayMs ? new Promise((resolve) => setTimeout(() => resolve(outcome), delayMs)) : Promise.resolve(outcome),
         terminate() {},
         async waitForExit() {
@@ -185,6 +191,30 @@ test('dispatch runs direct when no provider surface exists', async () => {
   assert.equal(specs.length, 1)
   assert.deepEqual(specs[0].argv.slice(1), ['exec', '--skip-git-repo-check', '-s', 'read-only', 'read README'])
   assert.equal(specs[0].stdio.stdin.data, '', 'headless runs must get EOF, not a terminal')
+})
+
+test('a retryable CLI failure advances to the explicit fallback chain', async () => {
+  const { ctx, specs } = fakeCtx({
+    byBin: {
+      codex: { stdout: '', stderr: '429 rate limit exceeded', exitCode: 1 },
+      opencode: { stdout: 'fallback answer', stderr: '', exitCode: 0 },
+    },
+  })
+  const cfg = resolveConfig({ surface: 'direct', transport: 'native' })
+  const rt = { ctx, cfg, registered: new Set(), async detect() { return { rows: [] } } }
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'codex', fallbacks: ['opencode'], prompt: 'read README' },
+    { agent: { id: 'session-1' }, signal: new AbortController().signal },
+  )
+  const result = payload.results[0]
+  assert.equal(result.status, 'completed')
+  assert.equal(result.harnessId, 'opencode')
+  assert.equal(result.output, 'fallback answer')
+  assert.equal(result.attempts.length, 2)
+  assert.equal(result.attempts[0].code, 'OMC/CLI-RATE-LIMIT')
+  assert.equal(result.attempts[0].retryable, true)
+  assert.equal(specs.length, 2)
 })
 
 test('mode maps onto each CLI’s own read-only flag', () => {
@@ -690,6 +720,20 @@ test('a harness is binary × endpoint × model, not a vendor', async () => {
   assert.match(script, /'\/usr\/local\/bin\/claude' '-p' 'hi'/)
 })
 
+test('a per-call dispatch model overrides the harness default without mutating it', async () => {
+  const { ctx, specs } = fakeCtx()
+  const cfg = resolveConfig({ surface: 'direct', transport: 'native', harnesses: { opencode: { model: 'default-model' } } })
+  const rt = { ctx, cfg, registered: new Set(), async detect() { return { rows: [{ id: 'opencode', auth: 'ok' }] } } }
+  const payload = await dispatchTasks(
+    rt,
+    { harness: 'opencode', model: 'per-call-model', prompt: 'read README' },
+    { agent: { id: 's' }, signal: new AbortController().signal },
+  )
+  assert.equal(payload.results[0].status, 'completed')
+  assert.deepEqual(specs[0].argv.slice(1, 5), ['run', '--model', 'per-call-model', 'read README'])
+  assert.equal(rt.cfg.harnesses.opencode.model, 'default-model')
+})
+
 test('env expansion leaves an unknown variable literal instead of blanking it', () => {
   assert.equal(expandEnv('${OMC_SURELY_MISSING_VAR}'), '${OMC_SURELY_MISSING_VAR}')
   assert.equal(expandEnv('plain'), 'plain')
@@ -711,7 +755,7 @@ test('the rendered tool text names the surface and the degradation', async () =>
   assert.match(value.text, /surface: direct` has no childId/)
 })
 
-test('worktree mode is refused by the tool in this release', async () => {
+test('worktree dispatch requires an absolute repository cwd', async () => {
   const { ctx, registeredTools } = fakeCtx()
   apply(ctx, { surface: 'direct' })
   const tool = registeredTools.find((entry) => entry.name === 'coharness')
@@ -719,7 +763,7 @@ test('worktree mode is refused by the tool in this release', async () => {
     { action: 'dispatch', mode: 'worktree', prompt: 'go', harness: 'codex' },
     { agent: { id: 's' }, signal: new AbortController().signal },
   )
-  assert.match(value.text, /not implemented in \d+\.\d+\.\d+/)
+  assert.match(value.text, /OMC\/WORKTREE-REPO|worktree/i)
 })
 
 test('the tool lists and clears session references without exposing full ids', async () => {

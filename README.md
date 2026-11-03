@@ -1,13 +1,29 @@
 # Oh My CoHarness
 
-> **v0.5.0-alpha.1** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”。
+> **v0.5.0-alpha.2-practice.1** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”，本轮再往前一步：**原生子 Agent 的请求与用量进入同一套任务记录**。
 > 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
-> 第一批完成 Handoff Contract、Native Session Registry，以及 Codex / Claude 的续接适配；Kimi / OpenCode / Gemini 的适配器需显式开启未验证开关。详见 [docs/V0.5.md](docs/V0.5.md)。
+> `practice.1` 表示这是一次**实践增量**，不是 alpha.2 的发布版本：本轮只完成 R00（基线分层证据）与 R01（原生事件桥），R02–R10 与 alpha.2 发布闸门尚未执行。
+
+**本轮（2026-11-03，R00–R01）：**
+- `integration/native-runtime.js`：订阅宿主 `session/event` 与 `agent/created`，把主控、原生 child、嵌套 child 关联到同一父任务；usage 按 `(native, session, seq)` 幂等入账，重放不重复计费；`turn/end` 结算执行状态，验收状态不被执行状态顶替。
+- 新增 `/coharness usage`：显示事件桥是否安装、已归集的会话/绑定/入账数量，以及当前父任务的派生用量汇总。
+- R00 基线：`scripts/run-tests.mjs` / `scripts/practice-baseline.mjs` 生成**分层**证据（实现 / 组合测试 / 宿主探针 / 真实模型 / Desktop / 费用覆盖），未验证项不会被汇总成通过。
+- 证据：[R01 无模型宿主探针](docs/evidence/alpha.2/practice-r01-native-runtime.json) · [分层基线](docs/evidence/alpha.2/practice-baseline.json)。
+
+**下一版本方案：** [0.5.0-alpha.2 效率与协作闭环](docs/V0.5-ALPHA2-PLAN.zh-CN.md)，包含减少重复上下文、真实用量、预算检查点与 managed 协作；配套 [工作包清单](docs/plans/v0.5.0-alpha.2.backlog.json) 和 [验收方案](docs/ACCEPTANCE-V0.5-ALPHA2.zh-CN.md)。最新现状以 [剩余审计](docs/REMAINING-AUDIT.zh-CN.md) 为准。
+
+**2026-11-02 Unreleased：OMO-SLIM 核心链路可用化。** 外部角色现可指定 Lane 与最小交接，提供 `coharness` 的 `tasks/result/cancel` action，并修复新开策略、会话轮数和工作目录识别。Codex 原生会话两轮记忆测试、DSH 0.2.1-rc.5 原生/外部角色装载已实测通过。完整功能复刻仍在推进：[差异与开发顺序](docs/OMO-SLIM-PARITY.zh-CN.md) · [本批验收与用法](docs/USABILITY-ACCEPTANCE.zh-CN.md)。
+
+**2026-11-02 晚：原生多模型 Demo。** 不接外部 CLI，直接复用 DSH 已可调用的模型：`/coharness fleet` 从实时模型目录生成角色路由（优先继承仍挂载的 OMD-Slim 配置），`/coharness fleet --apply` 只写 provider/model/execution 并保留工具与 MCP，`/coharness demo` 生成一个确定性工作区和可直接粘贴的 Explorer → Oracle → Fixer 任务；`/coharness status` 显示每个 native 角色实际钉住的模型以及目录校验结果。见 [原生多模型 Demo](docs/NATIVE-FLEET-DEMO.zh-CN.md) · [Oh-My-Pi 参考与后续方案](docs/OH-MY-PI-REFERENCE.zh-CN.md)。
+
+**反馈与策略评估：** [三策略监控与自主优化方案](docs/FEEDBACK-EVOLUTION.zh-CN.md) 提供“续接/压缩、新建/交接、自适应”离线对照工具，核算失败、优化成本及结果不确定性。当前不自动运行付费实验或修改线上策略。
+
+**后续开发入口：** [完整下一步实践方案](docs/NEXT-PRACTICE.zh-CN.md) 按 R00–R10 列出剩余接线、代码落点、验收和发布顺序；配套 [可跟踪清单](docs/plans/next-practice.backlog.json)。
 
 Oh My CoHarness（OMC）把两件过去分开的事合成一个产品：
 
 - **谁来做**：Orchestrator + Oracle / Explorer / Fixer / Designer / Librarian / Council 的专业分工；
-- **在哪做**：同一个 `subagent_oracle` 可以执行成 DSH 原生子 Agent，也可以执行成 Codex、Gemini、Antigravity、opencode、Kimi、Claude Code 的一次性外部运行。
+- **在哪做**：同一个 `subagent_oracle` 可以执行成 DSH 原生子 Agent，也可以执行成 Codex、Gemini、Antigravity、opencode、Kimi、Claude Code 的外部运行；支持的 CLI 可按 Lane 恢复原生会话。
 
 它不再需要同时安装 `oh-my-dsh-slim` 和 `oh-my-coharness`。合并后的用户只安装 **`oh-my-coharness`** 一个包。
 
@@ -26,7 +42,7 @@ Oh My CoHarness  ·  一个 Bundle · 一个 Preset
 │   ├─ Council：alpha / beta / gamma + 原生 synthesizer         │
 │   └─ 每个角色选择执行后端                                     │
 │          ├─ DSH Native：spawn / fork，可续接，受 DSH 权限约束 │
-│          └─ External：omc:<harness>，一次性，固定只读          │
+│          └─ External：omc:<harness>，固定只读，可按 Lane 续用 │
 └──────────────────────────────────────────────────────────────┘
         │
         ├─ DSH 官方 Subagent / Session / 工作区 / 权限 / 插件管理
@@ -150,7 +166,7 @@ projectId · laneId · role · harness · model · environment · workspace · e
 ```
 
 - `resumePolicy`：`auto`（有匹配就续接）/ `new`（每次新开）/ `require-resume`（没有可续接会话就直接失败）。
-- Session Resume 只在角色调用带**显式 `cwd`** 时启用；没有 `cwd` 时 CLI 继承 Host 进程目录，不能用来标识用户项目。
+- 角色工具先通过 DSH 工作目录服务解析显式/继承的 `cwd`，再生成交接；Provider 只在实际 cwd 与交接工作区相符时复用。独立调用 Provider 的集成方必须显式提供正确 cwd，不能用 Host 进程目录代替项目目录。
 - 同一个 Native Session 同时只允许一个运行：Registry 用进程内 lease 排队，超时后明确报 `OMC/SESSION-BUSY`，不会并发写同一个会话。
 - 失败、身份未确认、用户清除的会话都不会自动续接；TTL 或 `maxTurns` 到期后新建。
 - 用户可以随时清除 OMC 引用，但**不会删除 CLI 自己的历史**：
@@ -173,6 +189,18 @@ CLI 支持矩阵（`confidence` 决定默认是否启用）：
 | antigravity | 恢复命令未验证 | — | ❌ |
 
 > **目前只有 Codex 完成真实两轮验收。** 上表的 `documented` 表示命令形态有官方文档依据，不代表本机已经跑通“同一 Lane 第二轮续接”。在真实环境验证前，不要把它当作稳定能力发布。Codex 的 `exec resume` 没有 `-s`：续接轮沿用会话创建时记录的沙箱，所以不要续接一个可写会话。
+
+继续外部工作时，再次调用相同角色工具、相同 `cwd` 和 `lane`，传入新任务；不能对外部 child id 使用 `send_message`。`context_summary / changed_files / artifact_refs / acceptance` 用于主控在角色之间交接事实。独立任务应使用不同 Lane；默认“角色 × 项目”的 Lane 不按父聊天隔离。
+
+外部 Provider 结果可通过工具重读，不会再次调用模型：
+
+```js
+coharness({ action: "tasks" })
+coharness({ action: "result", task_id: "<external-child-id>" })
+coharness({ action: "cancel", task_id: "<external-child-id>" })
+```
+
+这些 action 只允许操作本父会话的运行，索引在 Host 重启后消失，并保留最近 100 个终态结果；持久 CLI 引用另存于 Session Registry。`surface: direct` 没有 child receipt，不进入此索引。取消请求不等于完成。详细契约见 [本批验收](docs/USABILITY-ACCEPTANCE.zh-CN.md)。
 
 ### 模型策略：可解释的建议，加一道成本闸门
 
@@ -227,12 +255,43 @@ Council 保留 OMD 的原有编排逻辑：最多三个独立席位、同一条�
 
 ---
 
+## 原生多模型 Demo（最快可用路径）
+
+> 本批新增的 `fleet` / `demo` 命令需要重启 DSH 后才可用（插件代码每个宿主进程只加载一次）。
+
+这条路径**不调用任何外部 CLI**，只使用 DSH 已经能调用的模型：
+
+```text
+/coharness fleet            # 预览：角色 → provider/model，来自实时 DSH 目录
+/coharness fleet --apply    # 写入（只改 provider/model/execution，先备份）
+/coharness demo             # 应用 fleet + 生成确定性 demo 工作区 + 打印 prompt
+/coharness status           # 核对每个 native 角色实际钉住的模型
+```
+
+`fleet` 的优先级：显式 `models` → 仍挂载的 `oh-my-dsh-slim` 角色配置 → 实时目录关键词匹配。没有目录或没有凭据时，它明确说“角色继承会话模型”，不会编一个模型名。
+
+Demo 工作区默认在 `~/.dsh/omc-demo/run-<timestamp>/`：一个 off-by-one bug、三条 `node:test`、`TASK.md`、记录绝对 Node 路径的 `RUN.md`。把命令输出的 prompt 粘贴进当前会话，由主控依次调用 Explorer / Oracle / Fixer 并跑测试。
+
+完整说明、本机映射示例与验收边界见 [docs/NATIVE-FLEET-DEMO.zh-CN.md](docs/NATIVE-FLEET-DEMO.zh-CN.md)。
+
+## 持久化编排与 Agent 消息
+
+本批把“重启后还能不能解释发生了什么”补进了后端：
+
+- **profile 分区 + 跨进程锁**：`$DSH_HOME/omc/profiles/<profile>/`；同一 Lane 的 native session 由 lease 独占，第二个 Host 得到 `OMC/SESSION-BUSY`，崩溃后按未结算恢复。
+- **结果持久化**：`coharness result` 重启后可读；结果体丢失时返回 `status: "unknown"`，不伪造 completed。
+- **工作图**：`coharness graph` 的 plan/claim/complete/audit 检查依赖、acceptance evidence、写节点互斥与写范围。
+- **消息邮箱**：`coharness send/inbox/ack/thread/reuse`；原生 child 走宿主 `send_message`，外部 child 排队到下一次同 Lane 恢复。
+- **CLI 分类**：exit 0 不再自动等于完成；JSON 语义失败、裁剪、空最后消息、resume 身份变化都有独立 code。
+
+详细契约见 [持久化编排](docs/DURABLE-ORCHESTRATION.zh-CN.md)。外部实时 steer、完整项目级角色绑定、native 自定义角色、当前会话 preset、per-child worktree 仍未完成，原因见 [差异审计](docs/OMO-SLIM-PARITY.zh-CN.md#8-p0--p1-完成状态审计2026-11-02-晚第二次)。
+
 ## 安装
 
 | 场景 | 做法 |
 |---|---|
 | Desktop | Plugins 界面安装 `oh-my-coharness`，或本地安装本目录 |
-| 有 dsh CLI | `dsh plugin --profile <profile> add oh-my-coharness@0.5.0-alpha.1` |
+| 有 dsh CLI | `dsh plugin --profile <profile> add oh-my-coharness@0.5.0-alpha.2-practice.1` |
 | 本地开发 | 用 `plugin_manager` 的 `install_bundle`，`target` = 本目录绝对路径 |
 
 装完**必须重启 DSH**：插件代码每个宿主进程只加载一次。
@@ -321,10 +380,22 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 
 ---
 
-## 能力与限制（v0.5.0-alpha.1）
+## 能力与限制（v0.5.0-alpha.2-practice.1）
 
 | 已有 | 暂不提供 |
 |---|---|
+| **Native 多模型 fleet**：从实时 DSH 目录分配角色模型，继承 OMD-Slim 配置，`status` 校验 | 自动模型能力评分；目录/凭据缺失时自动发现模型 |
+| **一键原生 demo**：确定性工作区 + Explorer/Oracle/Fixer prompt | 自动创建并驱动 demo Agent（需要结果契约与超时语义） |
+| **持久化编排**：profile 分区、跨进程 Lane 锁、持久结果/unknown、工作图、消息邮箱 | 项目级角色绑定；当前会话 preset；per-child worktree |
+| **Runtime 设置卡**：会话复用、resumePolicy、maxTurns、allowUnverified、routing/计费、usage/lane | 逐 Lane 清除仍走命令（`/coharness sessions --clear --lane=<id>`） |
+| **显式会话状态**：provider 结果 `sessionOutcome: new/resumed/unconfirmed`；registry stats 汇总 new/resumed/unconfirmed/unknown | direct 模式没有 native session |
+| **项目权限下限**：`.omc/project.json` 只能收紧 dispatch/harness/routing | 项目级角色/Prompt/Skill/MCP 绑定 |
+| **自定义外部角色模板**：`coharness role` 用户级 + `.omc/roles.json` 项目级，仅 enforced read-only harness；可选 model/fallbacks | native 自定义角色工具；项目级角色可绑定 Prompt/Skill/MCP |
+| **显式 dispatch fallback**：仅可重试错误按序尝试并返回 attempts | 角色工具的模型级自动回退链 |
+| **Worktree**：`dispatch mode:"worktree"` 每个外部任务独立 checkout；`coharness worktree` 创建/进入 session checkout；显式 merge 有 clean-tree 预检、diff check、冲突 abort 与可选 graph acceptance gate | native child 的 per-child cwd；自动合并策略 |
+| **CLI 结果分类**：auth/quota/rate/context/truncated/semantic/id-changed | 外部实时 steer；自动模型回退链 |
+| **RoleResult 投影**：native `subagent_result` + external `coharness result.roleResult` 共用 state/complete 词汇 | 外部 provider/model/structured/artifacts 仍为空 |
+| **会话 preset 快照**：`coharness preset snapshot/status` 记录并对比本会话实际配置 | 热切换仍受 DSH `agent-preset/locked` 限制 |
 | 单 Preset、单安装入口、Native 角色完整回归 | 所有外部 CLI 的 Resume 都经过真实验证 |
 | 签名 Handoff：task / project / lane + 最小上下文 | 外部角色直接写工作区（Designer 只产 patch） |
 | Native Session Registry：Codex / Claude 默认续接 | Agent 间点对点通信 / 消息总线 |
@@ -332,7 +403,7 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 | 外部 Persona 自包含 Brief（含 patch 输出契约） | 设置卡中的 Session / routing 控件 |
 | Council 混合后端 + 原生合成器 | 新的多 Agent Dashboard |
 | CLI 超时、取消、进程树终止、输出裁剪、Usage 元数据 | 自研 Git Worktree 调度器 |
-| 配置预览 / 备份 / 回滚迁移 | worktree 模式（仍返回明确的 not implemented） |
+| 配置预览 / 备份 / 回滚迁移 | 多次 dispatch worktree 的自动合并策略 |
 
 ---
 
@@ -357,6 +428,17 @@ node test/integration/model-policy.test.mjs
 node test/integration/adapters.test.mjs
 node test/integration/connection.test.mjs
 node test/integration/surface-strict.test.mjs
+node test/integration/fleet.test.mjs
+node test/integration/durability.test.mjs
+node test/integration/cli-result.test.mjs
+node test/integration/graph.test.mjs
+node test/integration/mailbox.test.mjs
+node test/integration/project-policy.test.mjs
+node test/integration/worktree.test.mjs
+node test/integration/custom-roles.test.mjs
+node test/integration/role-result.test.mjs
+node test/integration/preset-snapshot.test.mjs
+node vendor/omd/test/result.test.mjs
 
 # 包自检：manifest、patch、locales、模块、skills、导出
 node scripts/check.mjs
@@ -373,6 +455,11 @@ node scripts/pack-check.mjs
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/DURABLE-ORCHESTRATION.zh-CN.md`](docs/DURABLE-ORCHESTRATION.zh-CN.md) | profile 分区、跨进程锁、持久结果、工作图、消息邮箱、CLI 分类 |
+| [`docs/DESKTOP-ACCEPTANCE.zh-CN.md`](docs/DESKTOP-ACCEPTANCE.zh-CN.md) | 真实 Desktop 混合编排验收清单与记录模板 |
+| [`docs/DSH-CONTRACT-LIMITS.zh-CN.md`](docs/DSH-CONTRACT-LIMITS.zh-CN.md) | 仍受 DSH 宿主契约限制的能力与替代方案 |
+| [`docs/NATIVE-FLEET-DEMO.zh-CN.md`](docs/NATIVE-FLEET-DEMO.zh-CN.md) | 原生多模型 demo：fleet/demo 命令、本机映射、验证边界 |
+| [`docs/OH-MY-PI-REFERENCE.zh-CN.md`](docs/OH-MY-PI-REFERENCE.zh-CN.md) | 参考 Oh-My-Pi：结果契约、生命周期、任务图、分阶段方案 |
 | [`docs/STABILIZATION.zh-CN.md`](docs/STABILIZATION.zh-CN.md) | v0.6 稳定版候选：执行渠道、连接状态、双轨默认、PR 拆分与验收矩阵 |
 | [`presets/`](presets/README.md) | Safe Native / Hybrid Subscription 配置模板与人工验收记录范式 |
 | [`docs/V0.5.md`](docs/V0.5.md) | v0.5：Handoff、Session Registry、适配器、策略与验收边界 |

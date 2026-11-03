@@ -1,0 +1,1104 @@
+{
+  "schemaVersion": 1,
+  "kind": "practice-baseline",
+  "task": "R00",
+  "generatedAt": "2026-11-03T13:42:24.056Z",
+  "generatedBy": "scripts/practice-baseline.mjs",
+  "packageVersion": "0.5.0-alpha.2-practice.1",
+  "sources": "docs/evidence/alpha.2/practice-baseline.sources.json",
+  "git": {
+    "commit": "68f9644de3d6458aaa4f9d50d380ec469587e55d",
+    "branch": "main",
+    "workingTree": {
+      "changed": 33,
+      "untracked": 71,
+      "clean": false
+    }
+  },
+  "treeFingerprint": {
+    "algorithm": "sha256",
+    "files": 233,
+    "digest": "dee597841ce9076326f86bc90daa611f6499b2d0549f010669e5bca832e78295",
+    "excludes": [
+      ".git/",
+      "node_modules/",
+      ".ops/",
+      ".obsidian/"
+    ]
+  },
+  "moduleCheck": {
+    "command": "node scripts/check.mjs",
+    "status": "passed",
+    "detail": "check ok: oh-my-coharness@0.5.0-alpha.2-practice.1 — manifest, patch, locales, icon, 15 modules, 5 skills"
+  },
+  "testRun": {
+    "source": "docs/evidence/alpha.2/last-test-run.json",
+    "startedAt": "2026-11-03T13:42:12.500Z",
+    "node": "v24.21.0",
+    "platform": "win32-x64",
+    "totals": {
+      "suites": 35,
+      "passed": 35,
+      "failed": 0,
+      "durationMs": 4373
+    },
+    "failing": []
+  },
+  "layers": [
+    "implementation",
+    "tests",
+    "hostProbe",
+    "realModel",
+    "desktop",
+    "costCoverage"
+  ],
+  "capabilities": [
+    {
+      "id": "native-event-bridge",
+      "title": "原生事件桥：父任务 / 节点 / child / 尝试归集（R01）",
+      "releaseScope": "alpha.2 R01",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "session/event + agent/created only; lineage from the host's own session header, owned-preset roots auto-bound, one booking per (native, session, seq), turn/end settlement that never fills acceptance",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/native-runtime.js",
+              "resolved": true,
+              "bytes": 23169
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/index.js",
+              "resolved": true,
+              "bytes": 56175
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "11 bridge regressions: two children, a nested child, retry, cancel, replay, duplicate delivery, route switch, scope isolation, handler containment",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "test/integration/native-runtime.test.mjs",
+              "resolved": true,
+              "bytes": 17296
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/native-runtime.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 63
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp02-usage-ledger.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 122
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "installed host booted with a synthetic adapter (0 model calls): real lineage persisted, 3 tasks attributed, replay added nothing, mounted plugin bridge installed and booked its own preset",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/practice-r01-native-runtime.json",
+              "resolved": true,
+              "bytes": 11972
+            }
+          ]
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no billed run yet: the probe adapter is synthetic, so this proves wiring, not cost",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "four-bucket totals and unknown-cost flags are derived from real events; no price table is embedded, so a fee stays unknown unless a priced record is supplied",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "native-per-request-usage",
+      "title": "原生逐步 usage 归集（四桶 + 未知不填零）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "usage-ledger four-bucket normalization + idempotent booking keyed by (backend, session/run, event); nativeSessionUsageEntries replays assistant/attempt events",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/usage-ledger.js",
+              "resolved": true,
+              "bytes": 16358
+            },
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/acceptance-A05-A10.json",
+              "resolved": true,
+              "bytes": 3018
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "13 ledger regressions including duplicate/reordered/restart events",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "test/integration/wp02-usage-ledger.test.mjs",
+              "resolved": true,
+              "bytes": 11605
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp02-usage-ledger.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 122
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "installed host booted with a synthetic adapter, 0 model calls: assistant/message settles usage, assistant/attempt carries none",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/capabilities.json",
+              "resolved": true,
+              "bytes": 13023
+            }
+          ]
+        },
+        "realModel": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "observational replay of real local sessions matches the host projection (matchesProjection); not a controlled run and not a per-request live capture",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/2026-11-03-native-token-audit.json",
+              "resolved": true,
+              "bytes": 27328
+            }
+          ]
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no Desktop click-through recorded",
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "no embedded prices: a cost row requires a caller-supplied priced record; unknown cost renders unknown",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/usage-ledger.js",
+              "resolved": true,
+              "bytes": 16358
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "native-request-gate",
+      "title": "原生逐尝试发送闸门（agent/request、retry 重入、pre-step 拒绝）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "static checks confirm agent/request runs per attempt and a retry re-enters it",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/capabilities.json",
+              "resolved": true,
+              "bytes": 13023
+            },
+            {
+              "kind": "artifact",
+              "ref": "scripts/efficiency-capability-check.mjs",
+              "resolved": true,
+              "bytes": 32195
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "budget/progress regressions cover the decision function; the live gate is proven by the host probe, not by mocks",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "test/integration/wp06-budget.test.mjs",
+              "resolved": true,
+              "bytes": 8542
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp06-budget.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 65
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "live probe: 2 adapter dispatches with 1 induced retry; pre-step reject leaves turn/end blocked with no third dispatch",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/capabilities.json",
+              "resolved": true,
+              "bytes": 13023
+            }
+          ]
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "the gate has not been exercised against a real billed request",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "budget-stop-execution",
+      "title": "达到上限后阻止下一次真实请求（逐请求闸门 + 跨进程预留）",
+      "releaseScope": "alpha.2 R02",
+      "layers": {
+        "implementation": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "checkpoint and no-progress explanation exist; reservations live in a process-local Map, so a cross-process last-slot race is NOT yet implemented",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/budget.js",
+              "resolved": true,
+              "bytes": 8419
+            },
+            {
+              "kind": "artifact",
+              "ref": "integration/file-lock.js",
+              "resolved": true,
+              "bytes": 7361
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "in-process reservation and checkpoint regressions only; they cannot prove cross-process atomicity",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "test/integration/wp06-budget.test.mjs",
+              "resolved": true,
+              "bytes": 8542
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp06-budget.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 65
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no probe shows a refused send at the native boundary",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "blocked",
+          "declared": "blocked",
+          "note": "fees arrive with delay and may be in flight; no strict bill cap can be promised",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "managed-collaboration",
+      "title": "工作包 / 任务图 / 消息 / 执行结果闭环",
+      "releaseScope": "alpha.2 R03",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "claim/settle, mailbox injection, artifact store and role results implemented; native role auto-claim is NOT yet wired",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/managed-execution.js",
+              "resolved": true,
+              "bytes": 11348
+            },
+            {
+              "kind": "artifact",
+              "ref": "integration/graph.js",
+              "resolved": true,
+              "bytes": 18403
+            },
+            {
+              "kind": "artifact",
+              "ref": "integration/mailbox.js",
+              "resolved": true,
+              "bytes": 12363
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "graph/mailbox/managed regressions",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "test/integration/wp05-managed.test.mjs",
+              "resolved": true,
+              "bytes": 11530
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp05-managed.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 79
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/graph.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 86
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/mailbox.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 158
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "isolated host exposes graph/send/inbox actions with 0 model calls; no native role claim/settle probe yet",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/2026-11-02-durable-orchestration.json",
+              "resolved": true,
+              "bytes": 1839
+            }
+          ]
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no native Explorer to Fixer run recorded end to end",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "work-packet-artifact",
+      "title": "工作包契约与产物存储（超限外置或拒绝）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "fitWorkPacket externalises or refuses; acceptance/budget/scope are never trimmed",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/work-packet.js",
+              "resolved": true,
+              "bytes": 15034
+            },
+            {
+              "kind": "artifact",
+              "ref": "integration/artifact-store.js",
+              "resolved": true,
+              "bytes": 7838
+            },
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/acceptance-A05-A10.json",
+              "resolved": true,
+              "bytes": 3018
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "8 packet regressions",
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp03-packet.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 79
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "artifact stores are instantiated per host process; not exercised through a real role dispatch",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "execution-acceptance-separation",
+      "title": "执行状态与验收状态分离（不把 stop-partial 当完成）",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "running|completed|failed|cancelled|unknown kept apart from pending|passed|failed|unknown; cancelRequested is its own flag",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/execution-events.js",
+              "resolved": true,
+              "bytes": 12616
+            },
+            {
+              "kind": "artifact",
+              "ref": "integration/role-result.js",
+              "resolved": true,
+              "bytes": 3679
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "attempt lifecycle, contradiction and restart reconciliation regressions",
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp02-usage-ledger.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 122
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/role-result.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 44
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "turn/end reasons observed live (completed|blocked); not yet bound to a managed task",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "external-codex-session",
+      "title": "外部 Codex：真实模型会话续接与用量",
+      "releaseScope": "alpha.2",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": null,
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/sessions.js",
+              "resolved": true,
+              "bytes": 22763
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/session-adapters.js",
+              "resolved": true,
+              "bytes": 8282
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/harnesses.js",
+              "resolved": true,
+              "bytes": 13657
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": null,
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/sessions.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 1106
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/provider-session.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 158
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "isolated native + external Oracle mount, 9 tools, 0 model calls",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/2026-11-02-session-live.json",
+              "resolved": true,
+              "bytes": 1020
+            }
+          ]
+        },
+        "realModel": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "two real Codex rounds (new + resumed) with usage; workspace unchanged",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/2026-11-02-session-live.json",
+              "resolved": true,
+              "bytes": 1020
+            }
+          ]
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "explicitly not a Desktop UI end-to-end test",
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "usage is per dispatch from CLI JSON; gaps stay null",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "cache-affinity",
+      "title": "会话身份 / 缓存桶（身份可用与真实费用分开）",
+      "releaseScope": "alpha.2 R08",
+      "layers": {
+        "implementation": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "the sessionId seam is verified and a custom adapter can be registered, but no adapter ships a per-session header; nothing here may be sold as cache optimisation",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/capabilities.json",
+              "resolved": true,
+              "bytes": 13023
+            },
+            {
+              "kind": "artifact",
+              "ref": "scripts/cache-affinity-check.mjs",
+              "resolved": true,
+              "bytes": 12205
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": null,
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/report-cache.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 94
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/wp04-context.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 65
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "identity verified live: A stable across attempts, B distinct",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/cache-affinity.json",
+              "resolved": true,
+              "bytes": 2578
+            }
+          ]
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no per-request cache bucket reconciliation against a real bill",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "settings-and-monitoring",
+      "title": "设置卡与监控展示真实状态（observe 为默认）",
+      "releaseScope": "alpha.2 R05",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "off|observe|balanced schema with capability fallback; Runtime tab exists",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "src/config.js",
+              "resolved": true,
+              "bytes": 11364
+            },
+            {
+              "kind": "artifact",
+              "ref": "vendor/omd/npm-package/lib/config-settings.js",
+              "resolved": true,
+              "bytes": 10189
+            },
+            {
+              "kind": "artifact",
+              "ref": "vendor/omd/npm-package/client/client.js",
+              "resolved": true,
+              "bytes": 173453
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": null,
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/client.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 53
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/usability.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 148
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/migration.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 64
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "client bundle loads and contracts pass; no browser click-through",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "save/reload/concurrent edit/fallback have no Desktop evidence",
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "four-bucket display is not yet wired to the ledger",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "strategy-eval-offline",
+      "title": "三策略离线分配与汇总（不含真实对照）",
+      "releaseScope": "alpha.2 R06",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "offline allocation, summarising, uncertainty and review rules only; no collector and no runner",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/strategy-eval.js",
+              "resolved": true,
+              "bytes": 18534
+            },
+            {
+              "kind": "artifact",
+              "ref": "scripts/strategy-eval.mjs",
+              "resolved": true,
+              "bytes": 1573
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": null,
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/strategy-eval.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 95
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no A/B/C comparison has been run",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "all inputs are synthetic fixtures; the record digests do not attest runtime truthfulness",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/2026-11-03-feedback-eval.json",
+              "resolved": true,
+              "bytes": 1601
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "independent-acceptance",
+      "title": "外部独立验收（worker 不能自己改分）",
+      "releaseScope": "alpha.2 R07",
+      "layers": {
+        "implementation": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "integration/acceptance-runner.js does not exist yet",
+          "refs": []
+        },
+        "tests": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "hostProbe": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "install-and-release",
+      "title": "打包清单、CI 与真实安装",
+      "releaseScope": "alpha.2 R09",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "pack-check validates the manifest only",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "scripts/pack-check.mjs",
+              "resolved": true,
+              "bytes": 5117
+            },
+            {
+              "kind": "artifact",
+              "ref": ".github/workflows/ci.yml",
+              "resolved": true,
+              "bytes": 6173
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "self-check and the 34-file suite run locally; the CI host runtime step is still a placeholder and is NOT host evidence",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "scripts/check.mjs",
+              "resolved": true,
+              "bytes": 12816
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/smoke.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 565
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "installless isolated profile probes only; CI host step is a placeholder",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no tarball install into Desktop, no support matrix run",
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    }
+  ],
+  "totals": {
+    "implementation": {
+      "passed": 10,
+      "partial": 2,
+      "not-run": 1,
+      "blocked": 0,
+      "unverified": 0
+    },
+    "tests": {
+      "passed": 12,
+      "partial": 0,
+      "not-run": 1,
+      "blocked": 0,
+      "unverified": 0
+    },
+    "hostProbe": {
+      "passed": 5,
+      "partial": 5,
+      "not-run": 3,
+      "blocked": 0,
+      "unverified": 0
+    },
+    "realModel": {
+      "passed": 1,
+      "partial": 1,
+      "not-run": 11,
+      "blocked": 0,
+      "unverified": 0
+    },
+    "desktop": {
+      "passed": 0,
+      "partial": 0,
+      "not-run": 13,
+      "blocked": 0,
+      "unverified": 0
+    },
+    "costCoverage": {
+      "passed": 0,
+      "partial": 3,
+      "not-run": 9,
+      "blocked": 1,
+      "unverified": 0
+    }
+  },
+  "unresolvedClaims": [],
+  "notes": [
+    "blocked/not-run/unverified are not passes; only a `passed` layer with resolved artifacts counts as proven",
+    "hostProbe means a real installed host was booted; a CI placeholder or a mock never fills this layer",
+    "implementation presence is not usability: every `implementation` claim is paired with a tests/hostProbe row"
+  ]
+}

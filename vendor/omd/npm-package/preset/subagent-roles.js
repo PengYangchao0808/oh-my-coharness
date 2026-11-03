@@ -47,6 +47,35 @@ const effortWarnings = new Set();
 /** Unavailable-route warnings already reported, one per (role, route). */
 const routeWarnings = new Set();
 
+/**
+ * The route each role's LAST request actually ran on, keyed by role id
+ * ('orchestrator' for the main agent). Configured routes live in the settings
+ * document; this map is the observed counterpart, so a stale creation
+ * description can never be mistaken for the real request route.
+ */
+const actualRoutes = new Map();
+
+/** A copy of the observed per-role routes, for status and diagnostics. */
+export function readActualRoutes() {
+  return Object.fromEntries([...actualRoutes.entries()].map(([roleId, route]) => [roleId, { ...route }]));
+}
+
+/** Record the observed route for one agent/request listener pass. */
+export function recordActualRoute(roleId, resolved, applied) {
+  const route = applied ?? resolved;
+  if (!route || typeof route !== 'object') return;
+  actualRoutes.set(roleId, {
+    provider: route.provider,
+    model: route.model,
+    ...(route.reasoningEffort !== undefined && route.reasoningEffort !== null ? { reasoningEffort: route.reasoningEffort } : {}),
+    ...(typeof route.maxTokens === 'number' ? { maxTokens: route.maxTokens } : {}),
+    at: new Date().toISOString(),
+    ...(applied && (applied.provider !== resolved?.provider || applied.model !== resolved?.model)
+      ? { rerouted: true, resolvedProvider: resolved?.provider, resolvedModel: resolved?.model }
+      : {}),
+  });
+}
+
 function text(value) {
   return typeof value === 'string' && value.length > 0;
 }
@@ -362,6 +391,10 @@ export function apply(ctx, config = {}) {
     }
     const resolved = await next();
     const nextConfig = await requestConfig(ctx, payload, resolved);
+    // The observed route is recorded even when nothing was rewritten: it is
+    // the "actual" half of configured-vs-actual, not only a reroute log.
+    const roleId = isSubagent(payload?.agent) ? (roleIdForAgent(payload.agent) ?? 'unknown-child') : 'orchestrator';
+    recordActualRoute(roleId, resolved, nextConfig === undefined ? undefined : nextConfig);
     return nextConfig === undefined ? resolved : nextConfig;
   }, { global: true }), 'omds-subagent-roles: agent/request');
 }

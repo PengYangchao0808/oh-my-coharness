@@ -40,6 +40,7 @@ export function roleDescription(options) {
       'Runs this role on an external CLI provider (' + (options.execution?.provider ?? 'omc:?') + '). ' +
         'It does not see this conversation and returns exactly one result; a later call in the same lane may continue the CLI\'s own native session when session reuse is enabled. ' +
         'Its task prompt is automatically wrapped in this role\'s persona and read-only brief; write the task itself, not the role instructions. ' +
+        'For a follow-up, call this same role tool with the same cwd and lane and a new prompt; do not use send_message on an external run id. Supply context_summary, changed_files, artifact_refs and acceptance to hand verified facts to the next worker. Use coharness actions tasks/result/cancel to discover, reread or stop external runs. ' +
         'Read-only is ' + (options.execution?.readOnly === 'enforced'
           ? 'enforced by that CLI\'s own sandbox.'
           : 'advisory only (the CLI may still write), accepted explicitly by configuration.'),
@@ -72,6 +73,13 @@ export function backgroundSection(toolName) {
 export function patchRoleTool(tool, options) {
   if (!tool || tool.name !== options.toolName) return tool;
   const parameters = { ...tool.parameters };
+  if (options.external === true) Object.assign(parameters, {
+    lane: { type: 'string', minLength: 1, maxLength: 80, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$', description: 'Stable work lane id. Reuse it for follow-ups; use different lanes for independent tasks. Defaults to role × project.' },
+    context_summary: { type: 'string', maxLength: 2000, description: 'Concise verified facts from preceding work; not the full conversation.' },
+    changed_files: { type: 'array', maxItems: 32, items: { type: 'string', maxLength: 300 }, description: 'Workspace-relative changed paths; absolute paths and .. are refused.' },
+    artifact_refs: { type: 'array', maxItems: 16, items: { type: 'string', maxLength: 300 }, description: 'Workspace-relative artifact paths for this handoff.' },
+    acceptance: { type: 'array', maxItems: 14, items: { type: 'string', maxLength: 300 }, description: 'Observable conditions the final report must address (up to 14, plus the fixed role constraints).' },
+  });
   const schedulable = Boolean(parameters.run_in_background);
   const shaped = { ...options, schedulable };
   if (parameters.prompt) parameters.prompt = {

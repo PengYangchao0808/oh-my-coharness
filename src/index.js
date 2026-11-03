@@ -17,8 +17,31 @@ import { dispatchTasks } from './dispatch.js'
 import { detect, renderReport } from './doctor.js'
 import { registerSkills } from './skills.js'
 import { applyMigrationCommand } from './migrate.js'
-import { buildExecutionStatus, detectLegacyCompanion, renderExecutionStatus } from '../integration/status.js'
+import { buildExecutionStatus, detectLegacyCompanion, PRESET_ID, readRoleConfiguration, renderExecutionStatus } from '../integration/status.js'
 import { createSessionRegistry } from '../integration/sessions.js'
+import { createTaskRegistry } from '../integration/tasks.js'
+import { statePath } from '../integration/state.js'
+import { join } from 'node:path'
+import { createGraphStore, mergeAcceptance } from '../integration/graph.js'
+import { createMailbox } from '../integration/mailbox.js'
+import { readProjectPolicy, renderProjectPolicy } from '../integration/project-policy.js'
+import { createWorktreeStore, mergeWorktree } from '../integration/worktree.js'
+import { buildRolePrompt, createCustomRoles, readProjectRoles } from '../integration/custom-roles.js'
+import { externalRoleResult, renderRoleResult } from '../integration/role-result.js'
+import { createPresetSnapshotStore, diffPresetSnapshot } from '../integration/preset-snapshot.js'
+import { createUsageLedger } from '../integration/usage-ledger.js'
+import { createExecutionStore } from '../integration/execution-events.js'
+import { createArtifactStore } from '../integration/artifact-store.js'
+import { createContextView } from '../integration/context-view.js'
+import { createRetrievalCache } from '../integration/retrieval-cache.js'
+import { createBudgetTracker } from '../integration/budget.js'
+import { createProgressTracker } from '../integration/progress.js'
+import { createManagedExecution } from '../integration/managed-execution.js'
+import { createNativeRuntime } from '../integration/native-runtime.js'
+import { roleIdFromLabel } from '../vendor/omd/npm-package/preset/roles.js'
+import { harnessReadOnlyClass } from '../integration/execution.js'
+import { renderFleetPlan } from '../integration/fleet.js'
+import { applyNativeFleet, buildNativeFleet, runNativeDemo } from './fleet.js'
 
 export const inject = ['tools', 'subprocess']
 
@@ -30,8 +53,10 @@ const DESCRIPTION = [
   "Actions: `list` shows what is installed (free, no model calls); `status` shows role → execution backend and which",
   '`omc:<id>` providers are registered (free); `doctor` returns a copyable diagnostic report (free); `sessions` lists the',
   'native CLI session references OMC may reuse (free; pass `clear: true` to forget them, which never deletes CLI history);',
-  '`migrate` previews the pre-0.4 configuration migration (pass `apply: true` to write it); `dispatch` runs real work and',
-  'costs that CLI’s own quota.',
+  '`migrate` previews the pre-0.4 configuration migration (pass `apply: true` to write it); `fleet` pins native roles',
+  'to distinct models from the live DSH catalog (preview by default, `apply: true` writes it); `demo` plans that fleet,',
+  'seeds a deterministic workspace and returns the prompt for a real multi-model OMC run; `dispatch` runs real work and',
+  'costs that CLI’s own quota. and clear removes both. Receipts are process-local and bounded.', 'preset = freeze this session’s startup baseline, compare the live config to it and record labeled manual snapshots (never a hot switch); status also shows each role’s observed request route next to its configured route. `tasks` lists this parent session’s retained external provider runs; `result` rereads a task_id without waking a model; `cancel` requests its interruption. Direct runs have no retained child receipt. Receipts are process-local and bounded.',
   '',
   'The specialist roles (`subagent_oracle`, `subagent_explorer`, council seats) may be configured to run on one of these',
   'providers. That provider surface is fixed read-only; `dispatch` with `mode: "in-place"` uses the direct surface.',
@@ -59,8 +84,9 @@ function renderDispatch(payload) {
   for (const [index, result] of payload.results.entries()) {
     const surface = result.surface === 'provider' ? 'provider' : result.surface === 'direct' ? 'direct' : '-'
     const child = result.childId ? ` · child ${result.childId}` : ''
+    const session = result.sessionOutcome ? ` · session ${result.sessionOutcome}` : ''
     lines.push(
-      `#${index + 1} ${result.harnessId} · ${result.status} · ${((result.elapsedMs ?? 0) / 1000).toFixed(1)}s · surface: ${surface}${child}`,
+      `#${index + 1} ${result.harnessId} · ${result.status} · ${((result.elapsedMs ?? 0) / 1000).toFixed(1)}s · surface: ${surface}${child}${session}`,
     )
     if (result.downgradeReason) lines.push(`   degraded: ${result.downgradeReason}`)
     // Never let a degraded surface go unexplained: silence reads as full support.
@@ -75,6 +101,10 @@ function renderDispatch(payload) {
   )
   lines.push('note: `omc:<id>` providers used by roles are fixed read-only; a write mode takes the `direct` surface.')
   lines.push('note: `surface: direct` has no childId, no host capacity slot and no sub-session; only `provider` gets those.')
+  if (payload.project) {
+    lines.push(`project policy: ${payload.project.path}`)
+    for (const warning of payload.project.warnings ?? []) lines.push(`  note: ${warning}`)
+  }
   if (payload.delivery === 'background') {
     lines.push('Background runs report through the completion notice. Do not claim them as finished before it arrives.')
   }
@@ -82,13 +112,27 @@ function renderDispatch(payload) {
 }
 
 /** Session references are metadata, never a conversation or a credential. */
-function renderSessions(registry) {
+function renderSessions(registry, { lane } = {}) {
   const stats = registry.stats()
   const lines = [
-    `session registry: ${stats.entries} entries · ${stats.resumable} resumable · reuse ${stats.enabled ? 'on' : 'off'} · policy ${stats.resumePolicy}`,
+    `session registry: ${stats.entries} entries · ${stats.lanes ?? 0} lane(s) · ${stats.resumable} resumable · ` +
+    `reuse ${stats.enabled ? 'on' : 'off'} · policy ${stats.resumePolicy}`,
   ]
+  if (stats.usage) {
+    const usage = stats.usage
+    lines.push(
+      `  usage: in ${usage.inputTokens} · out ${usage.outputTokens}` +
+      (usage.costKnown ? ` · cost $${usage.costUsd.toFixed(4)}` : ' · cost unknown'),
+    )
+  }
+  if (stats.outcomes) {
+    lines.push(
+      `  session outcomes: new ${stats.outcomes.new} · resumed ${stats.outcomes.resumed} · ` +
+      `unconfirmed ${stats.outcomes.unconfirmed} · unknown ${stats.outcomes.unknown}`,
+    )
+  }
   if (stats.loadError) lines.push(`  unreadable registry: ${stats.loadError}`)
-  const rows = registry.list({ limit: 20 })
+  const rows = registry.list({ limit: 20, lane })
   if (!rows.length) {
     lines.push('  no native session references stored')
   } else {
@@ -136,6 +180,30 @@ async function executionStatusText(rt) {
 /**
  * @param {{ ctx: any, cfg: any, registered: Set<string>, detect(force?: boolean): Promise<any> }} rt
  */
+/**
+ * Bind the calling session as an OMC parent (R01).
+ *
+ * Idempotent by construction: every tool call re-affirms the same root binding.
+ * A session already bound to another parent is left alone — the bridge refuses
+ * to re-attribute work that may already have been booked.
+ */
+function bindCallingSession(rt, exec) {
+  const agent = exec?.agent
+  const sessionId = agent?.session?.id
+  const parentId = agent?.id
+  if (!rt?.native || typeof sessionId !== 'string' || typeof parentId !== 'string') return null
+  try {
+    return rt.native.bindRoot({ sessionId, parentId })
+  } catch (error) {
+    try {
+      rt.ctx?.logger?.warn?.(`oh-my-coharness: native binding skipped: ${String(error?.message ?? error)}`)
+    } catch {
+      // torn-down logger
+    }
+    return null
+  }
+}
+
 function coharnessTool(rt) {
   return {
     name: 'coharness',
@@ -145,12 +213,16 @@ function coharnessTool(rt) {
       properties: {
         action: {
           type: 'string',
-          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate', 'sessions'],
-          description: 'dispatch = run work; list = who is available (free); status = role execution backends, provider state and session reuse (free); doctor = full diagnostic report (free); sessions = OMC native-session references (free; clear:true forgets them); migrate = preview the pre-0.4 configuration migration (pass apply:true to write).',
+          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate', 'sessions', 'tasks', 'result', 'cancel', 'fleet', 'demo', 'graph', 'send', 'inbox', 'ack', 'thread', 'reuse', 'worktree', 'project', 'role', 'preset', 'usage'],
+          description: 'dispatch = run work; list = who is available (free); status = role execution backends, provider state, native model routes and session reuse (free); usage = native event-bridge diagnostics plus this session’s derived token/cost rollup (free, no model call); doctor = full diagnostic report (free); sessions = OMC native-session references (free; clear:true forgets them); migrate = preview the pre-0.4 configuration migration (pass apply:true to write); fleet = plan native role routes from the live DSH model catalog (free; apply:true writes); demo = plan+apply the fleet, seed a demo workspace and return the run prompt (free; no model call); graph = plan/claim/complete a parent work graph (dependencies, acceptance, write-scope); send/inbox/ack/thread = durable parent mailbox; reuse = inspect a durable task for continued work; worktree = create/enter a retained DSH worktree or merge its recorded branch back with a clean-tree preflight (session-wide, not per child); project = show the restrictive .omc/project.json policy that a dispatch in cwd would apply; role = list/add/remove/run a named external read-only role template (enforced read-only harness only); preset = snapshot this session’s effective OMC role config and compare the live config to it (never claims a hot switch).',
         },
         harness: {
           type: 'string',
           description: "Harness id such as 'codex', 'claude', 'gemini', 'kimi', or 'auto' to pick the first usable one.",
+        },
+        model: {
+          type: 'string',
+          description: 'Per-call CLI model override for dispatch (harnesses.<id>.model is the default).',
         },
         prompt: {
           type: 'string',
@@ -163,17 +235,25 @@ function coharnessTool(rt) {
             type: 'object',
             properties: {
               harness: { type: 'string' },
+              model: { type: 'string' },
               prompt: { type: 'string' },
+              fallbacks: { type: 'array', items: { type: 'string' } },
             },
             required: ['prompt'],
             additionalProperties: false,
           },
         },
-        cwd: { type: 'string', description: 'Working directory for the run. Defaults to the session directory.' },
+        fallbacks: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'For dispatch: harness ids to try, in order, only when the previous attempt fails with a retryable CLI error. Explicit fallback keeps billing/authority visible; no automatic route change.',
+        },
+        cwd: { type: 'string', description: 'Working directory for a dispatch run. Defaults to the session directory.' },
+        demo_dir: { type: 'string', description: 'For demo: exact empty directory to seed. Defaults to $DSH_HOME/omc-demo/run-<timestamp>.' },
         mode: {
           type: 'string',
           enum: ['read-only', 'in-place', 'worktree'],
-          description: 'read-only (default) forbids edits; in-place lets the CLI write here (direct surface only); worktree is not implemented in 0.5.0-alpha.1.',
+          description: 'read-only (default) forbids edits; in-place lets the CLI write in this workspace (direct surface only); worktree creates a disposable branch checkout, runs the CLI there, and returns its diff/path without merging.',
         },
         delivery: {
           type: 'string',
@@ -185,6 +265,74 @@ function coharnessTool(rt) {
         force: { type: 'boolean', description: 'For action migrate: overwrite conflicting current values (a backup is always written first).' },
         rollback: { type: 'boolean', description: 'For action migrate: restore the latest migration backup.' },
         clear: { type: 'boolean', description: 'For action sessions: forget every OMC session reference. CLI-native histories are not deleted.' },
+        clear_lane: { type: 'boolean', description: 'For action sessions: forget references for one lane (requires lane).' },
+        task_id: { type: 'string', description: 'For result/cancel: exact external child id returned by a role tool or dispatch. Only this session’s runs are accessible.' },
+        models: {
+          type: 'object',
+          description: 'For fleet/demo: explicit role → {provider, model} overrides. Omitted roles are chosen from the live DSH catalog. Roles: oracle, explorer, fixer, designer, librarian.',
+          additionalProperties: {
+            type: 'object',
+            properties: { provider: { type: 'string' }, model: { type: 'string' } },
+            required: ['model'],
+            additionalProperties: false,
+          },
+        },
+        refresh: { type: 'boolean', description: 'For fleet/demo: re-read the live DSH model catalog instead of using the 15s cache.' },
+        graph_action: {
+          type: 'string',
+          enum: ['plan', 'status', 'claim', 'complete', 'fail', 'cancel', 'audit'],
+          description: 'For graph: plan nodes, inspect status, claim a ready node, settle it, cancel it, or audit changed files against its write scope.',
+        },
+        nodes: {
+          type: 'array',
+          description: 'For graph plan: [{id, role, title, deps, write, writeScope, acceptance}].',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              role: { type: 'string' },
+              title: { type: 'string' },
+              deps: { type: 'array', items: { type: 'string' } },
+              write: { type: 'boolean' },
+              writeScope: { type: 'array', items: { type: 'string' } },
+              acceptance: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['id'],
+            additionalProperties: false,
+          },
+        },
+        node_id: { type: 'string', description: 'For graph claim/complete/fail/cancel/audit: node id. On dispatch: binds the run to the managed path (claim → attempt → events → acceptance → settle; failure releases the claim).' },
+        evidence: { type: 'array', items: { type: 'string' }, description: 'For graph complete: acceptance evidence; required when the node declares acceptance.' },
+        changed_files: { type: 'array', items: { type: 'string' }, description: 'For graph complete/audit on a write node: workspace-relative changed paths.' },
+        to: { type: 'string', description: 'For send: target agent id, external task id, or * for a broadcast.' },
+        text: { type: 'string', description: 'For send: durable message text.' },
+        kind: { type: 'string', enum: ['note', 'task', 'result', 'question'], description: 'For send: message kind (default note).' },
+        message_id: { type: 'string', description: 'For ack: one message id.' },
+        ids: { type: 'array', items: { type: 'string' }, description: 'For ack: message ids.' },
+        agent_id: { type: 'string', description: 'For inbox/ack: agent id; defaults to the calling agent.' },
+        unread_only: { type: 'boolean', description: 'For inbox: only unread messages (default true).' },
+        lane: { type: 'string', description: 'For thread: filter by lane.' },
+        execute: { type: 'boolean', description: 'For reuse: re-execute the retained task now (re-validates policy and harness, opens a NEW attempt; previous acceptance evidence is not inherited).' },
+        name: { type: 'string', description: 'For worktree: branch/checkout name. Defaults to a generated worktree-<uuid>.' },
+        merge: { type: 'boolean', description: 'For worktree: merge the recorded branch back into its source checkout (clean-tree preflight, --no-ff, abort on conflict).' },
+        branch: { type: 'string', description: 'For worktree merge: explicit retained branch; defaults to the latest recorded worktree branch.' },
+        require_acceptance: { type: 'boolean', description: 'For worktree merge: require the named graph node to be completed with its acceptance evidence before merging.' },
+        role_action: {
+          type: 'string',
+          enum: ['list', 'add', 'remove', 'run'],
+          description: 'For role: list templates, add one, remove one, or run one through the read-only dispatch path.',
+        },
+        role_id: { type: 'string', description: 'For role: custom role id.' },
+        title: { type: 'string', description: 'For role add: display title.' },
+        persona: { type: 'string', description: 'For role add: self-contained persona/instructions.' },
+        role_harness: { type: 'string', description: 'For role add: external harness id; role runs only when that harness has enforced read-only.' },
+        role_model: { type: 'string', description: 'For role add: optional CLI model override for this role.' },
+        role_fallbacks: { type: 'array', items: { type: 'string' }, description: 'For role add: optional enforced read-only harness fallbacks.' },
+        preset_action: {
+          type: 'string',
+          enum: ['snapshot', 'status', 'clear'],
+          description: 'For preset: status freezes an immutable startup baseline at this session’s first OMC observation and diffs the live config against it; snapshot records a labeled manual snapshot beside it (never replacing the baseline); clear removes both. DSH still owns session preset switching.',
+        },
       },
       required: ['action'],
       additionalProperties: false,
@@ -207,7 +355,309 @@ function coharnessTool(rt) {
       // A Loader may have loaded this plugin before the subagents service existed.
       // Retrying here is what turns the provider surface on without a restart.
       rt.ensureProviders?.()
+      // R01: the calling session is an OMC parent. Re-affirming it here is what
+      // lets the event bridge attribute the children this session delegates.
+      bindCallingSession(rt, exec)
       const action = String(args?.action ?? '')
+
+      if (action === 'project') {
+        const result = readProjectPolicy(args.cwd)
+        return { text: renderProjectPolicy(result) }
+      }
+
+      if (action === 'preset') {
+        const parentId = exec?.agent?.id
+        if (!parentId) return { text: 'OMC/PRESET-PARENT-REQUIRED: preset actions need a calling agent' }
+        const subaction = String(args.preset_action ?? 'status')
+        try {
+          if (subaction === 'clear') {
+            rt.presetSnapshots.clear(parentId)
+            return { text: 'preset snapshots cleared for this session (startup baseline and manual)' }
+          }
+          const loaded = await readRoleConfiguration(rt.ctx)
+          if (!loaded.ok) return { text: 'preset failed: ' + loaded.error }
+          const current = {
+            source: loaded.config.source,
+            preset: loaded.config.preset,
+            orchestrator: loaded.config.orchestrator,
+            roles: loaded.config.roles,
+          }
+          // Freeze the startup baseline at the first OMC observation of this
+          // session and never let a later call replace it: manual snapshots are
+          // labeled and stored beside it, not over it.
+          const startup = rt.presetSnapshots.ensureStartup(parentId, { ...current, source: current.source })
+          if (subaction === 'snapshot') {
+            const saved = rt.presetSnapshots.write(parentId, current)
+            return {
+              text: JSON.stringify({
+                manual: saved,
+                startup: { kind: startup.value.kind, at: startup.value.at, created: startup.created },
+                hotSwitch: false,
+                note: 'manual snapshots are labeled manual and never replace the immutable startup baseline',
+              }, null, 2),
+            }
+          }
+          if (subaction === 'status') {
+            const stored = rt.presetSnapshots.read(parentId)
+            const snapshot = stored?.startup ?? null
+            const diff = snapshot ? diffPresetSnapshot(snapshot, current) : null
+            return {
+              text: JSON.stringify({
+                startup: snapshot,
+                manual: stored?.manual ?? null,
+                current: { source: current.source, preset: current.preset },
+                diff,
+                hotSwitch: false,
+                note: 'the startup baseline is frozen at this session’s first OMC observation and cannot be replaced; manual snapshots are kept separately',
+              }, null, 2),
+            }
+          }
+          return { text: `unknown preset_action "${subaction}"` }
+        } catch (error) {
+          return { text: `preset failed: ${String(error?.message ?? error)}` }
+        }
+      }
+
+      if (action === 'role') {
+        const subaction = String(args.role_action ?? 'list')
+        try {
+          if (subaction === 'list') {
+            const project = readProjectRoles(args.cwd)
+            const roles = [...rt.customRoles.list()]
+            for (const role of project.roles) {
+              if (!roles.some((row) => row.id === role.id)) roles.push(role)
+            }
+            return {
+              text: JSON.stringify({
+                roles,
+                path: rt.customRoles.path,
+                project: project.exists ? { path: project.path, warnings: project.warnings } : undefined,
+              }, null, 2),
+            }
+          }
+          if (subaction === 'add') {
+            const role = rt.customRoles.add({
+              id: args.role_id,
+              title: args.title,
+              persona: args.persona,
+              harness: args.role_harness,
+              model: args.role_model,
+              fallbacks: args.role_fallbacks,
+            })
+            return { text: JSON.stringify({ role }, null, 2) }
+          }
+          if (subaction === 'remove') {
+            return { text: JSON.stringify({ removed: rt.customRoles.remove(args.role_id) }, null, 2) }
+          }
+          if (subaction === 'run') {
+            const project = readProjectRoles(args.cwd)
+            const role = rt.customRoles.get(args.role_id)
+              ?? project.roles.find((row) => row.id === args.role_id)
+            if (!role) return { text: `OMC/ROLE-NOT-FOUND: no custom role "${args.role_id ?? ''}"` }
+            const readOnly = harnessReadOnlyClass(role.harness)
+            if (readOnly !== 'enforced') {
+              return {
+                text: `OMC/ROLE-READONLY-UNSUPPORTED: custom role "${role.id}" uses ${role.harness} (${readOnly}); ` +
+                  'only an enforced read-only harness can run a custom role',
+              }
+            }
+            if (typeof args.text !== 'string' || args.text.trim() === '') {
+              return { text: 'OMC/ROLE-TASK: role run needs text (the task for the role)' }
+            }
+            const requestedFallbacks = Array.isArray(role.fallbacks) ? role.fallbacks : []
+            const fallbacks = requestedFallbacks.filter((harness) => harnessReadOnlyClass(harness) === 'enforced')
+            const skipped = requestedFallbacks.filter((harness) => !fallbacks.includes(harness))
+            const payload = await dispatchTasks(rt, {
+              harness: role.harness,
+              ...(role.model ? { model: role.model } : {}),
+              ...(fallbacks.length ? { fallbacks } : {}),
+              prompt: buildRolePrompt(role, args.text),
+              mode: 'read-only',
+              cwd: args.cwd,
+            }, { agent: exec.agent, signal: exec.signal ?? new AbortController().signal })
+            return {
+              text: `custom role ${role.id} (${role.harness}) read-only` +
+                (fallbacks.length ? ` · fallbacks ${fallbacks.join(', ')}` : '') +
+                (skipped.length ? ` · skipped non-enforced fallbacks ${skipped.join(', ')}` : '') +
+                '\n' + renderDispatch(payload),
+            }
+          }
+          return { text: `unknown role_action "${subaction}"` }
+        } catch (error) {
+          return { text: `role failed: ${String(error?.message ?? error)}` }
+        }
+      }
+
+      if (action === 'worktree') {
+        if (!exec?.agent) return { text: 'OMC/WORKTREE-PARENT-REQUIRED: worktree actions need a calling agent' }
+        if (args.merge === true) {
+          if (args.require_acceptance === true) {
+            if (!args.node_id) return { text: 'OMC/WORKTREE-ACCEPTANCE: require_acceptance needs node_id' }
+            const gate = mergeAcceptance(rt.graph.status(exec.agent.id), args.node_id)
+            if (!gate.ok) return { text: `${gate.code}: ${gate.reason}; merge refused` }
+          }
+          const record = rt.worktrees.read(exec.agent.id)
+          const branch = typeof args.branch === 'string' && args.branch.trim() !== ''
+            ? args.branch.trim()
+            : record?.branch
+          const merged = await mergeWorktree(rt.ctx, record ? { ...record, branch } : null, { signal: exec.signal })
+          return {
+            text: JSON.stringify({
+              merge: merged,
+              note: 'A failed merge is aborted; the worktree branch and files are retained.',
+            }, null, 2),
+          }
+        }
+        const worktrees = rt.ctx.get?.('worktrees')
+        if (!worktrees?.create) {
+          return {
+            text: 'worktree is unavailable: this DSH profile does not mount @deepseek-ai/dsh-experimental-worktree. ' +
+              'Worktree creation is also session-wide, not per child — it cannot isolate a parallel external Fixer.',
+          }
+        }
+        try {
+          const record = await worktrees.create(exec.agent, { ...(args.name ? { name: args.name } : {}) }, exec.signal)
+          rt.worktrees.record(exec.agent.id, record)
+          return {
+            text: JSON.stringify({
+              worktree: record,
+              note: 'This session now runs in the retained worktree. Its branch and files persist after leaving; ' +
+                'this is a session-wide checkout, not a per-child isolation boundary.',
+            }, null, 2),
+          }
+        } catch (error) {
+          return { text: `worktree failed: ${String(error?.message ?? error)}` }
+        }
+      }
+
+      if (action === 'graph' || action === 'send' || action === 'inbox' || action === 'ack' || action === 'thread' || action === 'reuse') {
+        const parentId = exec?.agent?.id
+        try {
+          if (action === 'send') {
+            const record = rt.mailbox.send({
+              parentId,
+              from: parentId,
+              to: args.to,
+              text: args.text,
+              taskId: args.task_id,
+              lane: args.lane,
+              kind: args.kind,
+            })
+            let delivery = { delivered: false, reason: 'queued' }
+            if (args.to && args.to !== '*') {
+              const tools = exec?.agent?.ctx?.get?.('tools') ?? rt.ctx.get?.('tools')
+              const sendTool = tools?.get?.('send_message')
+              if (sendTool?.execute) {
+                try {
+                  await sendTool.execute({ agent_id: args.to, message: args.text }, {
+                    agent: exec.agent,
+                    signal: exec.signal ?? new AbortController().signal,
+                  })
+                  delivery = { delivered: true, reason: 'native send_message' }
+                  rt.mailbox.markDelivered(parentId, record.id, { delivery: 'native' })
+                } catch (error) {
+                  delivery = { delivered: false, reason: String(error?.message ?? error) }
+                }
+              }
+            }
+            return { text: JSON.stringify({ message: record, delivery }, null, 2) }
+          }
+          if (action === 'inbox') {
+            const agentId = args.agent_id ?? parentId
+            const rows = rt.mailbox.inbox(parentId, agentId, { unreadOnly: args.unread_only !== false })
+            return { text: JSON.stringify({ agentId, messages: rows }, null, 2) }
+          }
+          if (action === 'ack') {
+            const ids = Array.isArray(args.ids) ? args.ids : args.message_id ? [args.message_id] : []
+            return { text: JSON.stringify(rt.mailbox.ack(parentId, args.agent_id ?? parentId, ids), null, 2) }
+          }
+          if (action === 'thread') {
+            return {
+              text: JSON.stringify(rt.mailbox.thread(parentId, { taskId: args.task_id, lane: args.lane }), null, 2),
+            }
+          }
+          if (action === 'reuse') {
+            if (!args.task_id) return { text: 'reuse needs task_id; use action "tasks" to list this parent’s retained tasks' }
+            const task = rt.tasks.read(parentId, args.task_id)
+            const messages = rt.mailbox.thread(parentId, { taskId: args.task_id })
+            if (args.execute === true) {
+              if (typeof args.text !== 'string' || args.text.trim() === '') {
+                return { text: 'OMC/REUSE-TASK: explicit re-execution needs text (the new prompt for the task)' }
+              }
+              // Re-validate the current world before spending anything: the
+              // project policy must still allow a read-only dispatch, and the
+              // harness must still be enabled (A16).
+              const problems = []
+              const project = readProjectPolicy(task.result?.cwd ?? args.cwd ?? exec?.agent?.session?.header?.cwd)
+              if (project.exists && project.usable === false) problems.push('the project policy is unreadable now')
+              if (task.harness && isEnabled(rt.cfg, task.harness) === false) problems.push(`${task.harness} is disabled now`)
+              const result = await rt.managed.reexecute(rt, {
+                parentId, taskId: args.task_id, prompt: args.text,
+                exec: { agent: exec.agent, signal: exec.signal ?? new AbortController().signal },
+                validate: () => problems,
+              })
+              return { text: JSON.stringify({ ...result, previousTask: task, messages }, null, 2) }
+            }
+            return {
+              text: JSON.stringify({
+                task,
+                messages,
+                next: 'Continue by calling the same role tool with the same cwd/lane and a new prompt; a matching native session is resumed when the harness supports it. Do not pass this external child id to send_message.',
+              }, null, 2),
+            }
+          }
+
+          const subaction = String(args.graph_action ?? 'status')
+          if (!parentId) return { text: 'OMC/GRAPH-PARENT-REQUIRED: graph actions require a calling agent' }
+          if (subaction === 'plan') {
+            return { text: JSON.stringify(rt.graph.plan(parentId, args.nodes), null, 2) }
+          }
+          if (subaction === 'status') return { text: JSON.stringify(rt.graph.status(parentId), null, 2) }
+          if (subaction === 'claim') {
+            return {
+              text: JSON.stringify(rt.graph.claim(parentId, args.node_id, { taskId: args.task_id }), null, 2),
+            }
+          }
+          if (subaction === 'complete' || subaction === 'fail' || subaction === 'cancel') {
+            if (subaction === 'cancel') {
+              return { text: JSON.stringify(rt.graph.cancel(parentId, args.node_id, { reason: args.text }), null, 2) }
+            }
+            return {
+              text: JSON.stringify(rt.graph.complete(parentId, args.node_id, {
+                status: subaction === 'fail' ? 'failed' : 'completed',
+                evidence: args.evidence,
+                changedFiles: args.changed_files,
+                taskId: args.task_id,
+              }), null, 2),
+            }
+          }
+          if (subaction === 'audit') {
+            return {
+              text: JSON.stringify(rt.graph.audit(parentId, args.node_id, args.changed_files), null, 2),
+            }
+          }
+          return { text: `unknown graph_action "${subaction}"` }
+        } catch (error) {
+          return { text: `${action} failed: ${String(error?.message ?? error)}` }
+        }
+      }
+
+      if (action === 'tasks' || action === 'result' || action === 'cancel') {
+        const parentId = exec?.agent?.id
+        if (action === 'result') {
+          const task = rt.tasks.read(parentId, args.task_id)
+          const roleResult = externalRoleResult(task)
+          return {
+            text: JSON.stringify({
+              roleResult,
+              rendered: renderRoleResult(roleResult),
+              task,
+            }, null, 2),
+          }
+        }
+        const value = action === 'tasks' ? rt.tasks.list(parentId) : await rt.tasks.cancel(parentId, args.task_id)
+        return { text: JSON.stringify(value, null, 2) }
+      }
 
       if (action === 'list') {
         const report = await rt.detect()
@@ -223,12 +673,61 @@ function coharnessTool(rt) {
         return { text: await executionStatusText(rt) }
       }
 
+      if (action === 'usage') {
+        const parentId = exec?.agent?.id ?? null
+        const diagnostics = rt.native.diagnostics()
+        const summary = parentId ? rt.native.summary({ parentId }) : null
+        return {
+          text: JSON.stringify({
+            diagnostics,
+            summary,
+            note: diagnostics.installed
+              ? 'Native usage is booked from host session events; the parent total is a derived rollup of its tasks, not a second booking. A missing number stays unknown.'
+              : 'The native bridge is not installed in this host, so native usage is not being booked. Nothing here is a zero-cost claim.',
+          }, null, 2),
+        }
+      }
+
+      if (action === 'fleet' || action === 'demo') {
+        try {
+          if (action === 'demo') {
+            const result = await runNativeDemo(rt.ctx, {
+              models: args.models,
+              // A demo is an explicit request; preview only when asked.
+              apply: args.apply !== false,
+              cwd: args.demo_dir,
+              refresh: args.refresh === true,
+            })
+            return { text: result.text }
+          }
+          const { plan } = await buildNativeFleet(rt.ctx, { models: args.models, refresh: args.refresh === true })
+          if (args.apply !== true) return { text: renderFleetPlan(plan) }
+          const applied = await applyNativeFleet(rt.ctx, plan)
+          const notes = [
+            ...(applied.applied ? [] : ['not applied: ' + (applied.reason ?? 'unknown reason')]),
+            ...(applied.mismatch ?? []).map((entry) => 'verify: ' + entry),
+          ]
+          return {
+            text: [renderFleetPlan(plan, { applied: applied.applied, backup: applied.backup }), ...notes].join('\n'),
+          }
+        } catch (error) {
+          return { text: `${action} failed: ${String(error?.message ?? error)}` }
+        }
+      }
+
       if (action === 'sessions') {
+        if (args.clear_lane === true || (args.clear === true && typeof args.lane === 'string' && args.lane !== '')) {
+          if (typeof args.lane !== 'string' || args.lane === '') {
+            return { text: 'clear_lane needs lane; use action sessions with lane or clear:true for every reference' }
+          }
+          const removed = rt.sessions.forgetLane(args.lane)
+          return { text: `forgot ${removed} OMC session reference(s) for lane "${args.lane}"; CLI-native histories were not touched` }
+        }
         if (args.clear === true) {
           rt.sessions.clear()
           return { text: 'cleared OMC session references; CLI-native histories were not touched' }
         }
-        return { text: renderSessions(rt.sessions) }
+        return { text: renderSessions(rt.sessions, { lane: args.lane }) }
       }
 
       if (action === 'migrate') {
@@ -239,11 +738,20 @@ function coharnessTool(rt) {
       }
 
       if (action !== 'dispatch') {
-        return { text: `unknown action "${action}"; use dispatch, list, status, doctor, sessions, or migrate` }
+        return { text: `unknown action "${action}"; use dispatch, list, status, doctor, fleet, demo, sessions, tasks, result, cancel, or migrate` }
       }
 
-      if (args.mode === 'worktree') {
-        return { text: 'worktree mode is not implemented in 0.5.0-alpha.1; use read-only or in-place' }
+      // A dispatch bound to a graph node takes the managed path (WP05):
+      // claim → attempt → events → acceptance → settle/release. Everything
+      // else keeps the ordinary path and is labeled managed:false by the
+      // managed wrapper only when it runs there; an ordinary result simply
+      // does not claim managed coverage.
+      if (args.node_id) {
+        const payload = await rt.managed.dispatch(rt, { ...args, nodeId: args.node_id }, {
+          agent: exec?.agent,
+          signal: exec?.signal ?? new AbortController().signal,
+        })
+        return { text: renderDispatch(payload) }
       }
 
       const payload = await dispatchTasks(rt, args, {
@@ -274,7 +782,12 @@ function coharnessCommand(rt) {
             text: [
               '/coharness doctor            full diagnostic report (CLIs, providers, role backends)',
               '/coharness status            role → backend table, provider registration and session reuse',
-              '/coharness sessions          OMC native-session references (clear with --clear)',
+              '/coharness sessions          OMC native-session references and usage (filter with --lane=<id>)',
+              '/coharness sessions --clear  forget every reference; --clear --lane=<id> forgets one lane',
+              '/coharness fleet             preview native role routes from the live DSH model catalog',
+              '/coharness fleet --apply     pin the native roles to those routes (backed up first)',
+              '/coharness demo              apply the fleet, seed a demo workspace and print the run prompt',
+              '/coharness demo --preview    seed the workspace without writing the role routes',
               '/coharness migrate           preview the OMD → OMC configuration migration',
               '/coharness migrate --apply   back up, then write the migrated configuration',
               '/coharness migrate --force   overwrite conflicting values (backup is still written)',
@@ -290,12 +803,45 @@ function coharnessCommand(rt) {
         return { kind: 'success', text: await executionStatusText(rt) }
       }
 
+      if (topic === 'fleet' || topic === 'demo') {
+        try {
+          if (topic === 'demo') {
+            const result = await runNativeDemo(rt.ctx, {
+              apply: !flags.has('--preview'),
+              refresh: flags.has('--refresh'),
+            })
+            return { kind: 'success', text: result.text }
+          }
+          const { plan } = await buildNativeFleet(rt.ctx, { refresh: flags.has('--refresh') })
+          if (!flags.has('--apply')) return { kind: 'success', text: renderFleetPlan(plan) }
+          const applied = await applyNativeFleet(rt.ctx, plan)
+          const notes = [
+            ...(applied.applied ? [] : ['not applied: ' + (applied.reason ?? 'unknown reason')]),
+            ...(applied.mismatch ?? []).map((entry) => 'verify: ' + entry),
+          ]
+          return {
+            kind: 'success',
+            text: [renderFleetPlan(plan, { applied: applied.applied, backup: applied.backup }), ...notes].join('\n'),
+          }
+        } catch (error) {
+          return { kind: 'error', text: `${topic} failed: ${String(error?.message ?? error)}` }
+        }
+      }
+
       if (topic === 'sessions') {
+        const lane = tokens.find((token) => token.startsWith('--lane='))?.slice('--lane='.length) ?? ''
+        if (flags.has('--clear') && lane !== '') {
+          const removed = rt.sessions.forgetLane(lane)
+          return {
+            kind: 'success',
+            text: `forgot ${removed} OMC session reference(s) for lane "${lane}"; CLI-native histories were not touched`,
+          }
+        }
         if (flags.has('--clear')) {
           rt.sessions.clear()
           return { kind: 'success', text: 'cleared OMC session references; CLI-native histories were not touched' }
         }
-        return { kind: 'success', text: renderSessions(rt.sessions) }
+        return { kind: 'success', text: renderSessions(rt.sessions, { lane: lane || undefined }) }
       }
 
       if (topic === 'migrate') {
@@ -314,7 +860,7 @@ function coharnessCommand(rt) {
 
       return {
         kind: 'error',
-        text: `unknown /coharness topic "${topic}"; use doctor, status, sessions, or migrate`,
+        text: `unknown /coharness topic "${topic}"; use doctor, status, fleet, demo, sessions, or migrate`,
       }
     },
   }
@@ -351,6 +897,51 @@ export function reportNeedsRefresh(report, ageMs, ttlMs = REPORT_TTL_MS) {
 export function apply(ctx, config) {
   const cfg = resolveConfig(config)
   const sessions = createSessionRegistry(cfg.sessions)
+  const stateDir = cfg.stateDir || ''
+  const tasks = createTaskRegistry({
+    dir: stateDir ? join(stateDir, 'tasks') : statePath('tasks'),
+    maxRetained: 100,
+  })
+  const graph = createGraphStore({ dir: stateDir ? join(stateDir, 'graph') : statePath('graph') })
+  const mailbox = createMailbox({ dir: stateDir ? join(stateDir, 'mailbox') : statePath('mailbox') })
+  const worktrees = createWorktreeStore({ dir: stateDir ? join(stateDir, 'worktrees') : statePath('worktrees') })
+  const customRoles = createCustomRoles({ dir: stateDir ? join(stateDir, 'roles') : statePath('roles') })
+  const presetSnapshots = createPresetSnapshotStore({
+    dir: stateDir ? join(stateDir, 'presets') : statePath('presets'),
+  })
+  // 0.5.0-alpha.2 batch 1: the efficiency stores. They are wired in now so
+  // later work packages (context view, managed graph, budget) share one
+  // instance per host process instead of inventing their own roots.
+  const usageLedger = createUsageLedger({ dir: stateDir ? join(stateDir, 'usage') : statePath('usage') })
+  const executionStore = createExecutionStore({ dir: stateDir ? join(stateDir, 'execution') : statePath('execution') })
+  const artifacts = createArtifactStore({ dir: stateDir ? join(stateDir, 'artifacts') : statePath('artifacts') })
+  // WP04–WP06 surfaces. The context view and retrieval cache shape OMC's own
+  // echo in every mode; the budget/progress trackers start in observe: they
+  // record and advise, they do not change how a task runs (V0.5-ALPHA2 §2).
+  const contextView = createContextView({ artifacts, maxToolTextChars: cfg.efficiency.context.maxToolTextChars })
+  const retrievalCache = createRetrievalCache({ dir: stateDir ? join(stateDir, 'retrieval') : statePath('retrieval') })
+  const budget = createBudgetTracker({ usageLedger, executionStore, maxCalls: cfg.efficiency.budget.maxCalls, maxUsd: cfg.efficiency.budget.maxUsd })
+  const progress = createProgressTracker({ repeatWindow: cfg.efficiency.progress.repeatWindow, repeatThreshold: cfg.efficiency.progress.repeatThreshold })
+  const managed = createManagedExecution({ graph, mailbox, tasks, executionStore, usageLedger })
+  // R01: the native runtime bridge. It puts real host children into the same
+  // task/usage records as everything else, from host events only — there is no
+  // second agent runtime and no session-file rewriting. Installed below with
+  // `ctx.effect`, so a plugin unload removes its listeners.
+  const native = createNativeRuntime({
+    usageLedger,
+    executionStore,
+    roleFromDescriptor: (event) => roleIdFromLabel(event?.data?.label),
+    // Sessions created under this preset are OMC's own parents; another
+    // preset's session is never adopted.
+    ownPreset: PRESET_ID,
+    warn: (line) => {
+      try {
+        ctx.logger?.warn?.(line)
+      } catch {
+        // A logger that is already torn down must not fail the bridge.
+      }
+    },
+  })
 
   /** @type {Set<string>} */
   const registered = new Set()
@@ -365,6 +956,21 @@ export function apply(ctx, config) {
     cfg,
     registered,
     sessions,
+    tasks,
+    graph,
+    mailbox,
+    worktrees,
+    customRoles,
+    presetSnapshots,
+    usageLedger,
+    executionStore,
+    artifacts,
+    contextView,
+    retrievalCache,
+    budget,
+    progress,
+    managed,
+    native,
     /**
      * Registration is retried on every entry point. A Loader may apply this plugin
      * before the `subagents` row exists (row order is not ours to control), and a
@@ -408,7 +1014,7 @@ export function apply(ctx, config) {
       const name = `omc:${def.id}`
       if (existing.has(name)) continue // another plugin already owns this name; never shadow it
       try {
-        const provider = makeProvider(ctx, def, cfg, { readOnly: true, registry: sessions })
+        const provider = makeProvider(ctx, def, cfg, { readOnly: true, registry: sessions, tasks })
         ctx.effect(() => subagents.registerProvider(provider))
         registered.add(def.id)
       } catch (error) {
@@ -429,6 +1035,22 @@ export function apply(ctx, config) {
     // Fall back to the entry-point retries below.
   }
   ensureProviders()
+
+  // ── native runtime bridge (R01) ─────────────────────────────────────────────
+  // Subscribed once per host context. `session/event` is the durable stream the
+  // host itself persists, and `agent/created` carries the child's lineage; the
+  // bridge books usage and settlement from those, never from a session file.
+  try {
+    native.install(ctx)
+  } catch (error) {
+    // A host without a global event surface keeps every other OMC capability;
+    // the bridge reports itself as not installed instead of failing the plugin.
+    try {
+      ctx.logger?.warn?.(`oh-my-coharness: native runtime bridge not installed: ${String(error?.message ?? error)}`)
+    } catch {
+      // torn-down logger
+    }
+  }
 
   // ── tool ────────────────────────────────────────────────────────────────────
   ctx.effect(() => ctx.tools.register(coharnessTool(rt)))

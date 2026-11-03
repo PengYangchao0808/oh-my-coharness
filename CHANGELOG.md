@@ -4,9 +4,132 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
+## [0.5.0-alpha.2-practice.1] — 2026-11-03
+
+A practice increment, not the alpha.2 release. R00 (baseline) and R01 (native
+event bridge) are done; R02–R10 and the alpha.2 release gate are not.
+
+### Added
+- **Native event bridge (R01):** `integration/native-runtime.js` subscribes to
+  the host's `session/event` and `agent/created`, and puts a real native child
+  into the same records as everything else. Child lineage comes from the
+  session header the host persists (`header.parentSession`), nested children are
+  attributed through their own parent, and a top-level session created under
+  this preset is bound as its own parent — another preset's session is never
+  adopted. Usage is booked once per `(native, session, seq)`, so a replayed or
+  duplicated event bills nothing; a failed attempt without usage stays
+  `unknown`. `turn/end` settles execution (`completed|blocked|error|max-tokens|
+  aborted`) and never fills the acceptance row.
+- **`/coharness usage`:** whether the bridge is installed, how many sessions it
+  bound, what it booked, and the derived token rollup for the calling parent.
+- **Baseline tooling (R00):** `scripts/run-tests.mjs` records a machine-readable
+  suite result, and `scripts/practice-baseline.mjs` turns it plus
+  `practice-baseline.sources.json` into a layered baseline
+  (implementation / tests / host probe / real model / Desktop / cost coverage).
+  A claimed pass whose artifact is missing is demoted to `unverified`.
+- **`scripts/native-bridge-live-check.mjs`:** boots the installed host with a
+  synthetic adapter (0 model calls) and asserts the bridge on real event
+  payloads; evidence lands in
+  `docs/evidence/alpha.2/practice-r01-native-runtime.json`.
+
+### Fixed
+- `scripts/check.mjs` now captures a child's output through a file instead of a
+  pipe, so a confined host sandbox no longer reports healthy modules as broken
+  (`spawn blocked` was an environment verdict, not a module verdict).
+- `usage-ledger.entries({ parentId })` now filters by parent in the in-memory
+  backend too; previously a rollup could include another parent's bookings.
+
+### Changed
+- Package version `0.5.0-alpha.2-practice.1`; the client card version literal
+  moved with it.
+
 ## [Unreleased]
 
 ### Added
+- **Durable orchestration (2026-11-02 late):** profile-scoped state under
+  `$DSH_HOME/omc/profiles/<profile>/`; cross-process file locks with token,
+  heartbeat and stale-owner takeover; native-session Lane leases; per-process
+  dirty-record merge on save. External task receipts and result bodies are
+  durable, and a missing body reads as `status: "unknown"`. New `graph`,
+  `send`, `inbox`, `ack`, `thread`, and `reuse` `coharness` actions add a
+  parent work graph (dependencies, acceptance evidence, write-scope claims and
+  audit) and a durable mailbox. `/coharness sessions` gains per-Lane clear,
+  Lane filtering and usage totals.
+- **Runtime settings tab:** the settings card now has a third **Runtime** tab
+  for session reuse, `resumePolicy`, `maxTurns`, `allowUnverified`, routing and
+  billing authorization, plus usage/lane counts. Writes use the same atomic
+  revision-fenced mutate as role edits. Per-Lane forget is available through
+  `/coharness sessions --clear --lane=<id>`.
+- **Dispatch fallback, project policy floor and worktree action:** `dispatch`
+  accepts ordered `fallbacks` and only advances on retryable CLI codes, returning
+  per-attempt diagnostics. `<cwd>/.omc/project.json` can tighten dispatch,
+  disable harnesses, force read-only, and turn routing/billing authorization off;
+  it can never widen operator authority. `dispatch` with `mode:"worktree"` creates
+  a disposable branch checkout per external task, runs the CLI there, and
+  returns branch/path/files/diff without merging. `coharness worktree` creates
+  and enters a retained session-wide checkout; `merge:true` runs a clean-tree
+  preflight, `git merge --no-ff`, a diff check, and aborts on conflict.
+  `require_acceptance:true` + `node_id` first checks the graph node is
+  completed with its acceptance evidence. Native children still have no
+  per-child cwd.
+- **Native RoleResult envelope:** `subagent_result` now returns
+  `roleId/state/complete/capturedThroughSeq/readAt`; `complete` is always false
+  because a latest assistant message is not settlement proof, and a missing
+  message is `state: "unknown"`. `coharness result` now also projects an
+  external task into `roleResult` (taskId/roleId/surface/state/complete/error)
+  while preserving the raw task; external provider/model/structured/artifacts
+  remain empty because the CLI does not prove them.
+- **Session preset snapshots:** `coharness preset snapshot/status` stores the
+  effective OMC role config for the calling parent session and diffs it against
+  the live global config. It always returns `hotSwitch: false`; DSH still locks
+  the agent preset after the first turn, so this is an audit snapshot, not a
+  switch.
+- **Explicit external session outcome:** provider dispatch results now expose
+  `sessionOutcome: "new" | "resumed" | "unconfirmed"` from the CLI echo and
+  resume diagnostics; direct runs omit it rather than inventing a session. The
+  session registry stores `lastSessionOutcome` and `stats.outcomes`, and
+  `/coharness sessions` prints new/resumed/unconfirmed/unknown counts.
+- **Per-call dispatch model:** `dispatch` accepts a top-level or per-task
+  `model`, applied to that CLI invocation only; the configured
+  `harnesses.<id>.model` is not mutated. Custom roles can store the same
+  override, and fallbacks inherit it.
+- **Custom external role templates:** `coharness role` can list/add/remove/run
+  named title+persona+harness templates. Runs are restricted to enforced
+  read-only harnesses and reuse the normal dispatch/project-policy/result
+  classifier; they are templates, not a second native role runtime. A project
+  can also supply `<cwd>/.omc/roles.json`; project entries are normalized to
+  read-only and invalid entries are skipped with warnings. Roles may declare
+  up to three enforced read-only fallback harnesses; non-enforced fallbacks are
+  skipped with a visible note.
+- **CLI result classification** (`integration/cli-result.js`): auth, quota,
+  rate-limit, context, truncated, semantic-JSON, empty-final-message and
+  resume-identity outcomes have stable codes; exit zero is no longer a
+  completion proof. Provider and direct dispatch share the classifier.
+- **Native model fleet + demo (2026-11-02 evening):** `/coharness fleet` reads
+  the live DSH provider/model catalog, prefers complete routes already configured
+  in a mounted `oh-my-dsh-slim`, and assigns the remaining native roles with
+  explainable keyword matching. `/coharness fleet --apply` writes only
+  `provider/model/execution` (tools, deny lists, MCPs and persona text are
+  preserved) after backing up the previous settings document. `/coharness demo`
+  applies the fleet, seeds a deterministic one-bug/three-test workspace, and
+  returns a ready Explorer → Oracle → Fixer prompt. New `coharness` actions
+  `fleet` and `demo` expose the same behavior to the model.
+- **Native route visibility:** `/coharness status` now prints
+  `native · provider/model` for pinned native roles and marks a model that is
+  absent from the live DSH catalog. Provider availability is checked against the
+  LLM provider routes, not the subagent provider list.
+- **Fleet tests** (`test/integration/fleet.test.mjs`, 14 cases): catalog
+  normalization, distinct role assignment, OMD inheritance, explicit overrides,
+  per-role settings merge, status projection and demo seeding.
+- **OMO-SLIM usability pass (2026-11-02):** external role tools now expose stable
+  lanes and bounded context, file, artifact and acceptance handoffs. Parent-scoped
+  `coharness` actions `tasks`, `result`, and `cancel` retain external provider
+  receipts without new model calls; DSH still owns activation and interruption.
+- **Reproducible acceptance probes:** `scripts/session-live-check.mjs` uses the
+  real OMC Provider for two-round native-session recall; `scripts/host-live-check.cjs`
+  checks installed-host preset/tool mounting without model calls. New parity,
+  ecosystem and acceptance reports are linked from README. These probes remain
+  developer tooling and are excluded from the published package.
 - **Harness adapter contract** (`src/adapters.js`): one lifecycle for every
   execution backend — `capabilities → start | resume → status → collect →
   cancel`. The provider and the direct dispatcher share it, so a new transport
@@ -40,6 +163,18 @@ project uses a `0.MINOR.PATCH` version line while the host APIs settle.
   manifest + tarball install, and a dispatch-only DSH runtime placeholder.
 
 ### Changed
+- Native roles no longer look "native" without their route: status names the
+  pinned provider/model and separates "provider not registered" from "model not
+  in the catalog". Fleet application merges per role, so a route update cannot
+  silently drop a role's tools or MCP selection.
+- External follow-ups use the same role/cwd/lane with a new task; tool wording
+  and the bundled routing skill now distinguish this from native `send_message`.
+- Session selection honors `new` and `require-resume`, resets the turn budget on
+  conversation replacement, observes cancellation while waiting, and refuses
+  mismatched handoff workspaces. Invalidated references cannot be revived by
+  late results. Providers stay read-only even if a caller omits the option.
+- Local result retrieval excludes inherited fork messages. Native controls paint
+  an opaque theme surface; the host schema retains verify/direct-fallback settings.
 - **Automatic routing only elects `routable` harnesses**. `recommendRoute` takes
   the connection table, blocks registered-but-signed-out or billing-unauthorized
   routes with a reason, and the OMD role tool never auto-routes a harness that

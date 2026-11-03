@@ -29,6 +29,7 @@
 // do NOT copy the pattern for packages loaded late in boot.
 
 import { hostImport } from './bridge.js';
+import { roleIdFromEvents } from './roles.js';
 
 const name = 'subagent-result';
 // `loader` is the host's module loader: the only component that can resolve
@@ -36,9 +37,10 @@ const name = 'subagent-result';
 const inject = ['tools', 'loader'];
 
 export function latestOwnAssistant(snapshot) {
-  // Upstream scans the complete surface, including inherited fork history.
+  // Inherited parent messages are not evidence that the child answered.
   for (let i = snapshot.events.length - 1; i >= 0; i--) {
     const event = snapshot.events[i];
+    if (event.seq < (snapshot.inheritedEventCount ?? 0)) continue;
     if (event.type !== 'assistant/message') continue;
     const text = assistantText(event);
     if (text !== '') return { kind: 'result', seq: event.seq, text };
@@ -52,6 +54,37 @@ function assistantText(event) {
   return content.filter((block) => block.type === 'text').map((block) => block.text).join('');
 }
 
+/**
+ * Build the stable RoleResult envelope for one already-settled child read.
+ * The message alone is not a settlement proof, so `complete` stays false and
+ * `state` names exactly what this read established.
+ */
+export function buildRoleResult(snapshot, subagentId, readAt = new Date().toISOString()) {
+  const found = latestOwnAssistant(snapshot);
+  const roleId = roleIdFromEvents(snapshot?.events ?? []) ?? '';
+  const capturedThroughSeq = snapshot?.capturedThroughSeq ?? 0;
+  if (!found) {
+    return {
+      kind: 'no-assistant-message',
+      subagentId,
+      roleId,
+      state: 'unknown',
+      complete: false,
+      capturedThroughSeq,
+      readAt,
+    };
+  }
+  return {
+    ...found,
+    subagentId,
+    roleId,
+    state: 'message-observed',
+    complete: false,
+    capturedThroughSeq,
+    readAt,
+  };
+}
+
 async function apply(ctx) {
   const [tools, session] = await Promise.all([
     hostImport(ctx, '@deepseek-ai/dsh-tools'),
@@ -62,11 +95,11 @@ async function apply(ctx) {
   const dispose = ctx.effect(() => ctx.tools.register(defineTool({
     name: 'subagent_result',
     description: [
-      'Read-only retrieval of a background subagent\'s final message.',
+      'Read-only retrieval of a local background subagent\'s latest own assistant message; a message alone is not proof the run has settled.',
       'Returns the last assistant message the subagent produced, without waking it up and without starting a new model turn (unlike send_message, which resumes the child).',
       'Use it after a settlement notice to re-read a finished lane\'s outcome, or to collect several finished lanes one by one.',
-      'Only direct children of your own session can be read.',
-      'If the subagent has not produced any assistant message yet, it is still running — wait for its settlement notice instead of polling.',
+      'Only direct children of your own session can be read. For OMC external child ids use coharness({action:"result",task_id:"..."}); external runs have no local transcript.',
+      'If there is no own assistant message, its state is unknown from this read; consult the settlement notice instead of assuming it is still running or repeatedly polling.',
     ].join(' '),
     parameters: {
       subagent_id: {
@@ -83,8 +116,13 @@ async function apply(ctx) {
           properties: {
             kind: { type: 'string', required: true, const: 'result' },
             subagentId: { type: 'string', required: true },
+            roleId: { type: 'string', required: true },
+            state: { type: 'string', required: true, const: 'message-observed' },
+            complete: { type: 'boolean', required: true, const: false },
             seq: { type: 'number', required: true },
             text: { type: 'string', required: true },
+            capturedThroughSeq: { type: 'number', required: true },
+            readAt: { type: 'string', required: true },
           },
         },
         {
@@ -93,15 +131,19 @@ async function apply(ctx) {
           properties: {
             kind: { type: 'string', required: true, const: 'no-assistant-message' },
             subagentId: { type: 'string', required: true },
+            roleId: { type: 'string', required: true },
+            state: { type: 'string', required: true, const: 'unknown' },
+            complete: { type: 'boolean', required: true, const: false },
             capturedThroughSeq: { type: 'number', required: true },
+            readAt: { type: 'string', required: true },
           },
         },
       ] },
       render: (_args, value) => [{
         type: 'text',
         text: value.kind === 'result'
-          ? `final message of ${value.subagentId}:\n${value.text}`
-          : `${value.subagentId} has not produced any assistant message yet (log captured through seq ${value.capturedThroughSeq}); it is likely still running`,
+          ? `${value.roleId || 'subagent'} ${value.subagentId} · state ${value.state} · not proof of settlement:\n${value.text}`
+          : `${value.roleId || 'subagent'} ${value.subagentId} · state ${value.state}; no own assistant message available (captured through seq ${value.capturedThroughSeq})`,
       }],
     },
     isConcurrencySafe: () => true,
@@ -126,13 +168,7 @@ async function apply(ctx) {
       if (snapshot.session.parentSession !== parent.id) {
         throw new Error(`subagent_result: session "${args.subagent_id}" is not a direct child of this session`);
       }
-      const result = latestOwnAssistant(snapshot);
-      if (result) return { ...result, subagentId: args.subagent_id };
-      return {
-        kind: 'no-assistant-message',
-        subagentId: args.subagent_id,
-        capturedThroughSeq: snapshot.capturedThroughSeq ?? 0,
-      };
+      return buildRoleResult(snapshot, args.subagent_id);
     },
   })), 'subagent-result: tool');
   // The tool stays registered for the fiber's lifetime; the cordis effect owns

@@ -535,17 +535,22 @@ export function externalRoleArgs(role, args) {
   if (role?.external !== true || role?.blocked === true) return args;
   if (!args || typeof args !== 'object' || typeof args.prompt !== 'string') return args;
   const patch = role.execution.mode === 'patch';
+  const { lane, context_summary, changed_files, artifact_refs, acceptance, ...stockArgs } = args;
+  if (lane !== undefined && (typeof lane !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(lane))) {
+    throw Object.assign(new Error('OMC/HANDOFF-INVALID: lane must be a valid id of at most 80 characters'), { code: 'OMC/HANDOFF-INVALID' });
+  }
   const handoff = createHandoff({
     roleId: role.roleId,
     cwd: args.cwd,
-    laneId: typeof args.lane === 'string' ? args.lane : undefined,
-    acceptance: patch
+    laneId: lane,
+    context: { summary: context_summary, changedFiles: changed_files, artifactRefs: artifact_refs },
+    acceptance: [...(patch
       ? ['Return exactly one unified diff that applies with git apply -p1.', 'Do not write files or touch git state.']
-      : ['Report evidence for every claim.', 'Do not modify files or git state.'],
+      : ['Report evidence for every claim.', 'Do not modify files or git state.']), ...(acceptance ?? [])],
     constraints: { readOnly: true, maxReviewRounds: 1 },
   });
   return {
-    ...args,
+    ...stockArgs,
     prompt: buildExternalBrief({
       roleId: role.roleId,
       roleTitle: role.row.title,
@@ -559,6 +564,19 @@ export function externalRoleArgs(role, args) {
       handoff,
     }),
   };
+}
+
+/** Sign against the same resolved directory DSH will use, including inherited cwd. */
+export async function prepareExternalRoleArgs(ctx, role, args, exec) {
+  if (role?.external !== true || role?.blocked === true) return args;
+  const directory = ctx.get?.('workingDirectory');
+  if (directory?.ensure && exec?.agent) {
+    const { resolve, isAbsolute } = await import('node:path');
+    const cwd = args.cwd && isAbsolute(args.cwd) ? args.cwd
+      : resolve(await directory.ensure(exec.agent, exec.signal), args.cwd ?? '.');
+    return externalRoleArgs(role, { ...args, cwd });
+  }
+  return externalRoleArgs(role, args);
 }
 
 /**
@@ -627,12 +645,12 @@ export function patchedContext(ctx, seen, wanted, agents = new WeakMap()) {
           return args.description.startsWith(prefix) ? args : { ...args, description: prefix + args.description };
         };
         return Reflect.apply(target.register, target, [{ ...patched,
-          execute: (args, exec) => {
+          execute: async (args, exec) => {
             const labelled = withRoleLabel(args);
             // An external CLI is not a DSH child, so role-composition never
             // runs for it. The persona and the read-only contract must travel
             // inside the one prompt the CLI receives.
-            return tool.execute(externalRoleArgs(wanted, labelled), exec);
+            return tool.execute(await prepareExternalRoleArgs(ctx, wanted, labelled, exec), exec);
           },
         }]);
       };

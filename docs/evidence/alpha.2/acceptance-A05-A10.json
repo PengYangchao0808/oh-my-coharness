@@ -1,0 +1,27 @@
+{
+  "case": "A05-A10",
+  "workPackage": "WP02+WP03",
+  "date": "2026-11-03",
+  "result": "passed",
+  "codeVersion": "0.5.0-alpha.1 working tree @ git 68f9644 (uncommitted alpha.2 batch-1 implementation)",
+  "dsh": { "version": "0.2.1-rc.5" },
+  "layers": ["durable-persistence combination regressions (no model calls)"],
+  "modelCalls": 0,
+  "newModules": [
+    "integration/usage-ledger.js — four-bucket normalization (native uncached semantics vs OpenAI-compatible totals, auto-disambiguated by companion keys, explicit hint override), idempotent booking keyed by (backend, session/run, event), append-only JSONL per parent under the profile state root with the shared cross-process lock, derived rollups that never claim completeness with a null bucket or unknown cost, plus nativeSessionUsageEntries for durable dsh-session event replay (assistant/attempt books an unknown-usage entry, never zero)",
+    "integration/execution-events.js — execution (running|completed|failed|cancelled|unknown) kept separate from acceptance (pending|passed|failed|unknown); attemptId lifecycle (retry/model switch = new attempt under the same task; acceptance resets to pending on every new attempt); cancelRequested is a flag; contradictory settlements recorded as conflicts; reconcileAfterRestart marks lost running attempts unknown",
+    "integration/work-packet.js — one packet contract for native and external (goal/acceptance/reads/write-scope/baseline/facts-with-provenance/decisions/open-questions/artifacts/budget); treeFingerprint covers uncommitted and non-Git trees (bounded, bounds in the digest header); fitWorkPacket externalizes material into artifacts and REFUSES (OMC/PACKET-TOO-LARGE) instead of ever trimming acceptance, budget, constraints, write scope or baseline",
+    "integration/artifact-store.js — stable ids, sha256 content hash, provenance (parent/task/attempt), bounded expansion with truncation flag, typed errors for missing/corrupt/stale/illegal ids, reference form omc-artifact:<id>"
+  ],
+  "changedModules": [
+    "integration/role-result.js — RoleResult carries usage (four buckets), costUsd and acceptanceState only from real records; delivered === execution completed AND acceptance passed",
+    "src/index.js — the three stores are instantiated per host process under the profile state root for later work packages"
+  ],
+  "regressions": "test/integration/wp02-usage-ledger.test.mjs (13 tests) + test/integration/wp03-packet.test.mjs (8 tests)",
+  "observed": { "wp02": "13/13 pass", "wp03": "8/8 pass" },
+  "boundaries": [
+    "native event ingestion ships as the pure mapper (nativeSessionUsageEntries); live host-event wiring lands with the managed path in WP05",
+    "prices are not embedded in this batch: cost entries require the caller to pass a priced record; unknown cost renders unknown, and today's price never fills a historical bill",
+    "the artifact store holds text content only this batch; binary artifacts are a later need and the put() contract says so"
+  ]
+}
