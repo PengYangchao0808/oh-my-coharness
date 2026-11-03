@@ -38,6 +38,10 @@ import { createBudgetTracker } from '../integration/budget.js'
 import { createProgressTracker } from '../integration/progress.js'
 import { createManagedExecution } from '../integration/managed-execution.js'
 import { createNativeRuntime } from '../integration/native-runtime.js'
+import { createRequestGate } from '../integration/request-gate.js'
+import { createNativeManaged } from '../integration/native-managed.js'
+import { createWorkerRegistry } from '../integration/worker-registry.js'
+import { createDecisionLog, decideSessionAction } from '../integration/session-strategy.js'
 import { roleIdFromLabel } from '../vendor/omd/npm-package/preset/roles.js'
 import { harnessReadOnlyClass } from '../integration/execution.js'
 import { renderFleetPlan } from '../integration/fleet.js'
@@ -174,7 +178,45 @@ async function executionStatusText(rt) {
     ),
     detectLegacyCompanion(rt.ctx),
   ])
-  return renderExecutionStatus(status, { legacy }).join('\n')
+  return [...renderExecutionStatus(status, { legacy }), ...runtimeFootnotes(rt)].join('\n')
+}
+
+/**
+ * The runtime facts a status reader needs and a route table cannot show (R05):
+ * how much was really booked, in which buckets, how much is unknown, whether
+ * the budget gate is enforcing, and where the bridge stands. Everything here is
+ * read from durable records — no model call, no guessed number.
+ */
+function runtimeFootnotes(rt) {
+  const lines = []
+  try {
+    const diagnostics = rt.native?.diagnostics?.()
+    if (diagnostics) {
+      lines.push(
+        `native bridge: ${diagnostics.installed ? 'installed' : 'NOT installed'} · ` +
+        `${diagnostics.bindings} binding(s) · booked ${diagnostics.stats?.booked ?? 0} · ` +
+        `unbound sessions ${diagnostics.stats?.unboundSessions ?? 0}` +
+        (diagnostics.stats?.unboundUsage ? ` · ${diagnostics.stats.unboundUsage} UNBOUND USAGE event(s)` : ''),
+      )
+    }
+    const limits = budgetLimits(rt.cfg)
+    lines.push(
+      `budget gate: ${limits.enforce ? 'enforcing' : 'advisory'} · ` +
+      `maxCalls ${limits.maxCalls ?? '—'} · perTaskCalls ${limits.perTaskCalls ?? '—'} · maxUsd ${limits.maxUsd ?? '—'}`,
+    )
+    if (typeof rt.statusParentId === 'string' && rt.requestGate && rt.nativeManaged) {
+      const view = rt.requestGate.budgetView({ parentId: rt.statusParentId, limits })
+      lines.push(`budget now: ${rt.requestGate.describe(view)}`)
+      const coverage = rt.nativeManaged.coverage(rt.statusParentId)
+      lines.push(
+        `managed coverage: ${coverage.boundNative} bound native child(ren) of ${coverage.nodes} node(s); ` +
+        'unbound native work stays unmanaged',
+      )
+    }
+  } catch (error) {
+    lines.push(`runtime footnotes unavailable: ${String(error?.message ?? error)}`)
+  }
+  return lines.length ? ['', '— runtime —', ...lines] : []
 }
 
 /**
@@ -187,6 +229,162 @@ async function executionStatusText(rt) {
  * A session already bound to another parent is left alone — the bridge refuses
  * to re-attribute work that may already have been booked.
  */
+/**
+ * Resolve the effective budget limits from the configuration (R02).
+ *
+ * `enforce` is `'auto'` by default: a configured cap that never blocks would be
+ * a lie, so a cap turns enforcement on. `observe` keeps counting through the
+ * ledger either way; `off` and an explicit `enforce: false` stay advisory.
+ */
+function budgetLimits(cfg) {
+  const budget = cfg?.efficiency?.budget ?? {}
+  const maxCalls = Number.isSafeInteger(budget.maxCalls) && budget.maxCalls > 0 ? budget.maxCalls : null
+  const perTaskCalls = Number.isSafeInteger(budget.perTaskCalls) && budget.perTaskCalls > 0 ? budget.perTaskCalls : null
+  const maxUsd = typeof budget.maxUsd === 'number' && budget.maxUsd >= 0 ? budget.maxUsd : null
+  const capsConfigured = maxCalls !== null || perTaskCalls !== null || maxUsd !== null
+  const mode = cfg?.efficiency?.mode ?? 'observe'
+  const declared = budget.enforce
+  const enforce = declared === true ? true
+    : declared === false ? false
+      : mode !== 'off' && capsConfigured
+  return { maxCalls, perTaskCalls, maxUsd, enforce }
+}
+
+/**
+ * Install the per-request budget gate (R02).
+ *
+ * Two host facts shape this wiring (both verified by the WP00 probe):
+ *   - `agent/request` runs inside prepareRequest before `llm.stream` on EVERY
+ *     attempt, including a retry — so this is the one place that can both count
+ *     a real send and stop it. Throwing here aborts the turn before any adapter
+ *     dispatch, which is exactly "block the next real request".
+ *   - `agent/pre-step` can reject a step before any send. It is used as the
+ *     cheap early exit: it never throws, it just declines to enter the step.
+ *
+ * Settlement comes from the durable session events: one `assistant/message`
+ * (success) or `assistant/attempt` (failed/aborted) closes exactly one send.
+ * A turn that ends with reservations still open settles them as `unknown` —
+ * they keep their slot instead of being refunded on a guess.
+ */
+function installBudgetGate(ctx, rt) {
+  if (typeof ctx?.on !== 'function') return { installed: false, reason: 'this host exposes no event surface' }
+  const limits = () => budgetLimits(rt.cfg)
+  const name = 'omc: budget gate'
+  /** @type {Map<string, string[]>} sessionId → modelRequestIds awaiting a terminal event */
+  const inflight = new Map()
+  const stats = { admitted: 0, refused: 0, settledBooked: 0, settledUnknown: 0, duplicates: 0 }
+
+  const attach = (event, handler, label) => {
+    const register = () => ctx.on(event, handler, { global: true })
+    const disposer = typeof ctx.effect === 'function' ? ctx.effect(register, `${name} ${event}`) : register()
+    return disposer
+  }
+
+  const bindingFor = (payload) => {
+    const sessionId = payload?.agent?.session?.id
+    if (typeof sessionId !== 'string') return null
+    const binding = rt.native?.bindingFor?.(sessionId)
+    return binding ? { sessionId, binding } : null
+  }
+
+  const reserveFor = (payload) => {
+    const found = bindingFor(payload)
+    if (!found) return null
+    const { sessionId, binding } = found
+    const modelRequestId = rt.requestGate.nextRequestId({
+      taskId: binding.taskId,
+      sessionId,
+      turn: payload.turn ?? 0,
+      step: payload.step ?? 0,
+    })
+    const verdict = rt.requestGate.reserve({
+      parentId: binding.parentId,
+      taskId: binding.taskId,
+      attemptId: binding.taskId,
+      modelRequestId,
+      limits: limits(),
+      source: { kind: 'native', sessionId, turn: payload.turn ?? 0, step: payload.step ?? 0 },
+    })
+    if (verdict.allowed) {
+      stats.admitted += 1
+      if (verdict.duplicate) stats.duplicates += 1
+      const list = inflight.get(sessionId) ?? []
+      list.push(modelRequestId)
+      inflight.set(sessionId, list)
+    }
+    return { sessionId, binding, verdict }
+  }
+
+  attach('agent/pre-step', async (payload, next) => {
+    if (!limits().enforce) return next()
+    const found = bindingFor(payload)
+    if (!found) return next()
+    const view = rt.requestGate.budgetView({
+      parentId: found.binding.parentId,
+      taskId: found.binding.taskId,
+      limits: limits(),
+    })
+    if (!view.exhausted) return next()
+    stats.refused += 1
+    return { kind: 'reject', reason: `OMC/BUDGET-EXHAUSTED: ${rt.requestGate.describe(view)}` }
+  }, `${name} pre-step`)
+
+  attach('agent/request', async (payload, next) => {
+    if (!limits().enforce) return next()
+    let reserved
+    try {
+      reserved = reserveFor(payload)
+    } catch (error) {
+      // A gate that cannot read its own state must not silently allow a send,
+      // but it also must not take the whole session down: report and block.
+      rt.ctx?.logger?.warn?.(`oh-my-coharness: budget gate error: ${String(error?.message ?? error)}`)
+      const failure = new Error(`OMC/BUDGET-GATE-UNAVAILABLE: ${String(error?.message ?? error)}`)
+      failure.code = 'OMC/BUDGET-GATE-UNAVAILABLE'
+      throw failure
+    }
+    if (!reserved) return next()
+    if (reserved.verdict.allowed) return next()
+    stats.refused += 1
+    const failure = new Error(`${reserved.verdict.code}: ${reserved.verdict.reason}`)
+    failure.code = reserved.verdict.code
+    throw failure
+  }, `${name} request`)
+
+  attach('session/event', (session, event) => {
+    const sessionId = session?.id
+    if (typeof sessionId !== 'string') return
+    const list = inflight.get(sessionId)
+    if (!list?.length) return
+    const binding = rt.native?.bindingFor?.(sessionId)
+    if (!binding) return
+    const close = (modelRequestId, outcome, sourceEventId) => {
+      try {
+        const result = rt.requestGate.settle({ parentId: binding.parentId, modelRequestId, outcome, sourceEventId })
+        if (result?.settled && outcome === 'booked') stats.settledBooked += 1
+        if (result?.settled && outcome === 'unknown') stats.settledUnknown += 1
+      } catch (error) {
+        rt.ctx?.logger?.warn?.(`oh-my-coharness: budget settlement failed: ${String(error?.message ?? error)}`)
+      }
+    }
+    if (event?.type === 'assistant/message' || event?.type === 'assistant/attempt') {
+      const id = list.shift()
+      if (id) close(id, event.type === 'assistant/message' ? 'booked' : 'unknown', `seq:${event.seq}`)
+      return
+    }
+    if (event?.type === 'turn/end') {
+      // Anything still open at the end of a turn never produced a terminal
+      // event: it may have been sent, so it keeps its slot.
+      for (const id of list.splice(0)) close(id, 'unknown', `turn-end:${event.seq}`)
+    }
+  }, `${name} session/event`)
+
+  return {
+    installed: true,
+    labels: [`${name} pre-step`, `${name} request`, `${name} session/event`],
+    stats: () => ({ ...stats, open: [...inflight.values()].reduce((total, list) => total + list.length, 0) }),
+  }
+}
+
 function bindCallingSession(rt, exec) {
   const agent = exec?.agent
   const sessionId = agent?.session?.id
@@ -213,8 +411,8 @@ function coharnessTool(rt) {
       properties: {
         action: {
           type: 'string',
-          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate', 'sessions', 'tasks', 'result', 'cancel', 'fleet', 'demo', 'graph', 'send', 'inbox', 'ack', 'thread', 'reuse', 'worktree', 'project', 'role', 'preset', 'usage'],
-          description: 'dispatch = run work; list = who is available (free); status = role execution backends, provider state, native model routes and session reuse (free); usage = native event-bridge diagnostics plus this session’s derived token/cost rollup (free, no model call); doctor = full diagnostic report (free); sessions = OMC native-session references (free; clear:true forgets them); migrate = preview the pre-0.4 configuration migration (pass apply:true to write); fleet = plan native role routes from the live DSH model catalog (free; apply:true writes); demo = plan+apply the fleet, seed a demo workspace and return the run prompt (free; no model call); graph = plan/claim/complete a parent work graph (dependencies, acceptance, write-scope); send/inbox/ack/thread = durable parent mailbox; reuse = inspect a durable task for continued work; worktree = create/enter a retained DSH worktree or merge its recorded branch back with a clean-tree preflight (session-wide, not per child); project = show the restrictive .omc/project.json policy that a dispatch in cwd would apply; role = list/add/remove/run a named external read-only role template (enforced read-only harness only); preset = snapshot this session’s effective OMC role config and compare the live config to it (never claims a hot switch).',
+          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate', 'sessions', 'tasks', 'result', 'cancel', 'fleet', 'demo', 'graph', 'send', 'inbox', 'ack', 'thread', 'reuse', 'worktree', 'project', 'role', 'preset', 'usage', 'native', 'session'],
+          description: 'dispatch = run work; list = who is available (free); status = role execution backends, provider state, native model routes and session reuse (free); usage = native event-bridge diagnostics plus this session’s derived token/cost rollup (free, no model call); doctor = full diagnostic report (free); sessions = OMC native-session references (free; clear:true forgets them); migrate = preview the pre-0.4 configuration migration (pass apply:true to write); fleet = plan native role routes from the live DSH model catalog (free; apply:true writes); demo = plan+apply the fleet, seed a demo workspace and return the run prompt (free; no model call); graph = plan/claim/complete a parent work graph (dependencies, acceptance, write-scope); send/inbox/ack/thread = durable parent mailbox; reuse = inspect a durable task for continued work; worktree = create/enter a retained DSH worktree or merge its recorded branch back with a clean-tree preflight (session-wide, not per child); project = show the restrictive .omc/project.json policy that a dispatch in cwd would apply; role = list/add/remove/run a named external read-only role template (enforced read-only harness only); preset = snapshot this session’s effective OMC role config and compare the live config to it (never claims a hot switch); native = bind an existing native child session to a graph node and settle it from its durable execution record; session = record the explainable resume/queue/compact/restart/new-packet decision and list the workers it owns.',
         },
         harness: {
           type: 'string',
@@ -304,6 +502,12 @@ function coharnessTool(rt) {
         node_id: { type: 'string', description: 'For graph claim/complete/fail/cancel/audit: node id. On dispatch: binds the run to the managed path (claim → attempt → events → acceptance → settle; failure releases the claim).' },
         evidence: { type: 'array', items: { type: 'string' }, description: 'For graph complete: acceptance evidence; required when the node declares acceptance.' },
         changed_files: { type: 'array', items: { type: 'string' }, description: 'For graph complete/audit on a write node: workspace-relative changed paths.' },
+        native_action: { type: 'string', enum: ['bind', 'settle', 'coverage'], description: 'For native: bind = attach an existing native child session to a graph node (claim + single-writer scope); settle = apply the durable execution verdict, completing the node only with acceptance evidence; coverage = managed vs unmanaged counts.' },
+        child_session_id: { type: 'string', description: 'For native bind: the native child session id that the host reported (the session id, not the role tool name).' },
+        attempt_id: { type: 'string', description: 'For native settle: the exact execution attempt this evidence belongs to; a stale attempt is refused instead of settling the current one.' },
+        session_action: { type: 'string', enum: ['decide', 'log', 'workers'], description: 'For session: decide = run the explainable resume/queue/compact/restart/new-packet rule table and record it; log = this session’s recorded decisions; workers = the logical workers (and their physical children/generations) this session owns.' },
+        features: { type: 'object', description: 'For session decide: the observable facts (sameModule, independentReview, constraintsMatch, routeMatch, permissionMatch, workspaceMatch, factsStale, failureUnclear, childBusy, contextOverLimit, hasPriorWorker).', additionalProperties: true },
+        capabilities: { type: 'object', description: 'For session decide: what the host supports today, e.g. {"compactAvailable": false}. A missing capability never justifies claiming it.', additionalProperties: true },
         to: { type: 'string', description: 'For send: target agent id, external task id, or * for a broadcast.' },
         text: { type: 'string', description: 'For send: durable message text.' },
         kind: { type: 'string', enum: ['note', 'task', 'result', 'question'], description: 'For send: message kind (default note).' },
@@ -670,17 +874,100 @@ function coharnessTool(rt) {
       }
 
       if (action === 'status') {
+        // The footnote section needs the calling parent to show its own budget.
+        rt.statusParentId = exec?.agent?.id ?? null
         return { text: await executionStatusText(rt) }
+      }
+
+      if (action === 'native') {
+        const parentId = exec?.agent?.id
+        if (!parentId) return { text: 'OMC/NATIVE-PARENT-REQUIRED: native actions need a calling agent' }
+        const subaction = String(args.native_action ?? 'coverage')
+        try {
+          if (subaction === 'coverage') {
+            return { text: JSON.stringify({ coverage: rt.nativeManaged.coverage(parentId), diagnostics: rt.native.diagnostics().stats }, null, 2) }
+          }
+          if (subaction === 'bind') {
+            if (!args.node_id) return { text: 'OMC/NATIVE-NODE: bind needs node_id (the graph node this child executes)' }
+            if (!args.child_session_id) {
+              return { text: 'OMC/NATIVE-CHILD: bind needs child_session_id — the native child session id, not the role tool name' }
+            }
+            return {
+              text: JSON.stringify(rt.nativeManaged.bind({
+                parentId,
+                nodeId: args.node_id,
+                sessionId: args.child_session_id,
+                role: args.role_id ?? args.role ?? null,
+              }), null, 2),
+            }
+          }
+          if (subaction === 'settle') {
+            if (!args.node_id) return { text: 'OMC/NATIVE-NODE: settle needs node_id' }
+            const evidence = Array.isArray(args.evidence)
+              ? args.evidence
+              : typeof args.evidence === 'string' ? [args.evidence] : null
+            return {
+              text: JSON.stringify(rt.nativeManaged.settle({
+                parentId,
+                nodeId: args.node_id,
+                evidence,
+                changedFiles: Array.isArray(args.changed_files) ? args.changed_files : null,
+                attemptId: args.attempt_id ?? null,
+              }), null, 2),
+            }
+          }
+          return { text: `unknown native_action "${subaction}"; use bind, settle, or coverage` }
+        } catch (error) {
+          return { text: `${error.code ?? 'OMC/NATIVE-FAILED'}: ${error.message}` }
+        }
+      }
+
+      if (action === 'session') {
+        const parentId = exec?.agent?.id
+        if (!parentId) return { text: 'OMC/SESSION-PARENT-REQUIRED: session actions need a calling agent' }
+        const subaction = String(args.session_action ?? 'log')
+        try {
+          if (subaction === 'workers') return { text: JSON.stringify(rt.workerRegistry.list(parentId), null, 2) }
+          if (subaction === 'log') return { text: JSON.stringify(rt.decisionLog.list(parentId), null, 2) }
+          if (subaction === 'decide') {
+            const features = args.features && typeof args.features === 'object' ? args.features : {}
+            const capabilities = args.capabilities && typeof args.capabilities === 'object' ? args.capabilities : {}
+            const decision = decideSessionAction({ features, capabilities })
+            const entry = rt.decisionLog.record({ parentId, features, capabilities, decision })
+            return {
+              text: JSON.stringify({
+                decision,
+                recorded: entry,
+                note: 'the rule table explains the choice; reuse rate is not an objective, and a missing capability is never claimed',
+              }, null, 2),
+            }
+          }
+          return { text: `unknown session_action "${subaction}"; use decide, log, or workers` }
+        } catch (error) {
+          return { text: `${error.code ?? 'OMC/SESSION-FAILED'}: ${error.message}` }
+        }
       }
 
       if (action === 'usage') {
         const parentId = exec?.agent?.id ?? null
         const diagnostics = rt.native.diagnostics()
         const summary = parentId ? rt.native.summary({ parentId }) : null
+        const limits = budgetLimits(rt.cfg)
+        const budget = parentId
+          ? {
+            limits,
+            view: rt.requestGate.budgetView({ parentId, limits }),
+            checkpoint: rt.requestGate.checkpoint(parentId),
+            inFlight: rt.requestGate.inFlight(parentId),
+            gate: rt.budgetGate ?? { installed: false, reason: 'not installed' },
+            rendered: rt.requestGate.describe(rt.requestGate.budgetView({ parentId, limits })),
+          }
+          : { limits, gate: rt.budgetGate ?? null }
         return {
           text: JSON.stringify({
             diagnostics,
             summary,
+            budget,
             note: diagnostics.installed
               ? 'Native usage is booked from host session events; the parent total is a derived rollup of its tasks, not a second booking. A missing number stays unknown.'
               : 'The native bridge is not installed in this host, so native usage is not being booked. Nothing here is a zero-cost claim.',
@@ -943,6 +1230,20 @@ export function apply(ctx, config) {
     },
   })
 
+  // R02: the authoritative per-request budget gate. The WP06 tracker keeps its
+  // advisory checkpoint role; this one owns the reservations that cross
+  // processes.
+  const requestGate = createRequestGate({
+    dir: stateDir ? join(stateDir, 'budget') : statePath('budget'),
+    usageLedger,
+  })
+
+  // R03: binding a native child to a graph node. R04: the rotatable worker
+  // registry and the explainable action log behind the session choice.
+  const nativeManaged = createNativeManaged({ graph, native, executionStore })
+  const workerRegistry = createWorkerRegistry({ dir: stateDir ? join(stateDir, 'workers') : statePath('workers') })
+  const decisionLog = createDecisionLog({ dir: stateDir ? join(stateDir, 'decisions') : statePath('decisions') })
+
   /** @type {Set<string>} */
   const registered = new Set()
   /** @type {string[]} */
@@ -971,6 +1272,10 @@ export function apply(ctx, config) {
     progress,
     managed,
     native,
+    requestGate,
+    nativeManaged,
+    workerRegistry,
+    decisionLog,
     /**
      * Registration is retried on every entry point. A Loader may apply this plugin
      * before the `subagents` row exists (row order is not ours to control), and a
@@ -1047,6 +1352,21 @@ export function apply(ctx, config) {
     // the bridge reports itself as not installed instead of failing the plugin.
     try {
       ctx.logger?.warn?.(`oh-my-coharness: native runtime bridge not installed: ${String(error?.message ?? error)}`)
+    } catch {
+      // torn-down logger
+    }
+  }
+
+  // ── per-request budget gate (R02) ───────────────────────────────────────────
+  // Registered AFTER the native bridge on purpose: a usage entry must be booked
+  // before its reservation can settle as `booked`. The gate is authoritative
+  // (cross-process, file-locked) and only blocks when a cap is configured.
+  try {
+    rt.budgetGate = installBudgetGate(ctx, rt)
+  } catch (error) {
+    rt.budgetGate = { installed: false, reason: String(error?.message ?? error) }
+    try {
+      ctx.logger?.warn?.(`oh-my-coharness: budget gate not installed: ${String(error?.message ?? error)}`)
     } catch {
       // torn-down logger
     }

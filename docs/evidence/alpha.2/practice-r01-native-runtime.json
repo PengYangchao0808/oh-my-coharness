@@ -1,58 +1,62 @@
 {
   "schemaVersion": 1,
   "kind": "practice-native-runtime-probe",
-  "task": "R01",
-  "at": "2026-11-03T13:41:02.530Z",
+  "task": "R01+R02",
+  "at": "2026-11-03T14:06:02.460Z",
   "host": {
     "version": "0.2.1-rc.5",
     "preset": "oh-my-coharness",
     "profile": "omc-test"
   },
   "modelCalls": 0,
-  "adapterDispatches": 3,
+  "adapterDispatches": 4,
   "facts": {
     "sessions": {
       "parent": {
-        "id": "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901",
+        "id": "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba",
         "parentSession": null,
         "events": 16
       },
       "child": {
-        "id": "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d",
-        "parentSession": "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901",
+        "id": "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974",
+        "parentSession": "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba",
         "events": 16
       },
       "nested": {
-        "id": "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774",
-        "parentSession": "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d",
+        "id": "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe",
+        "parentSession": "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974",
         "events": 20
       }
     },
     "children": [],
     "adapterCalls": [
       {
-        "sessionId": "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901",
+        "sessionId": "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d",
+        "sessionId": "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774",
+        "sessionId": "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe",
+        "call": 1
+      },
+      {
+        "sessionId": "omc-native-probe-budget-1ba293df-706a-41fc-81fa-5742564cb850",
         "call": 1
       }
     ],
     "preSteps": [
       {
-        "agent": "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774",
+        "agent": "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe",
         "turn": 1,
         "decision": "reject"
       }
     ],
     "hostVersion": "0.2.1-rc.5",
     "events": {
-      "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901": [
+      "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -150,7 +154,7 @@
           "reason": "error"
         }
       ],
-      "omc-native-probe-child-9ee164e8-7398-4feb-9fb6-d889c4f9a68d": [
+      "omc-native-probe-child-cab1ce42-c7db-4f9e-b464-238b4b191974": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -253,7 +257,7 @@
           "reason": "completed"
         }
       ],
-      "omc-native-probe-nested-c5f45ba0-4d2a-4cdc-9076-b7eb6647c774": [
+      "omc-native-probe-nested-2b05f4f7-4ebe-4173-9bf2-bef9e4e5ddbe": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -379,6 +383,145 @@
           "usage": null,
           "reason": "completed"
         }
+      ],
+      "omc-native-probe-budget-1ba293df-706a-41fc-81fa-5742564cb850": [
+        {
+          "type": "permission/preset",
+          "seq": 0,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "sandbox/mode",
+          "seq": 1,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "approval/policy",
+          "seq": 2,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 3,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/start",
+          "seq": 4,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 5,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/start",
+          "seq": 6,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "system/message",
+          "seq": 7,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 8,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 9,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/header",
+          "seq": 10,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/context",
+          "seq": 11,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "session/title",
+          "seq": 12,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "assistant/message",
+          "seq": 13,
+          "usage": {
+            "inputTokens": 123,
+            "cacheReadTokens": 40,
+            "cacheWriteTokens": 0,
+            "outputTokens": 7
+          },
+          "reason": null
+        },
+        {
+          "type": "step/end",
+          "seq": 14,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/end",
+          "seq": 15,
+          "usage": null,
+          "reason": "completed"
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 16,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/start",
+          "seq": 17,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 18,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/start",
+          "seq": 19,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/end",
+          "seq": 20,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/end",
+          "seq": 21,
+          "usage": null,
+          "reason": "error"
+        }
       ]
     }
   },
@@ -421,7 +564,7 @@
         "autoRoots": 0,
         "handlerErrors": 0,
         "replayRuns": 3,
-        "lastEventAt": "2026-11-03T13:41:02.529Z"
+        "lastEventAt": "2026-11-03T14:06:02.376Z"
       }
     }
   },
@@ -441,7 +584,7 @@
     "sessions": 3,
     "bindings": 3,
     "parents": [
-      "omc-native-probe-parent-2e6b5294-ab13-446a-b7fa-7418acfd5901"
+      "omc-native-probe-parent-2154d4c1-016f-4d24-9e10-1ba16db964ba"
     ],
     "roles": {
       "orchestrator": 1,
@@ -459,9 +602,79 @@
       "autoRoots": 1,
       "handlerErrors": 0,
       "replayRuns": 0,
-      "lastEventAt": "2026-11-03T13:41:02.522Z"
+      "lastEventAt": "2026-11-03T14:06:02.370Z"
     },
-    "lastEventAt": "2026-11-03T13:41:02.522Z"
+    "lastEventAt": "2026-11-03T14:06:02.370Z"
+  },
+  "budgetGate": {
+    "parent": "probe-budget-parent",
+    "limit": {
+      "maxCalls": 1
+    },
+    "dispatchesAfterFirstTurn": 1,
+    "dispatchesAfterSecondTurn": 1,
+    "refusals": 1,
+    "lastCode": "OMC/BUDGET-EXHAUSTED",
+    "settlements": 1,
+    "view": {
+      "parentId": "probe-budget-parent",
+      "limits": {
+        "maxCalls": 1,
+        "perTaskCalls": null,
+        "maxUsd": null
+      },
+      "bookedCalls": 0,
+      "inFlight": 1,
+      "unknownReservations": 1,
+      "consumed": 1,
+      "callsLeft": 0,
+      "usdSettled": null,
+      "costKnown": false,
+      "unknownCost": false,
+      "coverage": "unknown",
+      "exhausted": true,
+      "hard": true,
+      "checkpoint": {
+        "action": "stop-partial",
+        "at": "2026-11-03T14:06:02.448Z",
+        "reasons": [
+          "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
+        ],
+        "budget": {
+          "maxCalls": 1,
+          "perTaskCalls": null,
+          "maxUsd": null,
+          "bookedCalls": 0,
+          "inFlight": 1,
+          "unknownReservations": 1,
+          "usdSettled": null,
+          "costKnown": false,
+          "coverage": "unknown"
+        }
+      }
+    },
+    "checkpoint": {
+      "action": "stop-partial",
+      "at": "2026-11-03T14:06:02.448Z",
+      "reasons": [
+        "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
+      ],
+      "budget": {
+        "maxCalls": 1,
+        "perTaskCalls": null,
+        "maxUsd": null,
+        "bookedCalls": 0,
+        "inFlight": 1,
+        "unknownReservations": 1,
+        "usdSettled": null,
+        "costKnown": false,
+        "coverage": "unknown"
+      }
+    },
+    "turnEnds": [
+      "completed",
+      "error"
+    ]
   },
   "verdicts": {
     "realLineagePersisted": {
@@ -499,6 +712,14 @@
     "mountedPluginBookedItsOwnPreset": {
       "pass": true,
       "detail": "autoRoots=1; booked=3; unboundUsage=0; unboundSessions=1"
+    },
+    "budgetGateBlocksNextRealRequest": {
+      "pass": true,
+      "detail": "dispatches after turn1=1, after turn2=1; refusals=1; code=OMC/BUDGET-EXHAUSTED; checkpoint=stop-partial"
+    },
+    "budgetGateKeepsUnknownSlotAndCounts": {
+      "pass": true,
+      "detail": "consumed=1; unknown=1; settled=1; turnEnds=[\"completed\",\"error\"]"
     }
   },
   "limits": [

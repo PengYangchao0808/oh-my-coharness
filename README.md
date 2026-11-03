@@ -1,16 +1,18 @@
 # Oh My CoHarness
 
-> **v0.5.0-alpha.2-practice.1** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”，本轮再往前一步：**原生子 Agent 的请求与用量进入同一套任务记录**。
+> **v0.5.0-alpha.2-practice.2** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”，本轮再往前一步：**原生子 Agent 的请求与用量进入同一套任务记录，预算到额会真正阻止下一次发送**。
 > 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
-> `practice.1` 表示这是一次**实践增量**，不是 alpha.2 的发布版本：本轮只完成 R00（基线分层证据）与 R01（原生事件桥），R02–R10 与 alpha.2 发布闸门尚未执行。
+> `practice.2` 表示这是一次**实践增量**，不是 alpha.2 的发布版本：R00–R04 已完成，R05 只有状态面板部分，R06/R07 仍在落地，R08–R10 与 alpha.2 发布闸门尚未执行。
 
-**本轮（2026-11-03，R00–R01）：**
-- `integration/native-runtime.js`：订阅宿主 `session/event` 与 `agent/created`，把主控、原生 child、嵌套 child 关联到同一父任务；usage 按 `(native, session, seq)` 幂等入账，重放不重复计费；`turn/end` 结算执行状态，验收状态不被执行状态顶替。
-- 新增 `/coharness usage`：显示事件桥是否安装、已归集的会话/绑定/入账数量，以及当前父任务的派生用量汇总。
-- R00 基线：`scripts/run-tests.mjs` / `scripts/practice-baseline.mjs` 生成**分层**证据（实现 / 组合测试 / 宿主探针 / 真实模型 / Desktop / 费用覆盖），未验证项不会被汇总成通过。
-- 证据：[R01 无模型宿主探针](docs/evidence/alpha.2/practice-r01-native-runtime.json) · [分层基线](docs/evidence/alpha.2/practice-baseline.json)。
+**本轮（2026-11-03，R02–R04）：**
+- `integration/request-gate.js`：**跨进程**逐请求预算闸门。锁内核对"已结算 + 在途 + 未知"，在 `agent/request`（`llm.stream` 之前，重试也计入）拒绝发送，`agent/pre-step` 提前拒绝该步；未知结果**保留名额**，释放需要带理由的审计调用。两个独立进程争最后一格时只有一个成功（真双进程测试）。
+- `integration/native-managed.js`：把已有的原生 child 绑定到工作图节点（`coharness native_action:bind`），用持久执行记录结算（`settle`）；**执行完成不等于验收通过**，没有证据节点不解锁后继。
+- `integration/worker-registry.js` + `integration/session-strategy.js`：逻辑负责人与物理 child/generation 分离，续接/排队/压缩/重开有规则与决策日志（`coharness session_action:decide`）；没有合法压缩接口时记 `restart`，不伪造 compact。
+- `/coharness status` 末尾新增运行脚注：桥是否安装、闸门是否强制执行、当前预算视图、managed/unmanaged 覆盖。
 
-**下一版本方案：** [0.5.0-alpha.2 效率与协作闭环](docs/V0.5-ALPHA2-PLAN.zh-CN.md)，包含减少重复上下文、真实用量、预算检查点与 managed 协作；配套 [工作包清单](docs/plans/v0.5.0-alpha.2.backlog.json) 和 [验收方案](docs/ACCEPTANCE-V0.5-ALPHA2.zh-CN.md)。最新现状以 [剩余审计](docs/REMAINING-AUDIT.zh-CN.md) 为准。
+**证据：** [R02 预算闸门](docs/evidence/alpha.2/practice-r02-budget.json) · [R03 原生闭环](docs/evidence/alpha.2/practice-r03-native-managed.json) · [R04 会话选择](docs/evidence/alpha.2/practice-r04-selection.json) · [分层基线](docs/evidence/alpha.2/practice-baseline.json)。
+
+**下一版本方案：** [0.5.0-alpha.2 效率与协作闭环](docs/V0.5-ALPHA2-PLAN.zh-CN.md)；逐项执行方案见 [R02–R10 执行方案](docs/plans/r02-r10.execution-plan.zh-CN.md)。最新现状以 [剩余审计](docs/REMAINING-AUDIT.zh-CN.md) 为准。
 
 **2026-11-02 Unreleased：OMO-SLIM 核心链路可用化。** 外部角色现可指定 Lane 与最小交接，提供 `coharness` 的 `tasks/result/cancel` action，并修复新开策略、会话轮数和工作目录识别。Codex 原生会话两轮记忆测试、DSH 0.2.1-rc.5 原生/外部角色装载已实测通过。完整功能复刻仍在推进：[差异与开发顺序](docs/OMO-SLIM-PARITY.zh-CN.md) · [本批验收与用法](docs/USABILITY-ACCEPTANCE.zh-CN.md)。
 

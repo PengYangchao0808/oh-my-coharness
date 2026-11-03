@@ -90,7 +90,7 @@ export const DEFAULTS = Object.freeze({
       fixerInputTokens: 120000,
     },
     context: { maxToolTextChars: 12000, packetMaxChars: 24000 },
-    budget: { maxCalls: null, maxUsd: null },
+    budget: { maxCalls: null, maxUsd: null, perTaskCalls: null, enforce: 'auto' },
     progress: { repeatWindow: 6, repeatThreshold: 3 },
   },
 })
@@ -159,6 +159,10 @@ export function resolveConfig(input) {
   eff.budget = {
     maxCalls: Number.isSafeInteger(eff.budget?.maxCalls) && eff.budget.maxCalls > 0 ? eff.budget.maxCalls : null,
     maxUsd: typeof eff.budget?.maxUsd === 'number' && eff.budget.maxUsd >= 0 ? eff.budget.maxUsd : null,
+    perTaskCalls: Number.isSafeInteger(eff.budget?.perTaskCalls) && eff.budget.perTaskCalls > 0 ? eff.budget.perTaskCalls : null,
+    // 'auto' (the default) enforces exactly when a cap is configured: a cap
+    // that never blocks would be a lie. `false` keeps the gate advisory.
+    enforce: eff.budget?.enforce === true ? true : eff.budget?.enforce === false ? false : 'auto',
   }
   eff.progress = {
     repeatWindow: intIn(eff.progress?.repeatWindow, 2, 50, DEFAULTS.efficiency.progress.repeatWindow),

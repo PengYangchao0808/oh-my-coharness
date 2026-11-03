@@ -1,0 +1,43 @@
+{
+  "case": "R02",
+  "title": "逐请求预算闸门与跨进程预留",
+  "date": "2026-11-03",
+  "packageVersion": "0.5.0-alpha.2-practice.1",
+  "result": "passed-with-limits",
+  "dataKind": "executed tests + no-model host probe",
+  "modelCalls": 0,
+  "code": [
+    "integration/request-gate.js — file-locked reservation authority: booked ledger entries + inflight + unknown reservations are compared inside the shared lock on every decision",
+    "src/index.js — installBudgetGate(): agent/request reserves and then refuses by throwing BEFORE llm.stream; agent/pre-step rejects the step early without throwing; session/event settles one reservation per assistant/message (booked) or assistant/attempt (unknown); turn/end closes leftovers as unknown",
+    "src/config.js — efficiency.budget.perTaskCalls + enforce ('auto' = enforce exactly when a cap is configured)"
+  ],
+  "checks": {
+    "crossProcessRace": {
+      "verdict": "passed",
+      "test": "test/integration/budget-runtime.test.mjs",
+      "method": "two independent Node processes (test/fixtures/budget-contender.mjs) with a synchronised start, one shared budget file, maxCalls=1",
+      "observed": "exactly one process admitted; the loser refused with OMC/BUDGET-EXHAUSTED; the budget file holds one inflight reservation and a stop-partial checkpoint"
+    },
+    "retryAccounting": { "verdict": "passed", "observed": "each real send takes its own modelRequestId; the same step reserved twice yields two ids" },
+    "duplicateListenerIdempotent": { "verdict": "passed", "observed": "a re-entrant reservation of the same id is reported duplicate and consumes no second slot" },
+    "unknownOutcomeKeepsSlot": { "verdict": "passed", "observed": "a send whose result never arrived stays counted; only releaseUnknown({reason}) frees it, and it is audited in the releases list" },
+    "restartReconciliation": { "verdict": "passed", "observed": "a fresh process turns a dead owner's inflight reservation into unknown and keeps counting it, instead of refunding on a guess" },
+    "unknownCostDoesNotBlock": { "verdict": "passed", "observed": "maxUsd blocks only on known cost; an unknown-cost ledger entry is admitted and the verdict states the settled figure is a lower bound" },
+    "hostProbeRefusal": {
+      "verdict": "passed",
+      "evidence": "docs/evidence/alpha.2/practice-r01-native-runtime.json",
+      "verdicts": ["budgetGateBlocksNextRealRequest", "budgetGateKeepsUnknownSlotAndCounts"],
+      "observed": "with maxCalls=1 the second turn never reached the synthetic adapter (dispatch count 1 -> 1), the refusal code was OMC/BUDGET-EXHAUSTED and a stop-partial checkpoint was persisted"
+    }
+  },
+  "boundaries": [
+    "external CLIs are gated between dispatches only; their caps are never presented as a hard per-call limit (budget.hard=false on those paths)",
+    "a retry is counted by the agent/request hook, but the host's own retry policy decides whether a retry happens; OMC does not claim to veto another plugin's retry grant",
+    "unknown cost never blocks by itself; a maxUsd verdict is a lower bound, not a bill"
+  ],
+  "notCovered": [
+    "a real billed model run against these caps",
+    "Desktop evidence for the budget fields",
+    "per-call hard limiting inside an external CLI process"
+  ]
+}

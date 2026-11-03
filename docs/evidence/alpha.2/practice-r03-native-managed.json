@@ -1,0 +1,34 @@
+{
+  "case": "R03",
+  "title": "原生角色 × 工作图 × 验收闭环",
+  "date": "2026-11-03",
+  "packageVersion": "0.5.0-alpha.2-practice.1",
+  "result": "passed-with-limits",
+  "dataKind": "combination regressions (no model calls)",
+  "modelCalls": 0,
+  "code": [
+    "integration/native-managed.js — bind claims the node and records the owning child; settle applies the durable execution verdict; acceptance evidence is the only path to completing a node",
+    "src/index.js — coharness native_action bind|settle|coverage; the node carries the native task id so the bridge books under it"
+  ],
+  "checks": {
+    "bindClaimsNode": { "verdict": "passed", "observed": "claim records taskId and childId; re-binding the same session is idempotent" },
+    "executionDoesNotDeliver": { "verdict": "passed", "observed": "execution completed without evidence leaves the node running, acceptance pending, delivered false, dependants locked" },
+    "evidenceUnlocksDependants": { "verdict": "passed", "observed": "with evidence the node completes, acceptance passes, and the dependent becomes ready only then" },
+    "failedExecutionReleases": { "verdict": "passed", "observed": "failed execution releases the claim to failed and never delivers" },
+    "noEarlySettle": { "verdict": "passed", "observed": "settling a running task is refused (OMC/NATIVE-MANAGED-RUNNING)" },
+    "staleAttemptRefused": { "verdict": "passed", "observed": "an attempt id that is not the current attempt is refused (OMC/NATIVE-MANAGED-STALE-ATTEMPT)" },
+    "singleWriter": { "verdict": "passed", "observed": "a second writer in an overlapping scope is refused by the graph claim" },
+    "unmanagedStaysUnmanaged": { "verdict": "passed", "observed": "a native child nobody bound stays unbound and the coverage report says unmanaged work is possible" }
+  },
+  "test": "test/integration/managed-native.test.mjs",
+  "boundaries": [
+    "OMC binds an existing native child; it does not start one on the host's behalf. A child nobody bound is not retroactively claimed",
+    "the graph claim is a coordination constraint, not a file permission",
+    "a completed execution with no evidence is reported as pending acceptance, never as delivered"
+  ],
+  "notCovered": [
+    "a real Explorer -> Fixer -> acceptance run with live models",
+    "Desktop click-through",
+    "external Codex -> native Fixer mixed chain"
+  ]
+}

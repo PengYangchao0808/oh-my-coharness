@@ -2,23 +2,23 @@
   "schemaVersion": 1,
   "kind": "practice-baseline",
   "task": "R00",
-  "generatedAt": "2026-11-03T13:42:24.056Z",
+  "generatedAt": "2026-11-03T14:10:07.732Z",
   "generatedBy": "scripts/practice-baseline.mjs",
-  "packageVersion": "0.5.0-alpha.2-practice.1",
+  "packageVersion": "0.5.0-alpha.2-practice.2",
   "sources": "docs/evidence/alpha.2/practice-baseline.sources.json",
   "git": {
-    "commit": "68f9644de3d6458aaa4f9d50d380ec469587e55d",
+    "commit": "07f65cb8113443fd0cb7584d65c8d75d911745ae",
     "branch": "main",
     "workingTree": {
-      "changed": 33,
-      "untracked": 71,
+      "changed": 13,
+      "untracked": 17,
       "clean": false
     }
   },
   "treeFingerprint": {
     "algorithm": "sha256",
-    "files": 233,
-    "digest": "dee597841ce9076326f86bc90daa611f6499b2d0549f010669e5bca832e78295",
+    "files": 255,
+    "digest": "3aff9b63b802229d894b1956df1f4b67afb8fa6019f4e86f6a1f2048418e553f",
     "excludes": [
       ".git/",
       "node_modules/",
@@ -29,18 +29,18 @@
   "moduleCheck": {
     "command": "node scripts/check.mjs",
     "status": "passed",
-    "detail": "check ok: oh-my-coharness@0.5.0-alpha.2-practice.1 — manifest, patch, locales, icon, 15 modules, 5 skills"
+    "detail": "check ok: oh-my-coharness@0.5.0-alpha.2-practice.2 — manifest, patch, locales, icon, 15 modules, 5 skills"
   },
   "testRun": {
     "source": "docs/evidence/alpha.2/last-test-run.json",
-    "startedAt": "2026-11-03T13:42:12.500Z",
+    "startedAt": "2026-11-03T14:09:53.287Z",
     "node": "v24.21.0",
     "platform": "win32-x64",
     "totals": {
-      "suites": 35,
-      "passed": 35,
+      "suites": 38,
+      "passed": 38,
       "failed": 0,
-      "durationMs": 4373
+      "durationMs": 6179
     },
     "failing": []
   },
@@ -53,6 +53,229 @@
     "costCoverage"
   ],
   "capabilities": [
+    {
+      "id": "request-budget-gate",
+      "title": "逐请求预算闸门与跨进程预留（R02）",
+      "releaseScope": "alpha.2 R02",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "file-locked reservation authority: booked + inflight + unknown are compared inside the shared lock; refusal happens at agent/request before llm.stream, pre-step declines the step early",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/request-gate.js",
+              "resolved": true,
+              "bytes": 16445
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/index.js",
+              "resolved": true,
+              "bytes": 72818
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/config.js",
+              "resolved": true,
+              "bytes": 11785
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "9 gate regressions including a REAL two-process race for the last slot (exactly one winner)",
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/budget-runtime.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 995
+            },
+            {
+              "kind": "artifact",
+              "ref": "test/fixtures/budget-contender.mjs",
+              "resolved": true,
+              "bytes": 2192
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "installed host, synthetic adapter: with maxCalls=1 the second turn never reached the adapter and a stop-partial checkpoint persisted",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/practice-r01-native-runtime.json",
+              "resolved": true,
+              "bytes": 17194
+            },
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/practice-r02-budget.json",
+              "resolved": true,
+              "bytes": 3295
+            }
+          ]
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no billed run has been stopped by these caps yet",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "partial",
+          "declared": "partial",
+          "note": "maxUsd blocks only on known cost; unknown cost is a lower bound and never a zero",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "native-managed-closure",
+      "title": "原生 child 绑定工作图与验收解锁（R03）",
+      "releaseScope": "alpha.2 R03",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "bind claims the node with taskId+childId; settle applies the durable execution verdict; evidence is the only path to acceptance and dependants",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/native-managed.js",
+              "resolved": true,
+              "bytes": 8858
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/index.js",
+              "resolved": true,
+              "bytes": 72818
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "7 regressions: no early settle, no delivery without evidence, stale attempt refused, single writer, unmanaged stays unmanaged",
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/managed-native.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 63
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "the bridge and gate are probed in a host; the bind/settle path is not yet exercised there",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no live Explorer to Fixer run",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "session-selection",
+      "title": "可轮换负责人与会话选择器（R04）",
+      "releaseScope": "alpha.2 R04",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "logical worker vs physical child/generation registry plus a pure S01-S08 rule table and an append-only decision log with revisions",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "integration/worker-registry.js",
+              "resolved": true,
+              "bytes": 18454
+            },
+            {
+              "kind": "artifact",
+              "ref": "integration/session-strategy.js",
+              "resolved": true,
+              "bytes": 13349
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/index.js",
+              "resolved": true,
+              "bytes": 72818
+            }
+          ]
+        },
+        "tests": {
+          "status": "passed",
+          "declared": "passed",
+          "note": "22 regressions: every action, no fake compact, reuse refused on mismatch, key stability vs identity change, durable reload, rotation history",
+          "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/session-strategy.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 209
+            }
+          ]
+        },
+        "hostProbe": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "the rule table is offline; no host probe is meaningful for it",
+          "refs": []
+        },
+        "realModel": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no real rotation session has been recorded",
+          "refs": []
+        },
+        "desktop": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": null,
+          "refs": []
+        },
+        "costCoverage": {
+          "status": "not-run",
+          "declared": "not-run",
+          "note": "no claim that reuse reduces cost",
+          "refs": []
+        }
+      }
+    },
     {
       "id": "native-event-bridge",
       "title": "原生事件桥：父任务 / 节点 / child / 尝试归集（R01）",
@@ -73,7 +296,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 56175
+              "bytes": 72818
             }
           ]
         },
@@ -93,14 +316,14 @@
               "ref": "test/integration/native-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 63
+              "durationMs": 67
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 122
+              "durationMs": 151
             }
           ]
         },
@@ -113,7 +336,7 @@
               "kind": "artifact",
               "ref": "docs/evidence/alpha.2/practice-r01-native-runtime.json",
               "resolved": true,
-              "bytes": 11972
+              "bytes": 17194
             }
           ]
         },
@@ -177,7 +400,7 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 122
+              "durationMs": 151
             }
           ]
         },
@@ -268,7 +491,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 65
+              "durationMs": 72
             }
           ]
         },
@@ -345,7 +568,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 65
+              "durationMs": 72
             }
           ]
         },
@@ -421,7 +644,7 @@
               "ref": "test/integration/wp05-managed.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 79
+              "durationMs": 83
             },
             {
               "kind": "test-suite",
@@ -435,7 +658,7 @@
               "ref": "test/integration/mailbox.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 158
+              "durationMs": 170
             }
           ]
         },
@@ -512,7 +735,7 @@
               "ref": "test/integration/wp03-packet.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 79
+              "durationMs": 83
             }
           ]
         },
@@ -576,14 +799,14 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 122
+              "durationMs": 151
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/role-result.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 44
+              "durationMs": 49
             }
           ]
         },
@@ -653,14 +876,14 @@
               "ref": "test/integration/sessions.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 1106
+              "durationMs": 1126
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/provider-session.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 158
+              "durationMs": 168
             }
           ]
         },
@@ -738,14 +961,14 @@
               "ref": "test/integration/report-cache.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 94
+              "durationMs": 124
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp04-context.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 65
+              "durationMs": 74
             }
           ]
         },
@@ -796,7 +1019,7 @@
               "kind": "artifact",
               "ref": "src/config.js",
               "resolved": true,
-              "bytes": 11364
+              "bytes": 11785
             },
             {
               "kind": "artifact",
@@ -822,21 +1045,21 @@
               "ref": "test/integration/client.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 53
+              "durationMs": 85
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/usability.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 148
+              "durationMs": 171
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/migration.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 64
+              "durationMs": 93
             }
           ]
         },
@@ -900,7 +1123,7 @@
               "ref": "test/integration/strategy-eval.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 95
+              "durationMs": 105
             }
           ]
         },
@@ -1013,14 +1236,14 @@
               "kind": "artifact",
               "ref": "scripts/check.mjs",
               "resolved": true,
-              "bytes": 12816
+              "bytes": 12889
             },
             {
               "kind": "test-suite",
               "ref": "test/smoke.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 565
+              "durationMs": 585
             }
           ]
         },
@@ -1053,44 +1276,44 @@
   ],
   "totals": {
     "implementation": {
-      "passed": 10,
+      "passed": 13,
       "partial": 2,
       "not-run": 1,
       "blocked": 0,
       "unverified": 0
     },
     "tests": {
-      "passed": 12,
+      "passed": 15,
       "partial": 0,
       "not-run": 1,
       "blocked": 0,
       "unverified": 0
     },
     "hostProbe": {
-      "passed": 5,
+      "passed": 6,
       "partial": 5,
-      "not-run": 3,
+      "not-run": 5,
       "blocked": 0,
       "unverified": 0
     },
     "realModel": {
       "passed": 1,
       "partial": 1,
-      "not-run": 11,
+      "not-run": 14,
       "blocked": 0,
       "unverified": 0
     },
     "desktop": {
       "passed": 0,
       "partial": 0,
-      "not-run": 13,
+      "not-run": 16,
       "blocked": 0,
       "unverified": 0
     },
     "costCoverage": {
       "passed": 0,
-      "partial": 3,
-      "not-run": 9,
+      "partial": 4,
+      "not-run": 11,
       "blocked": 1,
       "unverified": 0
     }

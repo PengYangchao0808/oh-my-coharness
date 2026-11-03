@@ -4,6 +4,42 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
+## [0.5.0-alpha.2-practice.2] — 2026-11-03
+
+Second practice increment: R02–R04 are landed with evidence; R05 is partial
+(status surface only), R06/R07 are landing, R08–R10 are not executed. The
+alpha.2 release gate is still not passed.
+
+### Added
+- **Per-request budget gate (R02):** `integration/request-gate.js` owns the
+  reservations in a file under the shared cross-process lock, so "booked + in
+  flight < cap" is decided on one fresh snapshot for every contender. The gate
+  refuses at `agent/request` (before `llm.stream`, retries included) and
+  declines a step early at `agent/pre-step`. An `unknown` outcome keeps its slot
+  instead of being refunded on a guess; freeing it needs an audited
+  `releaseUnknown({reason})`. `maxUsd` blocks only on *known* cost. Config:
+  `efficiency.budget.{maxCalls,maxUsd,perTaskCalls,enforce}` with `enforce:'auto'`
+  meaning "a configured cap actually blocks".
+- **Native managed closure (R03):** `integration/native-managed.js` binds an
+  existing native child to a graph node (`coharness native_action:bind`), applies
+  the durable execution verdict (`settle`), and completes the node only with
+  acceptance evidence — a completed execution with no evidence stays pending and
+  keeps dependants locked. Stale attempts are refused; failed/cancelled/unknown
+  releases the claim.
+- **Worker registry + session strategy (R04):** `integration/worker-registry.js`
+  keeps a logical worker apart from the physical child and its generation;
+  `integration/session-strategy.js` is a pure S01–S08 rule table with a decision
+  log (`coharness session_action:decide|log|workers`). Over-limit without a legal
+  compaction interface is recorded as `restart`, never as a fake compact.
+- **Status runtime footnotes (R05, partial):** `/coharness status` now prints the
+  native bridge state, whether the budget gate is enforcing, the current budget
+  view, and managed-vs-unmanaged coverage — all read from durable records.
+- 9 gate regressions including a real two-process race for the last slot, 7
+  managed-native regressions, 22 selection regressions.
+
+### Changed
+- Package version `0.5.0-alpha.2-practice.2`.
+
 ## [0.5.0-alpha.2-practice.1] — 2026-11-03
 
 A practice increment, not the alpha.2 release. R00 (baseline) and R01 (native

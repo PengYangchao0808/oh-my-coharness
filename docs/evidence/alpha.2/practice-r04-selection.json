@@ -1,0 +1,47 @@
+{
+  "case": "R04",
+  "title": "可轮换负责人与会话选择器",
+  "date": "2026-11-03",
+  "packageVersion": "0.5.0-alpha.2-practice.1",
+  "result": "passed-with-limits",
+  "dataKind": "combination regressions (no model calls)",
+  "modelCalls": 0,
+  "code": [
+    "integration/worker-registry.js — logical worker identity (project/module/role/route/permission/workspace) kept apart from the physical child and its generation; durable per parent under the shared lock",
+    "integration/session-strategy.js — pure rule table S01–S08 plus an append-only decision log with revisions",
+    "src/index.js — coharness session_action decide|log|workers"
+  ],
+  "checks": {
+    "explainableChoice": {
+      "verdict": "passed",
+      "observed": "resume / queue / compact / restart / new-packet each have a rule id and reasons; independent review and missing prior worker produce new-packet before any reuse rule is considered"
+    },
+    "noFakeCompact": {
+      "verdict": "passed",
+      "observed": "over-limit without a legal compaction interface produces restart with the explicit reason that no fake compact is recorded"
+    },
+    "reuseRefused": {
+      "verdict": "passed",
+      "observed": "route, permission, workspace, stale-fact and unclear-failure mismatches all refuse reuse and list every blocker"
+    },
+    "busyQueues": { "verdict": "passed", "observed": "a busy child queues instead of running two tasks on one session" },
+    "reuseRateNotAnObjective": { "verdict": "passed", "observed": "the test suite contains no assertion that maximises reuse; the decision log records the choice and its outcome instead" },
+    "workerIdentityStable": {
+      "verdict": "passed",
+      "observed": "unrelated source changes keep the worker key; a changed route/permission/workspace/module changes it; a parent-ownership conflict keeps the first owner"
+    },
+    "generationRotation": { "verdict": "passed", "observed": "rotate bumps the generation and keeps bounded history; setHealth refuses a differing child id and demands rotate()" },
+    "decisionLogRevisions": { "verdict": "passed", "observed": "recordOutcome appends a revision line; the latest revision wins on read and history is never rewritten" }
+  },
+  "test": "test/integration/session-strategy.test.mjs",
+  "boundaries": [
+    "the rule table is deterministic and makes no model call; it is a first-order rule set, not a learned policy",
+    "compact is only chosen when capabilities.compactAvailable is true; today the host exposes no legal core-history compaction to OMC, so restart is the honest answer",
+    "a decision record explains a choice; it does not prove the choice was better"
+  ],
+  "notCovered": [
+    "a real session rotation across two tasks",
+    "Desktop display of the decision history",
+    "any claim that reuse reduces cost"
+  ]
+}

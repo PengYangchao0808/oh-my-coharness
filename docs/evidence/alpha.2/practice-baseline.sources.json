@@ -7,6 +7,76 @@
   "note": "Authored claims. scripts/practice-baseline.mjs resolves every ref and demotes a claimed pass whose evidence is missing or whose suite did not run. Status vocabulary: passed | partial | not-run | blocked. A layer only proves its own scope: implementation presence is not usability, and a CI placeholder is never a hostProbe.",
   "capabilities": [
     {
+      "id": "request-budget-gate",
+      "title": "逐请求预算闸门与跨进程预留（R02）",
+      "releaseScope": "alpha.2 R02",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "file-locked reservation authority: booked + inflight + unknown are compared inside the shared lock; refusal happens at agent/request before llm.stream, pre-step declines the step early",
+          "refs": ["integration/request-gate.js", "src/index.js", "src/config.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "9 gate regressions including a REAL two-process race for the last slot (exactly one winner)",
+          "refs": ["suite:test/integration/budget-runtime.test.mjs", "test/fixtures/budget-contender.mjs"]
+        },
+        "hostProbe": {
+          "status": "passed",
+          "note": "installed host, synthetic adapter: with maxCalls=1 the second turn never reached the adapter and a stop-partial checkpoint persisted",
+          "refs": ["docs/evidence/alpha.2/practice-r01-native-runtime.json", "docs/evidence/alpha.2/practice-r02-budget.json"]
+        },
+        "realModel": { "status": "not-run", "note": "no billed run has been stopped by these caps yet" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": {
+          "status": "partial",
+          "note": "maxUsd blocks only on known cost; unknown cost is a lower bound and never a zero"
+        }
+      }
+    },
+    {
+      "id": "native-managed-closure",
+      "title": "原生 child 绑定工作图与验收解锁（R03）",
+      "releaseScope": "alpha.2 R03",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "bind claims the node with taskId+childId; settle applies the durable execution verdict; evidence is the only path to acceptance and dependants",
+          "refs": ["integration/native-managed.js", "src/index.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "7 regressions: no early settle, no delivery without evidence, stale attempt refused, single writer, unmanaged stays unmanaged",
+          "refs": ["suite:test/integration/managed-native.test.mjs"]
+        },
+        "hostProbe": { "status": "not-run", "note": "the bridge and gate are probed in a host; the bind/settle path is not yet exercised there" },
+        "realModel": { "status": "not-run", "note": "no live Explorer to Fixer run" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run" }
+      }
+    },
+    {
+      "id": "session-selection",
+      "title": "可轮换负责人与会话选择器（R04）",
+      "releaseScope": "alpha.2 R04",
+      "layers": {
+        "implementation": {
+          "status": "passed",
+          "note": "logical worker vs physical child/generation registry plus a pure S01-S08 rule table and an append-only decision log with revisions",
+          "refs": ["integration/worker-registry.js", "integration/session-strategy.js", "src/index.js"]
+        },
+        "tests": {
+          "status": "passed",
+          "note": "22 regressions: every action, no fake compact, reuse refused on mismatch, key stability vs identity change, durable reload, rotation history",
+          "refs": ["suite:test/integration/session-strategy.test.mjs"]
+        },
+        "hostProbe": { "status": "not-run", "note": "the rule table is offline; no host probe is meaningful for it" },
+        "realModel": { "status": "not-run", "note": "no real rotation session has been recorded" },
+        "desktop": { "status": "not-run" },
+        "costCoverage": { "status": "not-run", "note": "no claim that reuse reduces cost" }
+      }
+    },
+    {
       "id": "native-event-bridge",
       "title": "原生事件桥：父任务 / 节点 / child / 尝试归集（R01）",
       "releaseScope": "alpha.2 R01",

@@ -82,7 +82,7 @@ function loadInChild(absolutePath) {
 // ── manifest ─────────────────────────────────────────────────────────────────
 const pkg = await readJson('package.json')
 ok(pkg.name === 'oh-my-coharness', 'package.json name must be oh-my-coharness')
-ok(pkg.version === '0.5.0-alpha.2-practice.1', `package.json version must be 0.5.0-alpha.2-practice.1 (got ${pkg.version})`)
+ok(pkg.version === '0.5.0-alpha.2-practice.2', `package.json version must be 0.5.0-alpha.2-practice.2 (got ${pkg.version})`)
 ok(pkg.type === 'module', 'package.json must declare "type": "module"')
 ok(Boolean(pkg.dsh?.bundle?.patch), 'package.json must declare dsh.bundle.patch')
 ok(Boolean(pkg.engines?.dsh), 'package.json must declare engines.dsh')
@@ -135,7 +135,7 @@ for (const name of modules) {
   const reason = loadInChild(join(root, 'src', `${name}.js`))
   if (reason) failures.push(`src/${name}.js failed to load: ${reason}`)
 }
-for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy', 'tasks', 'fleet', 'catalog', 'demo', 'state', 'file-lock', 'cli-result', 'graph', 'mailbox', 'project-policy', 'worktree', 'custom-roles', 'role-result', 'preset-snapshot', 'usage-ledger', 'execution-events', 'native-runtime', 'work-packet', 'artifact-store', 'context-view', 'retrieval-cache', 'budget', 'progress', 'managed-execution']) {
+for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy', 'tasks', 'fleet', 'catalog', 'demo', 'state', 'file-lock', 'cli-result', 'graph', 'mailbox', 'project-policy', 'worktree', 'custom-roles', 'role-result', 'preset-snapshot', 'usage-ledger', 'execution-events', 'native-runtime', 'request-gate', 'native-managed', 'worker-registry', 'session-strategy', 'work-packet', 'artifact-store', 'context-view', 'retrieval-cache', 'budget', 'progress', 'managed-execution']) {
   const reason = loadInChild(join(root, 'integration', `${name}.js`))
   if (reason) failures.push(`integration/${name}.js failed to load: ${reason}`)
 }

@@ -225,6 +225,66 @@ async function main() {
   const usageText = await coharness.execute({ action: 'usage' }, { agent: parent, signal: new AbortController().signal })
   const usage = JSON.parse(usageText.text)
 
+  // ── phase 2: the per-request budget gate on real host events ───────────────
+  // The gate module is installed against THIS host context with an explicit
+  // cap, so the refusal point (`agent/request`) and the counting point
+  // (`session/event`) are exercised with real payloads. The mounted plugin runs
+  // with no configured cap here, so its own gate stays advisory.
+  const { createRequestGate } = await packageImport('integration/request-gate.js')
+  const gate = createRequestGate({ dir: join(root, '.ops', 'probe-budget', randomUUID()), usageLedger: ledger })
+  const BUDGET_PARENT = 'probe-budget-parent'
+  const budgetAgent = await mk({ suffix: 'budget' })
+  await budgetAgent.whenIdle()
+  runtime.bindRoot({ sessionId: budgetAgent.session.id, parentId: BUDGET_PARENT })
+  const budgetTaskId = nativeTaskIdFor(budgetAgent.session.id)
+  const budgetFacts = { dispatches: 0, refusals: 0, lastCode: null, settled: 0 }
+
+  ctx.effect(() => ctx.on('agent/request', async (payload, next) => {
+    if (payload.agent?.id !== budgetAgent.id) return next()
+    const modelRequestId = gate.nextRequestId({
+      taskId: budgetTaskId, sessionId: budgetAgent.session.id, turn: payload.turn ?? 0, step: payload.step ?? 0,
+    })
+    const verdict = gate.reserve({
+      parentId: BUDGET_PARENT, taskId: budgetTaskId, modelRequestId,
+      limits: { maxCalls: 1 }, source: { sessionId: budgetAgent.session.id, turn: payload.turn, step: payload.step },
+    })
+    if (!verdict.allowed) {
+      budgetFacts.refusals += 1
+      budgetFacts.lastCode = verdict.code
+      const failure = new Error(`${verdict.code}: ${verdict.reason}`)
+      failure.code = verdict.code
+      throw failure
+    }
+    return next()
+  }, { global: true }), 'omc-probe: budget gate request')
+
+  ctx.effect(() => ctx.on('session/event', (session, event) => {
+    if (session.id !== budgetAgent.session.id) return
+    if (event.type !== 'assistant/message' && event.type !== 'assistant/attempt') return
+    const open = gate.inFlight(BUDGET_PARENT)[0]
+    if (!open) return
+    // This probe does not book the entry into the gate's own ledger, so the
+    // truthful outcome is `unknown`: the send happened, its cost is unproven.
+    const settled = gate.settle({
+      parentId: BUDGET_PARENT, modelRequestId: open.modelRequestId, outcome: 'unknown',
+      sourceEventId: `seq:${event.seq}`, note: 'probe: entry not booked into the gate ledger',
+    })
+    if (settled.settled) budgetFacts.settled += 1
+  }), 'omc-probe: budget settle')
+
+  followup(budgetAgent, 'always-succeed budget turn one')
+  await budgetAgent.whenIdle()
+  const dispatchesAfterFirst = facts.adapterCalls.filter((call) => call.sessionId === budgetAgent.session.id).length
+  followup(budgetAgent, 'always-succeed budget turn two (must be refused)')
+  await budgetAgent.whenIdle()
+  const dispatchesAfterSecond = facts.adapterCalls.filter((call) => call.sessionId === budgetAgent.session.id).length
+  budgetFacts.dispatches = dispatchesAfterSecond
+  const budgetView = gate.budgetView({ parentId: BUDGET_PARENT, limits: { maxCalls: 1 } })
+  const budgetCheckpoint = gate.checkpoint(BUDGET_PARENT)
+  const budgetTurnEnds = (captured.get(budgetAgent.session.id) ?? [])
+    .filter((event) => event.type === 'turn/end')
+    .map((event) => event.data?.reason?.kind ?? null)
+
   const verdicts = {
     realLineagePersisted: {
       pass: facts.sessions.child.parentSession === parent.session.id && facts.sessions.nested.parentSession === child.session.id,
@@ -270,13 +330,30 @@ async function main() {
         && (usage.diagnostics?.stats?.unboundUsage ?? 1) === 0,
       detail: `autoRoots=${usage.diagnostics?.stats?.autoRoots}; booked=${usage.diagnostics?.stats?.booked}; unboundUsage=${usage.diagnostics?.stats?.unboundUsage}; unboundSessions=${usage.diagnostics?.stats?.unboundSessions}`,
     },
+    budgetGateBlocksNextRealRequest: {
+      // The second turn must never reach the adapter: the gate refuses before
+      // llm.stream, and the refusal leaves a persisted checkpoint.
+      pass: dispatchesAfterFirst === 1
+        && dispatchesAfterSecond === 1
+        && budgetFacts.refusals >= 1
+        && budgetFacts.lastCode === 'OMC/BUDGET-EXHAUSTED'
+        && budgetCheckpoint?.action === 'stop-partial',
+      detail: `dispatches after turn1=${dispatchesAfterFirst}, after turn2=${dispatchesAfterSecond}; refusals=${budgetFacts.refusals}; code=${budgetFacts.lastCode}; checkpoint=${budgetCheckpoint?.action ?? 'none'}`,
+    },
+    budgetGateKeepsUnknownSlotAndCounts: {
+      // The probe settles this send as `unknown` on purpose (its entry is not in
+      // the gate ledger): an unknown outcome keeps holding the slot instead of
+      // being refunded on a guess.
+      pass: budgetView.consumed === 1 && budgetView.unknownReservations === 1 && budgetFacts.settled === 1,
+      detail: `consumed=${budgetView.consumed}; unknown=${budgetView.unknownReservations}; settled=${budgetFacts.settled}; turnEnds=${JSON.stringify(budgetTurnEnds)}`,
+    },
   }
 
   const failed = Object.entries(verdicts).filter(([, verdict]) => !verdict.pass)
   const evidence = {
     schemaVersion: 1,
     kind: 'practice-native-runtime-probe',
-    task: 'R01',
+    task: 'R01+R02',
     at: new Date().toISOString(),
     host: { version: facts.hostVersion, preset: 'oh-my-coharness', profile: profileContext.name },
     modelCalls: 0,
@@ -289,6 +366,18 @@ async function main() {
       diagnostics: { sessions: diagnostics.sessions, bindings: diagnostics.bindings, stats: diagnostics.stats },
     },
     mountedPlugin: usage.diagnostics,
+    budgetGate: {
+      parent: BUDGET_PARENT,
+      limit: { maxCalls: 1 },
+      dispatchesAfterFirstTurn: dispatchesAfterFirst,
+      dispatchesAfterSecondTurn: dispatchesAfterSecond,
+      refusals: budgetFacts.refusals,
+      lastCode: budgetFacts.lastCode,
+      settlements: budgetFacts.settled,
+      view: budgetView,
+      checkpoint: budgetCheckpoint,
+      turnEnds: budgetTurnEnds,
+    },
     verdicts,
     limits: [
       'The adapter is synthetic: this probe proves event wiring, attribution and settlement, not token cost against a real bill.',

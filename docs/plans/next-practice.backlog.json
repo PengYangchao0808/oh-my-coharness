@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "createdAt": "2026-11-03",
   "kind": "remaining-practice-plan",
-  "baselineVersion": "0.5.0-alpha.1",
+  "baselineVersion": "0.5.0-alpha.2-practice.1",
   "targetVersion": "0.5.0-alpha.2",
   "design": "docs/NEXT-PRACTICE.zh-CN.md",
   "scope": "接通已有模块、真实对照与发布；R10 为后续版本",
@@ -10,9 +10,9 @@
   "startedByThisPlan": true,
   "progress": {
     "updatedAt": "2026-11-03",
-    "completed": ["R00", "R01"],
-    "next": "R02",
-    "note": "R00 and R01 only. R02–R10 stay planned; the alpha.2 release gate is NOT passed."
+    "completed": ["R00", "R01", "R02", "R03", "R04"],
+    "next": "R05",
+    "note": "R00-R04 done; R05-R07 code landing with limits; R08 needs a paid budget decision, R09 needs Desktop/install acceptance, R10 is post-release. The alpha.2 release gate is NOT passed."
   },
   "tasks": [
     {
@@ -50,6 +50,9 @@
     },
     {
       "id": "R02",
+      "status": "done",
+      "evidence": ["integration/request-gate.js", "test/integration/budget-runtime.test.mjs", "test/fixtures/budget-contender.mjs", "docs/evidence/alpha.2/practice-r02-budget.json"],
+      "remaining": ["a real billed run", "Desktop evidence", "per-call hard cap inside an external CLI"],
       "title": "逐请求预算执行和跨进程恢复",
       "priority": "P0",
       "status": "planned",
@@ -62,6 +65,9 @@
     },
     {
       "id": "R03",
+      "status": "done",
+      "evidence": ["integration/native-managed.js", "test/integration/managed-native.test.mjs", "docs/evidence/alpha.2/practice-r03-native-managed.json"],
+      "remaining": ["a live Explorer -> Fixer -> acceptance run", "external Codex -> native Fixer chain"],
       "title": "原生角色、工作包、消息与验收闭环",
       "priority": "P0",
       "status": "planned",
@@ -74,6 +80,9 @@
     },
     {
       "id": "R04",
+      "status": "done",
+      "evidence": ["integration/worker-registry.js", "integration/session-strategy.js", "test/integration/session-strategy.test.mjs", "docs/evidence/alpha.2/practice-r04-selection.json"],
+      "remaining": ["a real session rotation", "Desktop decision history"],
       "title": "可轮换模块负责人和会话选择器",
       "priority": "P1",
       "status": "planned",

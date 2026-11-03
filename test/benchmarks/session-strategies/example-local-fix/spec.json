@@ -1,0 +1,31 @@
+{
+  "taskId": "example-local-fix",
+  "family": "local-fix",
+  "split": "development",
+  "goal": "Make src/parse-range.mjs honour the documented range contract: inclusive ascending ranges, single values, blank input means an empty list, descending and non-numeric input throw.",
+  "startState": {
+    "from": "start/",
+    "knownFailure": "node acceptance/check.mjs exits 1: the loop in src/parse-range.mjs is exclusive, so 1-3 yields [1,2]"
+  },
+  "reference": "reference/src/parse-range.mjs",
+  "writeScope": ["src/"],
+  "commands": [
+    {
+      "name": "contract",
+      "run": ["node", "acceptance/check.mjs"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["ok 7/7"],
+        "stdoutNotContains": ["fail"]
+      }
+    }
+  ],
+  "acceptanceFiles": ["acceptance/check.mjs", "spec.json"],
+  "forbidChanges": ["acceptance/", "spec.json"],
+  "rubric": [
+    "The acceptance command exits 0 and prints ok 7/7, unmodified by the worker.",
+    "Only files under src/ differ from the start state.",
+    "No test is deleted or weakened to make the command pass."
+  ],
+  "notes": "The acceptance definition (acceptance/ and this file) sits outside the worker's write scope: the runner digests it before and after the run and refuses a delivery that modified it."
+}
