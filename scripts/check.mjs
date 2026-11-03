@@ -82,7 +82,7 @@ function loadInChild(absolutePath) {
 // ── manifest ─────────────────────────────────────────────────────────────────
 const pkg = await readJson('package.json')
 ok(pkg.name === 'oh-my-coharness', 'package.json name must be oh-my-coharness')
-ok(pkg.version === '0.5.0-alpha.2-practice.3', `package.json version must be 0.5.0-alpha.2-practice.3 (got ${pkg.version})`)
+ok(pkg.version === '0.5.0-alpha.2-practice.4', `package.json version must be 0.5.0-alpha.2-practice.4 (got ${pkg.version})`)
 ok(pkg.type === 'module', 'package.json must declare "type": "module"')
 ok(Boolean(pkg.dsh?.bundle?.patch), 'package.json must declare dsh.bundle.patch')
 ok(Boolean(pkg.engines?.dsh), 'package.json must declare engines.dsh')

@@ -11,14 +11,46 @@
     "src/index.js — coharness native_action bind|settle|coverage; the node carries the native task id so the bridge books under it"
   ],
   "checks": {
-    "bindClaimsNode": { "verdict": "passed", "observed": "claim records taskId and childId; re-binding the same session is idempotent" },
-    "executionDoesNotDeliver": { "verdict": "passed", "observed": "execution completed without evidence leaves the node running, acceptance pending, delivered false, dependants locked" },
-    "evidenceUnlocksDependants": { "verdict": "passed", "observed": "with evidence the node completes, acceptance passes, and the dependent becomes ready only then" },
-    "failedExecutionReleases": { "verdict": "passed", "observed": "failed execution releases the claim to failed and never delivers" },
-    "noEarlySettle": { "verdict": "passed", "observed": "settling a running task is refused (OMC/NATIVE-MANAGED-RUNNING)" },
-    "staleAttemptRefused": { "verdict": "passed", "observed": "an attempt id that is not the current attempt is refused (OMC/NATIVE-MANAGED-STALE-ATTEMPT)" },
-    "singleWriter": { "verdict": "passed", "observed": "a second writer in an overlapping scope is refused by the graph claim" },
-    "unmanagedStaysUnmanaged": { "verdict": "passed", "observed": "a native child nobody bound stays unbound and the coverage report says unmanaged work is possible" }
+    "bindClaimsNode": {
+      "verdict": "passed",
+      "observed": "claim records taskId and childId; re-binding the same session is idempotent"
+    },
+    "executionDoesNotDeliver": {
+      "verdict": "passed",
+      "observed": "execution completed without evidence leaves the node running, acceptance pending, delivered false, dependants locked"
+    },
+    "evidenceUnlocksDependants": {
+      "verdict": "passed",
+      "observed": "with evidence the node completes, acceptance passes, and the dependent becomes ready only then"
+    },
+    "failedExecutionReleases": {
+      "verdict": "passed",
+      "observed": "failed execution releases the claim to failed and never delivers"
+    },
+    "noEarlySettle": {
+      "verdict": "passed",
+      "observed": "settling a running task is refused (OMC/NATIVE-MANAGED-RUNNING)"
+    },
+    "staleAttemptRefused": {
+      "verdict": "passed",
+      "observed": "an attempt id that is not the current attempt is refused (OMC/NATIVE-MANAGED-STALE-ATTEMPT)"
+    },
+    "singleWriter": {
+      "verdict": "passed",
+      "observed": "a second writer in an overlapping scope is refused by the graph claim"
+    },
+    "unmanagedStaysUnmanaged": {
+      "verdict": "passed",
+      "observed": "a native child nobody bound stays unbound and the coverage report says unmanaged work is possible"
+    },
+    "toolLevelHostProbe": {
+      "verdict": "passed",
+      "evidence": "docs/evidence/alpha.2/practice-r01-native-runtime.json",
+      "verdicts": [
+        "nativeManagedClosureViaTool"
+      ],
+      "observed": "through the mounted coharness tool on a real host: graph plan -> bind a native child -> settle without evidence stays pending -> settle with evidence delivers and completes the node; 0 model calls"
+    }
   },
   "test": "test/integration/managed-native.test.mjs",
   "boundaries": [

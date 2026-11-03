@@ -18,6 +18,7 @@ import { harnessEnv, planTransport, withTimeout } from './transport.js'
 import { blocksToText } from './provider.js'
 import { maskSessionId } from './session-adapters.js'
 import { classifyCliResult } from '../integration/cli-result.js'
+import { resolveBudgetLimits } from '../integration/request-gate.js'
 import { applyProjectPolicy, MODE_RANK, readProjectPolicy } from '../integration/project-policy.js'
 import { captureTaskWorktree, createTaskWorktree } from '../integration/worktree.js'
 import { isAbsolute, resolve } from 'node:path'
@@ -464,6 +465,29 @@ export async function dispatchTasks(rt, request, exec) {
       'OMC/ROUTING-LIMIT',
       `${tasks.length} external tasks exceed routing.limits.maxParallelExternal=${externalLimit}; split the batch`,
     )
+  }
+
+  // R02 (external boundary): a dispatch costs money, so an exhausted parent
+  // refuses the next batch HERE, before any CLI is started. This is a boundary
+  // check between dispatches only — OMC cannot meter a CLI's internal rounds, so
+  // it is never presented as a hard per-call cap.
+  if (rt.requestGate && typeof rt.requestGate.budgetView === 'function' && typeof exec?.agent?.id === 'string') {
+    const limits = resolveBudgetLimits(effectiveCfg)
+    if (limits.enforce) {
+      const view = rt.requestGate.budgetView({ parentId: exec.agent.id, limits })
+      if (view.exhausted) {
+        throw omcError(
+          'OMC/BUDGET-EXHAUSTED',
+          `${rt.requestGate.describe(view)}; the next external dispatch is refused (boundary control between dispatches, not a per-call cap inside the CLI)`,
+        )
+      }
+      if (limits.maxCalls !== null && view.consumed + tasks.length > limits.maxCalls) {
+        throw omcError(
+          'OMC/BUDGET-EXHAUSTED',
+          `a batch of ${tasks.length} would exceed maxCalls=${limits.maxCalls} (${rt.requestGate.describe(view)})`,
+        )
+      }
+    }
   }
 
   // An existing project policy that cannot be understood is not an empty

@@ -4,6 +4,31 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
+## [0.5.0-alpha.2-practice.4] — 2026-11-03
+
+Closes two honesty gaps: external dispatches were neither accounted for nor
+gated, and R03's closure had only module-level tests.
+
+### Added
+- **External dispatch accounting (R02/R05):** `src/provider.js` books one
+  attempt per dispatch into the usage ledger — four buckets from whatever the
+  CLI reported (an OpenAI-style total with a cached subset splits correctly), an
+  `unknown` attempt when it reported nothing, cost only when the CLI gave one,
+  and the configured route marked `observed: false` because a CLI decides its
+  own model. An unattributed parent (no `parent.id`) books nothing instead of
+  guessing.
+- **External boundary gate (R02):** `src/dispatch.js` refuses the NEXT dispatch
+  with `OMC/BUDGET-EXHAUSTED` before any CLI starts when an enforcing cap is
+  already exhausted, and says the control is between dispatches only. Advisory
+  mode never blocks.
+- **R03 through the mounted tool:** the no-model host probe now plans a graph,
+  binds a native child, settles without evidence (stays pending) and settles
+  with evidence (delivers, node completed) — 12/12 probe verdicts, 0 model calls.
+- 6 external-accounting regressions.
+
+### Changed
+- Package version `0.5.0-alpha.2-practice.4`.
+
 ## [0.5.0-alpha.2-practice.3] — 2026-11-03
 
 R05's settings surface: the efficiency layer can finally be edited where a user

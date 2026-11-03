@@ -22,9 +22,10 @@
         },
         "tests": {
           "status": "passed",
-          "note": "9 gate regressions including a REAL two-process race for the last slot (exactly one winner)",
+          "note": "9 gate regressions (incl. a real two-process race) plus 6 external-accounting regressions (per-dispatch booking, unknown without usage, boundary refusal before the CLI starts)",
           "refs": [
             "suite:test/integration/budget-runtime.test.mjs",
+            "suite:test/integration/external-accounting.test.mjs",
             "test/fixtures/budget-contender.mjs"
           ]
         },
@@ -70,8 +71,12 @@
           ]
         },
         "hostProbe": {
-          "status": "not-run",
-          "note": "the bridge and gate are probed in a host; the bind/settle path is not yet exercised there"
+          "status": "passed",
+          "note": "installed host + synthetic adapter: bind, pending settlement without evidence, delivery with evidence, node completed — all through the mounted tool (0 model calls)",
+          "refs": [
+            "docs/evidence/alpha.2/practice-r01-native-runtime.json",
+            "docs/evidence/alpha.2/practice-r03-native-managed.json"
+          ]
         },
         "realModel": {
           "status": "not-run",

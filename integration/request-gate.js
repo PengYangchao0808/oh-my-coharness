@@ -38,6 +38,27 @@ export const RESERVATION_STATES = Object.freeze(['inflight', 'booked', 'unknown'
 /** Reservations that still hold a slot. `booked` is already in the ledger. */
 const SLOT_HOLDING = new Set(['inflight', 'unknown'])
 
+/**
+ * Resolve the effective budget limits from a resolved OMC configuration.
+ *
+ * `enforce` is `'auto'` by default: a configured cap that never blocks would be
+ * a lie, so a cap turns enforcement on. `observe` keeps counting through the
+ * ledger either way; `off` and an explicit `enforce: false` stay advisory.
+ */
+export function resolveBudgetLimits(cfg) {
+  const budget = cfg?.efficiency?.budget ?? {}
+  const maxCalls = positiveInt(budget.maxCalls)
+  const perTaskCalls = positiveInt(budget.perTaskCalls)
+  const maxUsd = typeof budget.maxUsd === 'number' && Number.isFinite(budget.maxUsd) && budget.maxUsd >= 0 ? budget.maxUsd : null
+  const capsConfigured = maxCalls !== null || perTaskCalls !== null || maxUsd !== null
+  const mode = cfg?.efficiency?.mode ?? 'observe'
+  const declared = budget.enforce
+  const enforce = declared === true ? true
+    : declared === false ? false
+      : mode !== 'off' && capsConfigured
+  return { maxCalls, perTaskCalls, maxUsd, enforce }
+}
+
 function atomicWrite(file, text) {
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
   const temp = `${file}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`

@@ -285,6 +285,38 @@ async function main() {
     .filter((event) => event.type === 'turn/end')
     .map((event) => event.data?.reason?.kind ?? null)
 
+  // ── phase 3: native managed closure through the MOUNTED tool (R03) ─────────
+  // Real tool calls on a real agent: plan → bind a native child → settle with
+  // and without acceptance evidence. Zero model calls (synthetic adapter).
+  const managedParent = await mk({ suffix: 'managed' })
+  await managedParent.whenIdle()
+  const managedTools = managedParent.ctx.get('tools')
+  const callCoharness = async (args) => {
+    const tool = managedTools.get('coharness', scopeOf(managedParent.ctx))
+    assert.ok(tool, 'the mounted preset must expose the coharness tool')
+    const value = await tool.execute(args, { agent: managedParent, signal: new AbortController().signal })
+    return JSON.parse(value.text)
+  }
+  await callCoharness({
+    action: 'graph',
+    graph_action: 'plan',
+    nodes: [{ id: 'probe-node', title: 'probe node', roleId: 'fixer', write: false, deps: [], acceptance: ['probe evidence'] }],
+  })
+  const managedChild = await mk({ parentAgent: managedParent, parentSession: managedParent.session.id, suffix: 'managed-child' })
+  await managedChild.whenIdle()
+  followup(managedChild, 'always-succeed managed child turn')
+  await managedChild.whenIdle()
+  const managedFacts = { bind: null, pending: null, delivered: null, coverage: null }
+  managedFacts.bind = await callCoharness({
+    action: 'native', native_action: 'bind', node_id: 'probe-node', child_session_id: managedChild.session.id,
+  })
+  managedFacts.pending = await callCoharness({ action: 'native', native_action: 'settle', node_id: 'probe-node' })
+  managedFacts.delivered = await callCoharness({
+    action: 'native', native_action: 'settle', node_id: 'probe-node', evidence: ['probe evidence: child turn completed'],
+  })
+  managedFacts.coverage = await callCoharness({ action: 'native', native_action: 'coverage' })
+  const probeNode = (managedFacts.delivered?.graph?.nodes ?? []).find((node) => node.id === 'probe-node')
+
   const verdicts = {
     realLineagePersisted: {
       pass: facts.sessions.child.parentSession === parent.session.id && facts.sessions.nested.parentSession === child.session.id,
@@ -347,13 +379,25 @@ async function main() {
       pass: budgetView.consumed === 1 && budgetView.unknownReservations === 1 && budgetFacts.settled === 1,
       detail: `consumed=${budgetView.consumed}; unknown=${budgetView.unknownReservations}; settled=${budgetFacts.settled}; turnEnds=${JSON.stringify(budgetTurnEnds)}`,
     },
+    nativeManagedClosureViaTool: {
+      // Through the mounted tool only: a native child is bound to a graph node,
+      // a completed execution without evidence stays pending, and evidence is
+      // what actually completes the node and unlocks dependants.
+      pass: managedFacts.bind?.managed === true
+        && managedFacts.pending?.acceptance === 'pending'
+        && managedFacts.pending?.delivered === false
+        && managedFacts.delivered?.delivered === true
+        && probeNode?.state === 'completed'
+        && (managedFacts.coverage?.coverage?.boundNative ?? 0) >= 1,
+      detail: `bind=${managedFacts.bind?.managed}; pending=${managedFacts.pending?.acceptance}; delivered=${managedFacts.delivered?.delivered}; node=${probeNode?.state ?? 'none'}; boundNative=${managedFacts.coverage?.coverage?.boundNative ?? 0}`,
+    },
   }
 
   const failed = Object.entries(verdicts).filter(([, verdict]) => !verdict.pass)
   const evidence = {
     schemaVersion: 1,
     kind: 'practice-native-runtime-probe',
-    task: 'R01+R02',
+    task: 'R01+R02+R03',
     at: new Date().toISOString(),
     host: { version: facts.hostVersion, preset: 'oh-my-coharness', profile: profileContext.name },
     modelCalls: 0,

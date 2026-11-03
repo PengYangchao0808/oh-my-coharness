@@ -23,6 +23,7 @@ import { mintRunId } from './ids.js'
 import { maskSessionId } from './session-adapters.js'
 import { clip, harnessEnv, planTransport } from './transport.js'
 import { classifyCliResult } from '../integration/cli-result.js'
+import { normalizeUsageBuckets } from '../integration/usage-ledger.js'
 
 /** Prompt content blocks → plain task text. Never invents capabilities. */
 export function blocksToText(blocks) {
@@ -94,6 +95,42 @@ function usageText(usage) {
  */
 export function makeProvider(ctx, def, cfg, options = {}) {
   const registry = options.registry ?? null
+  const usageLedger = options.usageLedger ?? null
+
+  /**
+   * Book one external dispatch into the usage ledger (R02/R05).
+   *
+   * One dispatch is one booked attempt: the CLI's own internal rounds are
+   * invisible to OMC, so this is an attempt record, not a per-request one.
+   * Without a reported usage the entry stays `unknown`; it is never zero.
+   * A missing parent identity means the cost cannot be attributed, so nothing
+   * is booked and the caller sees no fabricated figure.
+   */
+  function bookExternalUsage({ runId, parentId, model, usage, sessionId }) {
+    if (!usageLedger || typeof usageLedger.append !== 'function') return null
+    if (typeof parentId !== 'string' || parentId === '' || typeof runId !== 'string' || runId === '') return null
+    const normalized = usage ? normalizeUsageBuckets(usage) : null
+    try {
+      return usageLedger.append({
+        parentId,
+        taskId: runId,
+        attemptId: `${runId}#dispatch`,
+        backend: 'external',
+        source: { kind: 'external-cli', runId, eventId: runId, sessionId: sessionId ?? null },
+        // The CLI decides its own model; the configured route is what was asked
+        // for, so it is recorded but never marked as an observed request route.
+        route: { provider: `omc:${def.id}`, model: model ?? null, effort: null, observed: false },
+        usage: normalized ? normalized.buckets : null,
+        coverage: normalized ? normalized.coverage : 'unknown',
+        cost: usage && typeof usage.costUsd === 'number' && usage.costUsd >= 0
+          ? { usd: usage.costUsd, source: 'cli-reported' }
+          : null,
+      })
+    } catch {
+      // Accounting must never turn a completed dispatch into a failure.
+      return null
+    }
+  }
 
   return {
     name: `omc:${def.id}`,
@@ -268,6 +305,14 @@ export function makeProvider(ctx, def, cfg, options = {}) {
           if (classification.code) meta.push(`${classification.code}: ${classification.message}`)
           const usage = sessionCfg.captureUsage !== false ? parsed?.usage : null
           if (usage) meta.push(`usage ${usageText(usage)}`)
+          const booking = bookExternalUsage({
+            runId,
+            parentId: request.parent?.id,
+            model: hcfg.model ?? null,
+            usage,
+            sessionId: parsed?.sessionId ?? null,
+          })
+          if (booking) meta.push(booking.stored ? 'attempt booked into the usage ledger' : 'attempt was already booked')
           if (sessionNote) meta.push(sessionNote)
 
           if (lease) {
@@ -320,6 +365,9 @@ export function makeProvider(ctx, def, cfg, options = {}) {
           if (lease) {
             try { registry.fail(lease, { code: error?.code, taskId: handoff?.taskId }) } catch { /* preserve original failure */ }
           }
+          // A dispatch that threw still consumed a slot somewhere: book it as
+          // `unknown` rather than pretending nothing was spent.
+          bookExternalUsage({ runId, parentId: request.parent?.id, model: hcfg?.model ?? null, usage: null, sessionId: null })
           if (taskRecord) options.tasks.settle(runId, {
             output: [{ type: 'text', text: `OMC/RUN-FAILED: ${error?.message ?? error}` }], stopReason: 'error',
           })

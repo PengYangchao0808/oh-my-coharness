@@ -2,61 +2,65 @@
   "schemaVersion": 1,
   "kind": "practice-native-runtime-probe",
   "task": "R01+R02",
-  "at": "2026-11-03T14:18:27.658Z",
+  "at": "2026-11-03T14:31:42.106Z",
   "host": {
     "version": "0.2.1-rc.5",
     "preset": "oh-my-coharness",
     "profile": "omc-test"
   },
   "modelCalls": 0,
-  "adapterDispatches": 4,
+  "adapterDispatches": 5,
   "facts": {
     "sessions": {
       "parent": {
-        "id": "omc-native-probe-parent-78906a4e-b43d-4ba1-a42b-431e924a789d",
+        "id": "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221",
         "parentSession": null,
         "events": 16
       },
       "child": {
-        "id": "omc-native-probe-child-026e4997-3b96-452f-91f3-f7f48aacb321",
-        "parentSession": "omc-native-probe-parent-78906a4e-b43d-4ba1-a42b-431e924a789d",
+        "id": "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd",
+        "parentSession": "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221",
         "events": 16
       },
       "nested": {
-        "id": "omc-native-probe-nested-5b27490b-3ec4-49ed-89ab-2f9cd4a2ce1e",
-        "parentSession": "omc-native-probe-child-026e4997-3b96-452f-91f3-f7f48aacb321",
+        "id": "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8",
+        "parentSession": "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd",
         "events": 20
       }
     },
     "children": [],
     "adapterCalls": [
       {
-        "sessionId": "omc-native-probe-parent-78906a4e-b43d-4ba1-a42b-431e924a789d",
+        "sessionId": "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-child-026e4997-3b96-452f-91f3-f7f48aacb321",
+        "sessionId": "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-nested-5b27490b-3ec4-49ed-89ab-2f9cd4a2ce1e",
+        "sessionId": "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-budget-2955e6bd-c450-4cc8-bf5b-6a6431328c5f",
+        "sessionId": "omc-native-probe-budget-d4f8bc0e-1c60-4193-91d1-77f358c7361d",
+        "call": 1
+      },
+      {
+        "sessionId": "omc-native-probe-managed-child-ccb7f760-1503-4db8-871f-0bff2a5975d2",
         "call": 1
       }
     ],
     "preSteps": [
       {
-        "agent": "omc-native-probe-nested-5b27490b-3ec4-49ed-89ab-2f9cd4a2ce1e",
+        "agent": "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8",
         "turn": 1,
         "decision": "reject"
       }
     ],
     "hostVersion": "0.2.1-rc.5",
     "events": {
-      "omc-native-probe-parent-78906a4e-b43d-4ba1-a42b-431e924a789d": [
+      "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -154,7 +158,7 @@
           "reason": "error"
         }
       ],
-      "omc-native-probe-child-026e4997-3b96-452f-91f3-f7f48aacb321": [
+      "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -257,7 +261,7 @@
           "reason": "completed"
         }
       ],
-      "omc-native-probe-nested-5b27490b-3ec4-49ed-89ab-2f9cd4a2ce1e": [
+      "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -384,7 +388,7 @@
           "reason": "completed"
         }
       ],
-      "omc-native-probe-budget-2955e6bd-c450-4cc8-bf5b-6a6431328c5f": [
+      "omc-native-probe-budget-d4f8bc0e-1c60-4193-91d1-77f358c7361d": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -522,6 +526,129 @@
           "usage": null,
           "reason": "error"
         }
+      ],
+      "omc-native-probe-managed-0a93b409-4bf7-42a6-acc9-8c2b66b64c00": [
+        {
+          "type": "permission/preset",
+          "seq": 0,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "sandbox/mode",
+          "seq": 1,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "approval/policy",
+          "seq": 2,
+          "usage": null,
+          "reason": null
+        }
+      ],
+      "omc-native-probe-managed-child-ccb7f760-1503-4db8-871f-0bff2a5975d2": [
+        {
+          "type": "permission/preset",
+          "seq": 0,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "sandbox/mode",
+          "seq": 1,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "approval/policy",
+          "seq": 2,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 3,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/start",
+          "seq": 4,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "agent/inbox/spliced",
+          "seq": 5,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "step/start",
+          "seq": 6,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "system/message",
+          "seq": 7,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 8,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "user/message",
+          "seq": 9,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/header",
+          "seq": 10,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "request/context",
+          "seq": 11,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "session/title",
+          "seq": 12,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "assistant/message",
+          "seq": 13,
+          "usage": {
+            "inputTokens": 123,
+            "cacheReadTokens": 40,
+            "cacheWriteTokens": 0,
+            "outputTokens": 7
+          },
+          "reason": null
+        },
+        {
+          "type": "step/end",
+          "seq": 14,
+          "usage": null,
+          "reason": null
+        },
+        {
+          "type": "turn/end",
+          "seq": 15,
+          "usage": null,
+          "reason": "completed"
+        }
       ]
     }
   },
@@ -564,7 +691,7 @@
         "autoRoots": 0,
         "handlerErrors": 0,
         "replayRuns": 3,
-        "lastEventAt": "2026-11-03T14:18:27.575Z"
+        "lastEventAt": "2026-11-03T14:31:41.954Z"
       }
     }
   },
@@ -584,7 +711,7 @@
     "sessions": 3,
     "bindings": 3,
     "parents": [
-      "omc-native-probe-parent-78906a4e-b43d-4ba1-a42b-431e924a789d"
+      "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221"
     ],
     "roles": {
       "orchestrator": 1,
@@ -602,9 +729,9 @@
       "autoRoots": 1,
       "handlerErrors": 0,
       "replayRuns": 0,
-      "lastEventAt": "2026-11-03T14:18:27.568Z"
+      "lastEventAt": "2026-11-03T14:31:41.947Z"
     },
-    "lastEventAt": "2026-11-03T14:18:27.568Z"
+    "lastEventAt": "2026-11-03T14:31:41.947Z"
   },
   "budgetGate": {
     "parent": "probe-budget-parent",
@@ -636,7 +763,7 @@
       "hard": true,
       "checkpoint": {
         "action": "stop-partial",
-        "at": "2026-11-03T14:18:27.647Z",
+        "at": "2026-11-03T14:31:42.021Z",
         "reasons": [
           "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
         ],
@@ -655,7 +782,7 @@
     },
     "checkpoint": {
       "action": "stop-partial",
-      "at": "2026-11-03T14:18:27.647Z",
+      "at": "2026-11-03T14:31:42.021Z",
       "reasons": [
         "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
       ],
@@ -720,6 +847,10 @@
     "budgetGateKeepsUnknownSlotAndCounts": {
       "pass": true,
       "detail": "consumed=1; unknown=1; settled=1; turnEnds=[\"completed\",\"error\"]"
+    },
+    "nativeManagedClosureViaTool": {
+      "pass": true,
+      "detail": "bind=true; pending=pending; delivered=true; node=completed; boundNative=1"
     }
   },
   "limits": [

@@ -38,7 +38,7 @@ import { createBudgetTracker } from '../integration/budget.js'
 import { createProgressTracker } from '../integration/progress.js'
 import { createManagedExecution } from '../integration/managed-execution.js'
 import { createNativeRuntime } from '../integration/native-runtime.js'
-import { createRequestGate } from '../integration/request-gate.js'
+import { createRequestGate, resolveBudgetLimits } from '../integration/request-gate.js'
 import { createNativeManaged } from '../integration/native-managed.js'
 import { createWorkerRegistry } from '../integration/worker-registry.js'
 import { createDecisionLog, decideSessionAction } from '../integration/session-strategy.js'
@@ -329,24 +329,12 @@ export function runtimeFootnotes(rt) {
  * to re-attribute work that may already have been booked.
  */
 /**
- * Resolve the effective budget limits from the configuration (R02).
- *
- * `enforce` is `'auto'` by default: a configured cap that never blocks would be
- * a lie, so a cap turns enforcement on. `observe` keeps counting through the
- * ledger either way; `off` and an explicit `enforce: false` stay advisory.
+ * Resolve the effective budget limits (kept as a thin local wrapper so the rest
+ * of this file keeps one name; the rule itself lives in request-gate.js and is
+ * shared with the external dispatch boundary).
  */
 function budgetLimits(cfg) {
-  const budget = cfg?.efficiency?.budget ?? {}
-  const maxCalls = Number.isSafeInteger(budget.maxCalls) && budget.maxCalls > 0 ? budget.maxCalls : null
-  const perTaskCalls = Number.isSafeInteger(budget.perTaskCalls) && budget.perTaskCalls > 0 ? budget.perTaskCalls : null
-  const maxUsd = typeof budget.maxUsd === 'number' && budget.maxUsd >= 0 ? budget.maxUsd : null
-  const capsConfigured = maxCalls !== null || perTaskCalls !== null || maxUsd !== null
-  const mode = cfg?.efficiency?.mode ?? 'observe'
-  const declared = budget.enforce
-  const enforce = declared === true ? true
-    : declared === false ? false
-      : mode !== 'off' && capsConfigured
-  return { maxCalls, perTaskCalls, maxUsd, enforce }
+  return resolveBudgetLimits(cfg)
 }
 
 /**
@@ -1421,7 +1409,7 @@ export function apply(ctx, config) {
       const name = `omc:${def.id}`
       if (existing.has(name)) continue // another plugin already owns this name; never shadow it
       try {
-        const provider = makeProvider(ctx, def, cfg, { readOnly: true, registry: sessions, tasks })
+        const provider = makeProvider(ctx, def, cfg, { readOnly: true, registry: sessions, tasks, usageLedger })
         ctx.effect(() => subagents.registerProvider(provider))
         registered.add(def.id)
       } catch (error) {
