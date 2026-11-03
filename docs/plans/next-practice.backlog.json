@@ -19,11 +19,12 @@
       "R06",
       "R07"
     ],
-    "inProgress": [
+    "inProgress": [],
+    "partial": [
       "R05"
     ],
-    "next": "R05 / R08",
-    "note": "R00-R04+R06+R07 done with tests and evidence; R05 only the status surface; R08 needs a paid budget decision, R09 needs Desktop/install acceptance, R10 is post-release. The alpha.2 release gate is NOT passed."
+    "next": "R08 (needs a paid budget decision)",
+    "note": "R00-R04+R06+R07 done with tests and evidence; R05 code + schema + card done, Desktop evidence missing; R08 needs an approved budget, R09 needs Desktop/install acceptance, R10 is post-release. The alpha.2 release gate is NOT passed."
   },
   "tasks": [
     {
@@ -258,7 +259,7 @@
       "id": "R05",
       "title": "设置卡与监控展示真实状态",
       "priority": "P1",
-      "status": "planned",
+      "status": "partial",
       "dependsOn": [
         "R01",
         "R02",
@@ -287,6 +288,17 @@
         "A07",
         "A23",
         "A29"
+      ],
+      "evidence": [
+        "vendor/omd/npm-package/lib/config-settings.js",
+        "vendor/omd/npm-package/client/client.js",
+        "test/integration/efficiency-settings.test.mjs",
+        "docs/evidence/alpha.2/practice-baseline.json"
+      ],
+      "remaining": [
+        "Desktop click-through (save/reload/concurrent edit/mode fallback)",
+        "four-bucket view and unknown-cost flags in the card",
+        "a capped run against live billing"
       ]
     },
     {

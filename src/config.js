@@ -97,6 +97,17 @@ export const DEFAULTS = Object.freeze({
 
 const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
 
+/**
+ * Normalize the budget enforcement switch: the settings schema carries the
+ * strings 'auto' | 'on' | 'off', while a row config or a hand-written document
+ * may say `true` / `false`. Anything else falls back to 'auto'.
+ */
+function enforceMode(value) {
+  if (value === true || value === 'on') return true
+  if (value === false || value === 'off') return false
+  return 'auto'
+}
+
 function merge(base, over) {
   if (!isObject(over)) return { ...base }
   const out = { ...base }
@@ -161,8 +172,10 @@ export function resolveConfig(input) {
     maxUsd: typeof eff.budget?.maxUsd === 'number' && eff.budget.maxUsd >= 0 ? eff.budget.maxUsd : null,
     perTaskCalls: Number.isSafeInteger(eff.budget?.perTaskCalls) && eff.budget.perTaskCalls > 0 ? eff.budget.perTaskCalls : null,
     // 'auto' (the default) enforces exactly when a cap is configured: a cap
-    // that never blocks would be a lie. `false` keeps the gate advisory.
-    enforce: eff.budget?.enforce === true ? true : eff.budget?.enforce === false ? false : 'auto',
+    // that never blocks would be a lie. `false`/'off' keeps the gate advisory.
+    // The settings schema carries the strings 'auto'|'on'|'off'; the boolean
+    // spellings stay accepted for row config and hand-written documents.
+    enforce: enforceMode(eff.budget?.enforce),
   }
   eff.progress = {
     repeatWindow: intIn(eff.progress?.repeatWindow, 2, 50, DEFAULTS.efficiency.progress.repeatWindow),

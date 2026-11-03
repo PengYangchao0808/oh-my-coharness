@@ -133,6 +133,38 @@ export function buildConfigSchema(z) {
       allowDirectFallback: z.boolean(),
     }),
     privacy: z.object({ reportBinaryPaths: z.boolean() }),
+    // ── Efficiency (R05) ----------------------------------------------------
+    // Declared here so the Loader does not strip it and the card can edit it.
+    // `mode` is the behaviour switch; the budget caps are what the per-request
+    // gate enforces when `enforce` is `on` (or `auto` with a cap configured).
+    efficiency: z.object({
+      mode: z.union(['off', 'observe', 'balanced']),
+      team: z.object({
+        maxActiveWorkers: z.number().min(1).max(8).step(1),
+        maxActiveWriters: z.number().min(1).max(4).step(1),
+      }),
+      checkpoints: z.object({
+        explorerSteps: z.number().min(4).max(400).step(1),
+        fixerSteps: z.number().min(4).max(1000).step(1),
+        oracleSteps: z.number().min(4).max(400).step(1),
+        explorerInputTokens: z.number().min(1000).max(10000000).step(1),
+        fixerInputTokens: z.number().min(1000).max(10000000).step(1),
+      }),
+      context: z.object({
+        maxToolTextChars: z.number().min(500).max(200000).step(1),
+        packetMaxChars: z.number().min(2000).max(200000).step(1),
+      }),
+      budget: z.object({
+        maxCalls: z.number().min(0).step(1),
+        maxUsd: z.number().min(0),
+        perTaskCalls: z.number().min(0).step(1),
+        enforce: z.union(['auto', 'on', 'off']),
+      }),
+      progress: z.object({
+        repeatWindow: z.number().min(2).max(50).step(1),
+        repeatThreshold: z.number().min(2).max(10).step(1),
+      }),
+    }).description('Efficiency behaviour: mode (off|observe|balanced), budget caps enforced per model request, and the context/checkpoint/progress thresholds.'),
   }).description('Oh My CoHarness configuration: the Orchestrator role roster, the native Council, and the external-harness execution settings. Edits persist in the active DSH profile. Select the default preset in native Agent preset settings; named profiles persist in the companion profiles configuration row.');
 }
 

@@ -2,23 +2,23 @@
   "schemaVersion": 1,
   "kind": "practice-baseline",
   "task": "R00",
-  "generatedAt": "2026-11-03T14:15:42.757Z",
+  "generatedAt": "2026-11-03T14:19:14.657Z",
   "generatedBy": "scripts/practice-baseline.mjs",
-  "packageVersion": "0.5.0-alpha.2-practice.2",
+  "packageVersion": "0.5.0-alpha.2-practice.3",
   "sources": "docs/evidence/alpha.2/practice-baseline.sources.json",
   "git": {
-    "commit": "e56a9f8152f7dac7844997d1b85206690f05e2fb",
+    "commit": "a0a562fe689c40b7728b2801e8d5d773dd8142e1",
     "branch": "main",
     "workingTree": {
-      "changed": 15,
-      "untracked": 4,
+      "changed": 14,
+      "untracked": 1,
       "clean": false
     }
   },
   "treeFingerprint": {
     "algorithm": "sha256",
-    "files": 258,
-    "digest": "f57eee13e7385afee982161e22a338146fef0e7749c04ae99bf540d47337f9dd",
+    "files": 259,
+    "digest": "c3ba2322fa3db0a344f71498aa04062e63e962b2ed3f4a1730c061b4d2ac0c6d",
     "excludes": [
       ".git/",
       "node_modules/",
@@ -29,18 +29,18 @@
   "moduleCheck": {
     "command": "node scripts/check.mjs",
     "status": "passed",
-    "detail": "check ok: oh-my-coharness@0.5.0-alpha.2-practice.2 — manifest, patch, locales, icon, 15 modules, 5 skills"
+    "detail": "check ok: oh-my-coharness@0.5.0-alpha.2-practice.3 — manifest, patch, locales, icon, 15 modules, 5 skills"
   },
   "testRun": {
     "source": "docs/evidence/alpha.2/last-test-run.json",
-    "startedAt": "2026-11-03T14:15:29.815Z",
+    "startedAt": "2026-11-03T14:19:04.680Z",
     "node": "v24.21.0",
     "platform": "win32-x64",
     "totals": {
-      "suites": 41,
-      "passed": 41,
+      "suites": 42,
+      "passed": 42,
       "failed": 0,
-      "durationMs": 6919
+      "durationMs": 7038
     },
     "failing": []
   },
@@ -73,13 +73,13 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72825
+              "bytes": 76414
             },
             {
               "kind": "artifact",
               "ref": "src/config.js",
               "resolved": true,
-              "bytes": 11785
+              "bytes": 12289
             }
           ]
         },
@@ -93,7 +93,7 @@
               "ref": "test/integration/budget-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 1002
+              "durationMs": 989
             },
             {
               "kind": "artifact",
@@ -162,7 +162,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72825
+              "bytes": 76414
             }
           ]
         },
@@ -176,7 +176,7 @@
               "ref": "test/integration/managed-native.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 63
+              "durationMs": 62
             }
           ]
         },
@@ -232,7 +232,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72825
+              "bytes": 76414
             }
           ]
         },
@@ -246,7 +246,7 @@
               "ref": "test/integration/session-strategy.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 204
+              "durationMs": 189
             }
           ]
         },
@@ -296,7 +296,7 @@
               "kind": "artifact",
               "ref": "src/index.js",
               "resolved": true,
-              "bytes": 72825
+              "bytes": 76414
             }
           ]
         },
@@ -316,14 +316,14 @@
               "ref": "test/integration/native-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 69
+              "durationMs": 67
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 124
+              "durationMs": 127
             }
           ]
         },
@@ -400,7 +400,7 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 124
+              "durationMs": 127
             }
           ]
         },
@@ -491,7 +491,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 70
+              "durationMs": 62
             }
           ]
         },
@@ -568,7 +568,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 70
+              "durationMs": 62
             }
           ]
         },
@@ -644,14 +644,14 @@
               "ref": "test/integration/wp05-managed.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 95
+              "durationMs": 92
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/graph.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 86
+              "durationMs": 90
             },
             {
               "kind": "test-suite",
@@ -735,7 +735,7 @@
               "ref": "test/integration/wp03-packet.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 88
+              "durationMs": 87
             }
           ]
         },
@@ -799,14 +799,14 @@
               "ref": "test/integration/wp02-usage-ledger.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 124
+              "durationMs": 127
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/role-result.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 49
+              "durationMs": 52
             }
           ]
         },
@@ -876,14 +876,14 @@
               "ref": "test/integration/sessions.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 1114
+              "durationMs": 1109
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/provider-session.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 177
+              "durationMs": 169
             }
           ]
         },
@@ -961,14 +961,14 @@
               "ref": "test/integration/report-cache.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 112
+              "durationMs": 110
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp04-context.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 69
+              "durationMs": 73
             }
           ]
         },
@@ -1007,84 +1007,97 @@
     },
     {
       "id": "settings-and-monitoring",
-      "title": "设置卡与监控展示真实状态（observe 为默认）",
+      "title": "设置卡与监控展示真实状态（R05）",
       "releaseScope": "alpha.2 R05",
       "layers": {
         "implementation": {
           "status": "passed",
           "declared": "passed",
-          "note": "off|observe|balanced schema with capability fallback; Runtime tab exists",
+          "note": "efficiency declared in the host schema; the USER settings layer is merged over the row config; the Runtime tab edits mode + three caps + enforcement; /coharness status prints bridge, gate, budget and coverage",
           "refs": [
-            {
-              "kind": "artifact",
-              "ref": "src/config.js",
-              "resolved": true,
-              "bytes": 11785
-            },
             {
               "kind": "artifact",
               "ref": "vendor/omd/npm-package/lib/config-settings.js",
               "resolved": true,
-              "bytes": 10189
+              "bytes": 11830
             },
             {
               "kind": "artifact",
               "ref": "vendor/omd/npm-package/client/client.js",
               "resolved": true,
-              "bytes": 173453
+              "bytes": 178036
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/index.js",
+              "resolved": true,
+              "bytes": 76414
+            },
+            {
+              "kind": "artifact",
+              "ref": "src/config.js",
+              "resolved": true,
+              "bytes": 12289
             }
           ]
         },
         "tests": {
           "status": "passed",
           "declared": "passed",
-          "note": null,
+          "note": "4 regressions for precedence/no-cap/malformed/card dictionaries plus the existing client + usability + migration suites (42 suites total)",
           "refs": [
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/efficiency-settings.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 102
+            },
             {
               "kind": "test-suite",
               "ref": "test/integration/client.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 66
+              "durationMs": 58
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/usability.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 163
-            },
-            {
-              "kind": "test-suite",
-              "ref": "test/integration/migration.test.mjs",
-              "resolved": true,
-              "status": "passed",
-              "durationMs": 68
+              "durationMs": 168
             }
           ]
         },
         "hostProbe": {
-          "status": "partial",
-          "declared": "partial",
-          "note": "client bundle loads and contracts pass; no browser click-through",
-          "refs": []
+          "status": "passed",
+          "declared": "passed",
+          "note": "the installed host boots with the new schema and the plugin reads the settings row (no model calls); the card itself is a browser bundle and is not clicked",
+          "refs": [
+            {
+              "kind": "artifact",
+              "ref": "docs/evidence/alpha.2/practice-r01-native-runtime.json",
+              "resolved": true,
+              "bytes": 17194
+            }
+          ]
         },
         "realModel": {
           "status": "not-run",
           "declared": "not-run",
-          "note": null,
+          "note": "a capped run has not been observed on live billing",
           "refs": []
         },
         "desktop": {
           "status": "not-run",
           "declared": "not-run",
-          "note": "save/reload/concurrent edit/fallback have no Desktop evidence",
+          "note": "save/reload/concurrent edit/fallback still need a Desktop click-through",
           "refs": []
         },
         "costCoverage": {
-          "status": "not-run",
-          "declared": "not-run",
-          "note": "four-bucket display is not yet wired to the ledger",
+          "status": "partial",
+          "declared": "partial",
+          "note": "the card shows in/out and the settled cost; the four-bucket view and unknown flags are in /coharness usage, not the card",
           "refs": []
         }
       }
@@ -1123,7 +1136,7 @@
               "ref": "test/integration/strategy-eval.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 105
+              "durationMs": 111
             }
           ]
         },
@@ -1194,7 +1207,7 @@
               "ref": "test/integration/acceptance-runner.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 582
+              "durationMs": 607
             },
             {
               "kind": "artifact",
@@ -1270,7 +1283,7 @@
               "ref": "test/smoke.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 565
+              "durationMs": 579
             }
           ]
         },
@@ -1334,7 +1347,7 @@
               "ref": "test/integration/trial-collector.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 250
+              "durationMs": 249
             }
           ]
         },
@@ -1381,8 +1394,8 @@
       "unverified": 0
     },
     "hostProbe": {
-      "passed": 6,
-      "partial": 5,
+      "passed": 7,
+      "partial": 4,
       "not-run": 6,
       "blocked": 0,
       "unverified": 0
@@ -1403,8 +1416,8 @@
     },
     "costCoverage": {
       "passed": 0,
-      "partial": 5,
-      "not-run": 11,
+      "partial": 6,
+      "not-run": 10,
       "blocked": 1,
       "unverified": 0
     }

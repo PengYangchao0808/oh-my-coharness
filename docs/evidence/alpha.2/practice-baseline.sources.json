@@ -490,40 +490,46 @@
     },
     {
       "id": "settings-and-monitoring",
-      "title": "设置卡与监控展示真实状态（observe 为默认）",
+      "title": "设置卡与监控展示真实状态（R05）",
       "releaseScope": "alpha.2 R05",
       "layers": {
         "implementation": {
           "status": "passed",
-          "note": "off|observe|balanced schema with capability fallback; Runtime tab exists",
+          "note": "efficiency declared in the host schema; the USER settings layer is merged over the row config; the Runtime tab edits mode + three caps + enforcement; /coharness status prints bridge, gate, budget and coverage",
           "refs": [
-            "src/config.js",
             "vendor/omd/npm-package/lib/config-settings.js",
-            "vendor/omd/npm-package/client/client.js"
+            "vendor/omd/npm-package/client/client.js",
+            "src/index.js",
+            "src/config.js"
           ]
         },
         "tests": {
           "status": "passed",
+          "note": "4 regressions for precedence/no-cap/malformed/card dictionaries plus the existing client + usability + migration suites (42 suites total)",
           "refs": [
+            "suite:test/integration/efficiency-settings.test.mjs",
             "suite:test/integration/client.test.mjs",
-            "suite:test/integration/usability.test.mjs",
-            "suite:test/integration/migration.test.mjs"
+            "suite:test/integration/usability.test.mjs"
           ]
         },
         "hostProbe": {
-          "status": "partial",
-          "note": "client bundle loads and contracts pass; no browser click-through"
+          "status": "passed",
+          "note": "the installed host boots with the new schema and the plugin reads the settings row (no model calls); the card itself is a browser bundle and is not clicked",
+          "refs": [
+            "docs/evidence/alpha.2/practice-r01-native-runtime.json"
+          ]
         },
         "realModel": {
-          "status": "not-run"
+          "status": "not-run",
+          "note": "a capped run has not been observed on live billing"
         },
         "desktop": {
           "status": "not-run",
-          "note": "save/reload/concurrent edit/fallback have no Desktop evidence"
+          "note": "save/reload/concurrent edit/fallback still need a Desktop click-through"
         },
         "costCoverage": {
-          "status": "not-run",
-          "note": "four-bucket display is not yet wired to the ledger"
+          "status": "partial",
+          "note": "the card shows in/out and the settled cost; the four-bucket view and unknown flags are in /coharness usage, not the card"
         }
       }
     },

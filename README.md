@@ -1,14 +1,15 @@
 # Oh My CoHarness
 
-> **v0.5.0-alpha.2-practice.2** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”，本轮再往前一步：**原生子 Agent 的请求与用量进入同一套任务记录，预算到额会真正阻止下一次发送**。
+> **v0.5.0-alpha.2-practice.3** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”，本轮再往前一步：**原生子 Agent 的请求与用量进入同一套任务记录，预算到额会真正阻止下一次发送**。
 > 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
-> `practice.2` 表示这是一次**实践增量**，不是 alpha.2 的发布版本：R00–R04 已完成，R05 只有状态面板部分，R06/R07 仍在落地，R08–R10 与 alpha.2 发布闸门尚未执行。
+> `practice.3` 表示这是一次**实践增量**，不是 alpha.2 的发布版本：R00–R04、R06–R07 已完成，R05 代码/设置卡/监控已完成但缺 Desktop 点击证据，R08–R10 与 alpha.2 发布闸门尚未执行。
 
 **本轮（2026-11-03，R02–R04）：**
 - `integration/request-gate.js`：**跨进程**逐请求预算闸门。锁内核对"已结算 + 在途 + 未知"，在 `agent/request`（`llm.stream` 之前，重试也计入）拒绝发送，`agent/pre-step` 提前拒绝该步；未知结果**保留名额**，释放需要带理由的审计调用。两个独立进程争最后一格时只有一个成功（真双进程测试）。
 - `integration/native-managed.js`：把已有的原生 child 绑定到工作图节点（`coharness native_action:bind`），用持久执行记录结算（`settle`）；**执行完成不等于验收通过**，没有证据节点不解锁后继。
 - `integration/worker-registry.js` + `integration/session-strategy.js`：逻辑负责人与物理 child/generation 分离，续接/排队/压缩/重开有规则与决策日志（`coharness session_action:decide`）；没有合法压缩接口时记 `restart`，不伪造 compact。
 - `/coharness status` 末尾新增运行脚注：桥是否安装、闸门是否强制执行、当前预算视图、managed/unmanaged 覆盖。
+- **设置卡（R05）**：`efficiency` 已进入 host schema，卡里可编辑模式、请求上限、单任务上限、费用上限与强制执行开关；保存的用户层**覆盖**部署行配置，类型不对的值直接丢弃（不会被强转成"拦截"）。
 
 **证据：** [R02 预算闸门](docs/evidence/alpha.2/practice-r02-budget.json) · [R03 原生闭环](docs/evidence/alpha.2/practice-r03-native-managed.json) · [R04 会话选择](docs/evidence/alpha.2/practice-r04-selection.json) · [分层基线](docs/evidence/alpha.2/practice-baseline.json)。
 

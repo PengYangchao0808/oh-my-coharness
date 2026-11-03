@@ -50,7 +50,7 @@ window.__ModuleLoader__.load({
     // no build step or package metadata, so this is a literal; the contract
     // tests compare it with package.json so a release bump cannot leave the
     // header stale.
-    const VERSION = '0.5.0-alpha.2-practice.2';
+    const VERSION = '0.5.0-alpha.2-practice.3';
     const UPSTREAM_ROLE_IDS = ['oracle', 'designer', 'fixer', 'explorer', 'librarian', 'observer'];
     const COUNCILLOR_ROLE_IDS = ['councillor-alpha', 'councillor-beta', 'councillor-gamma'];
     // Council's synthesizer has no user-facing enable switch: it is active
@@ -614,6 +614,18 @@ window.__ModuleLoader__.load({
       allowUnverified: '允许未验证 CLI 续接',
       allowUnverifiedHint: '只对 documented/unverified 适配器生效；enforced 适配器不受影响。',
       usageTitle: '用量',
+      budgetTitle: '预算与效率',
+      budgetMode: '模式',
+      budgetModeHint: 'observe 只记录；balanced 在已验证路径上启用工作包与检查点；off 关闭记录。配置上限后自动强制执行。',
+      budgetMaxCalls: '请求上限（0=不限）',
+      budgetMaxCallsHint: '按真实模型请求计，重试也计一次；到达上限后下一次发送会被拒绝，任务不会被标成完成。',
+      budgetMaxUsd: '费用上限（0=不限）',
+      budgetMaxUsdHint: '只对已知费用生效；费用未知时不会当成 0，也不会据此拦截。',
+      budgetPerTaskCalls: '单任务请求上限（0=不限）',
+      budgetPerTaskCallsHint: '每个子任务自己的名额，父级上限仍然有效。',
+      budgetEnforce: '强制执行',
+      budgetEnforceHint: 'auto=配置了上限就拦截；on=总是拦截；off=只做建议。',
+      budgetUnknown: '费用未知',
       routingTitle: '自动路由',
       routingHint: '只推荐 routable 且计费已授权的线路。',
       allowPaidApi: '允许 API 计费',
@@ -776,6 +788,18 @@ window.__ModuleLoader__.load({
       allowUnverified: 'Allow unverified CLI resume',
       allowUnverifiedHint: 'Only affects documented/unverified adapters; enforced adapters are unaffected.',
       usageTitle: 'Usage',
+      budgetTitle: 'Budget & efficiency',
+      budgetMode: 'Mode',
+      budgetModeHint: 'observe only records; balanced enables work packets and checkpoints on verified paths; off stops recording. Configuring a cap enforces it.',
+      budgetMaxCalls: 'Request cap (0 = none)',
+      budgetMaxCallsHint: 'Counts real model requests; a retry is a request. At the cap the next send is refused and the task is never marked complete.',
+      budgetMaxUsd: 'Cost cap (0 = none)',
+      budgetMaxUsdHint: 'Applies to known cost only. Unknown cost is never treated as 0 and never blocks on a guess.',
+      budgetPerTaskCalls: 'Per-task request cap (0 = none)',
+      budgetPerTaskCallsHint: 'A task has its own slot budget; the parent cap still applies.',
+      budgetEnforce: 'Enforcement',
+      budgetEnforceHint: 'auto = block once a cap is configured; on = always block; off = advise only.',
+      budgetUnknown: 'cost unknown',
       routingTitle: 'Automatic routing',
       routingHint: 'Only routable, billing-authorized routes are recommended.',
       allowPaidApi: 'Allow paid API',
@@ -2137,6 +2161,8 @@ window.__ModuleLoader__.load({
     function RuntimeTab({ value, status, onWrite, t }) {
       const sessions = value?.sessions ?? {};
       const routing = value?.routing ?? {};
+      const efficiency = value?.efficiency ?? {};
+      const budget = efficiency.budget ?? {};
       const execution = status?.execution ?? {};
       const stats = execution.sessions;
       const usage = stats?.usage;
@@ -2188,9 +2214,53 @@ window.__ModuleLoader__.load({
         row(t('usageTitle'), React.createElement('span', { style: { fontSize: 12, color: color.secondary } },
           usage
             ? `in ${usage.inputTokens ?? 0} · out ${usage.outputTokens ?? 0}` +
-              (usage.costKnown ? ` · $${Number(usage.costUsd ?? 0).toFixed(4)}` : ' · cost unknown')
+              (usage.costKnown ? ` · $${Number(usage.costUsd ?? 0).toFixed(4)}` : ` · ${t('budgetUnknown')}`)
             : t('runtimeUnavailable'),
         )),
+        React.createElement('div', { style: { borderTop: '1px solid var(--dsw-alias-border-l2)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 } },
+          row(t('budgetTitle'), React.createElement('select', {
+            value: efficiency.mode ?? 'observe',
+            onChange: (event) => onWrite(['efficiency', 'mode'], event.target.value),
+            style: controlStyle,
+          },
+            React.createElement('option', { value: 'off' }, 'off'),
+            React.createElement('option', { value: 'observe' }, 'observe'),
+            React.createElement('option', { value: 'balanced' }, 'balanced'),
+          ), t('budgetModeHint')),
+          row(t('budgetMaxCalls'), React.createElement('input', {
+            type: 'number', min: 0, value: budget.maxCalls ?? 0,
+            onChange: (event) => {
+              const parsed = Number(event.target.value);
+              if (Number.isSafeInteger(parsed) && parsed >= 0) onWrite(['efficiency', 'budget', 'maxCalls'], parsed);
+            },
+            style: controlStyle,
+          }), t('budgetMaxCallsHint')),
+          row(t('budgetPerTaskCalls'), React.createElement('input', {
+            type: 'number', min: 0, value: budget.perTaskCalls ?? 0,
+            onChange: (event) => {
+              const parsed = Number(event.target.value);
+              if (Number.isSafeInteger(parsed) && parsed >= 0) onWrite(['efficiency', 'budget', 'perTaskCalls'], parsed);
+            },
+            style: controlStyle,
+          }), t('budgetPerTaskCallsHint')),
+          row(t('budgetMaxUsd'), React.createElement('input', {
+            type: 'number', min: 0, step: 0.01, value: budget.maxUsd ?? 0,
+            onChange: (event) => {
+              const parsed = Number(event.target.value);
+              if (Number.isFinite(parsed) && parsed >= 0) onWrite(['efficiency', 'budget', 'maxUsd'], parsed);
+            },
+            style: controlStyle,
+          }), t('budgetMaxUsdHint')),
+          row(t('budgetEnforce'), React.createElement('select', {
+            value: typeof budget.enforce === 'boolean' ? (budget.enforce ? 'on' : 'off') : (budget.enforce ?? 'auto'),
+            onChange: (event) => onWrite(['efficiency', 'budget', 'enforce'], event.target.value),
+            style: controlStyle,
+          },
+            React.createElement('option', { value: 'auto' }, 'auto'),
+            React.createElement('option', { value: 'on' }, 'on'),
+            React.createElement('option', { value: 'off' }, 'off'),
+          ), t('budgetEnforceHint')),
+        ),
         React.createElement('div', { style: { borderTop: '1px solid var(--dsw-alias-border-l2)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 } },
           row(t('routingTitle'), React.createElement(Switch, {
             checked: routing.enabled === true,

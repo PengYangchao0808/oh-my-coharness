@@ -182,6 +182,86 @@ async function executionStatusText(rt) {
 }
 
 /**
+ * Efficiency settings the card may write, and the shape each field must have.
+ * Kept here (not in the card) so a stored document can never inject an
+ * unsupported value into the runtime.
+ */
+const EFFICIENCY_INT_SECTIONS = Object.freeze({
+  team: ['maxActiveWorkers', 'maxActiveWriters'],
+  checkpoints: ['explorerSteps', 'fixerSteps', 'oracleSteps', 'explorerInputTokens', 'fixerInputTokens'],
+  context: ['maxToolTextChars', 'packetMaxChars'],
+  progress: ['repeatWindow', 'repeatThreshold'],
+})
+
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Read the USER-authored efficiency layer from the host settings row (R05).
+ *
+ * Only the user layer is read: the effective settings value carries factory
+ * defaults for every key, and merging those would overwrite an explicit row
+ * config with a default. A malformed document reads as "nothing stored".
+ */
+export function readUserEfficiency(ctx) {
+  try {
+    const settings = typeof ctx?.get === 'function' ? ctx.get('settings') : undefined
+    const rows = typeof settings?.describe === 'function' ? settings.describe() : []
+    const row = Array.isArray(rows) ? rows.find((entry) => entry?.ns === 'oh-my-coharness') : null
+    const stored = row?.user?.efficiency
+    return isPlainObject(stored) ? stored : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Merge the stored efficiency layer over the deployment config (R05).
+ *
+ * Precedence: what the operator configured in the host settings (the card)
+ * wins over the plugin row config, because that is the channel a user can
+ * actually edit. Every value is type-checked; an unsupported or malformed
+ * field is dropped instead of being coerced into something that blocks work.
+ */
+export function mergeEfficiency(config, stored) {
+  const base = isPlainObject(config) ? config : {}
+  if (!isPlainObject(stored)) return base
+  const current = isPlainObject(base.efficiency) ? base.efficiency : {}
+  const next = { ...current }
+
+  if (['off', 'observe', 'balanced'].includes(stored.mode)) next.mode = stored.mode
+
+  for (const [section, keys] of Object.entries(EFFICIENCY_INT_SECTIONS)) {
+    if (!isPlainObject(stored[section])) continue
+    const merged = { ...(isPlainObject(current[section]) ? current[section] : {}) }
+    for (const key of keys) {
+      const value = stored[section][key]
+      if (Number.isSafeInteger(value) && value >= 0) merged[key] = value
+    }
+    next[section] = merged
+  }
+
+  if (isPlainObject(stored.budget)) {
+    const budget = { ...(isPlainObject(current.budget) ? current.budget : {}) }
+    for (const key of ['maxCalls', 'perTaskCalls']) {
+      const value = stored.budget[key]
+      // 0 means "no cap" in the settings document; resolveConfig keeps null.
+      if (Number.isSafeInteger(value) && value >= 0) budget[key] = value
+    }
+    if (typeof stored.budget.maxUsd === 'number' && Number.isFinite(stored.budget.maxUsd) && stored.budget.maxUsd >= 0) {
+      budget.maxUsd = stored.budget.maxUsd
+    }
+    if (['auto', 'on', 'off'].includes(stored.budget.enforce) || typeof stored.budget.enforce === 'boolean') {
+      budget.enforce = stored.budget.enforce
+    }
+    next.budget = budget
+  }
+
+  return { ...base, efficiency: next }
+}
+
+/**
  * The runtime facts a status reader needs and a route table cannot show (R05):
  * how much was really booked, in which buckets, how much is unknown, whether
  * the budget gate is enforcing, and where the bridge stands. Everything here is
@@ -1182,7 +1262,10 @@ export function reportNeedsRefresh(report, ageMs, ttlMs = REPORT_TTL_MS) {
 }
 
 export function apply(ctx, config) {
-  const cfg = resolveConfig(config)
+  // R05: the settings card is the channel a user can actually edit, so its
+  // stored efficiency layer wins over the deployment row config. A host
+  // without a settings service simply reads nothing.
+  const cfg = resolveConfig(mergeEfficiency(config, readUserEfficiency(ctx)))
   const sessions = createSessionRegistry(cfg.sessions)
   const stateDir = cfg.stateDir || ''
   const tasks = createTaskRegistry({

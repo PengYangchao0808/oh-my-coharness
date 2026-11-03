@@ -4,6 +4,30 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
+## [0.5.0-alpha.2-practice.3] — 2026-11-03
+
+R05's settings surface: the efficiency layer can finally be edited where a user
+can reach it, and the runtime reads it.
+
+### Added
+- **Efficiency settings in the host schema (R05):**
+  `vendor/omd/npm-package/lib/config-settings.js` now declares
+  `efficiency.{mode,team,checkpoints,context,budget,progress}`. Without the
+  declaration the Loader strips the block, so a card field would have been dead.
+- **The stored layer actually applies:** `src/index.js` reads the USER settings
+  layer (`readUserEfficiency`) and merges it over the plugin row config
+  (`mergeEfficiency`). Only the documented knobs are taken, types are checked,
+  and `0` means "no cap". A malformed value is dropped, never coerced into a
+  block.
+- **Budget & efficiency card section:** mode, request cap, per-task cap, cost
+  cap and the enforcement switch, in both dictionaries. Wiring lives in the
+  Runtime tab next to the existing usage line.
+- 4 regressions: precedence over the row config, "no cap" round-trip, malformed
+  values dropped, and the card/dictionary contract.
+
+### Changed
+- `enforce` accepts the settings spelling `auto|on|off` as well as booleans.
+
 ## [0.5.0-alpha.2-practice.2] — 2026-11-03
 
 Second practice increment: R02–R04 are landed with evidence; R05 is partial
