@@ -1,0 +1,23 @@
+{
+  "taskId": "should-reuse-module-fix",
+  "kind": "should-reuse",
+  "split": "development",
+  "family": "module-followup",
+  "goal": "Fix the truncate() length bug in a module whose slugify() already works, without regressing slugify.",
+  "commands": [
+    {
+      "name": "behaviour",
+      "run": ["node", "acceptance/check.mjs"],
+      "expect": { "exitCode": 0, "stdoutContains": ["ok 6/6"], "stdoutNotContains": ["fail "] }
+    }
+  ],
+  "acceptanceFiles": ["acceptance/check.mjs", "spec.json"],
+  "forbidChanges": ["acceptance/", "spec.json"],
+  "writeScope": ["src/"],
+  "rubric": [
+    "truncate never returns more than max characters",
+    "short text is returned unchanged",
+    "slugify still collapses separators the same way",
+    "the fix is behavioural, not a rewrite of the grader"
+  ]
+}

@@ -2,23 +2,23 @@
   "schemaVersion": 1,
   "kind": "practice-baseline",
   "task": "R00",
-  "generatedAt": "2026-11-03T14:32:39.055Z",
+  "generatedAt": "2026-11-03T14:35:05.811Z",
   "generatedBy": "scripts/practice-baseline.mjs",
-  "packageVersion": "0.5.0-alpha.2-practice.4",
+  "packageVersion": "0.5.0-alpha.2-practice.5",
   "sources": "docs/evidence/alpha.2/practice-baseline.sources.json",
   "git": {
-    "commit": "3275bd5d674acdd690a622b84016c1b0fb9d5b2f",
+    "commit": "d0b1f470b31000bd54da9f96ad85fa028aeabfb8",
     "branch": "main",
     "workingTree": {
-      "changed": 17,
-      "untracked": 1,
+      "changed": 9,
+      "untracked": 3,
       "clean": false
     }
   },
   "treeFingerprint": {
     "algorithm": "sha256",
-    "files": 260,
-    "digest": "6488b4d84db1f7c4a29a8aa5a5ad7e236ac1bb8268191bd111e5dbc7523721ca",
+    "files": 270,
+    "digest": "78293da3c1225c1b6163c92ec7d4e336ca0a87fdd5960c1422f43e4a2f51a10e",
     "excludes": [
       ".git/",
       "node_modules/",
@@ -29,18 +29,18 @@
   "moduleCheck": {
     "command": "node scripts/check.mjs",
     "status": "passed",
-    "detail": "check ok: oh-my-coharness@0.5.0-alpha.2-practice.4 — manifest, patch, locales, icon, 15 modules, 5 skills"
+    "detail": "check ok: oh-my-coharness@0.5.0-alpha.2-practice.5 — manifest, patch, locales, icon, 15 modules, 5 skills"
   },
   "testRun": {
     "source": "docs/evidence/alpha.2/last-test-run.json",
-    "startedAt": "2026-11-03T14:32:28.882Z",
+    "startedAt": "2026-11-03T14:34:36.358Z",
     "node": "v24.21.0",
     "platform": "win32-x64",
     "totals": {
-      "suites": 43,
-      "passed": 43,
+      "suites": 44,
+      "passed": 44,
       "failed": 0,
-      "durationMs": 6994
+      "durationMs": 7381
     },
     "failing": []
   },
@@ -93,14 +93,14 @@
               "ref": "test/integration/budget-runtime.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 929
+              "durationMs": 994
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/external-accounting.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 137
+              "durationMs": 146
             },
             {
               "kind": "artifact",
@@ -183,7 +183,7 @@
               "ref": "test/integration/managed-native.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 60
+              "durationMs": 73
             }
           ]
         },
@@ -266,7 +266,7 @@
               "ref": "test/integration/session-strategy.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 171
+              "durationMs": 172
             }
           ]
         },
@@ -511,7 +511,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 63
+              "durationMs": 64
             }
           ]
         },
@@ -588,7 +588,7 @@
               "ref": "test/integration/wp06-budget.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 63
+              "durationMs": 64
             }
           ]
         },
@@ -664,21 +664,21 @@
               "ref": "test/integration/wp05-managed.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 84
+              "durationMs": 79
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/graph.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 76
+              "durationMs": 78
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/mailbox.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 161
+              "durationMs": 177
             }
           ]
         },
@@ -755,7 +755,7 @@
               "ref": "test/integration/wp03-packet.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 86
+              "durationMs": 80
             }
           ]
         },
@@ -826,7 +826,7 @@
               "ref": "test/integration/role-result.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 65
+              "durationMs": 51
             }
           ]
         },
@@ -896,14 +896,14 @@
               "ref": "test/integration/sessions.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 1102
+              "durationMs": 1125
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/provider-session.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 169
+              "durationMs": 181
             }
           ]
         },
@@ -981,14 +981,14 @@
               "ref": "test/integration/report-cache.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 99
+              "durationMs": 118
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/wp04-context.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 66
+              "durationMs": 64
             }
           ]
         },
@@ -1071,21 +1071,21 @@
               "ref": "test/integration/efficiency-settings.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 93
+              "durationMs": 89
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/client.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 56
+              "durationMs": 62
             },
             {
               "kind": "test-suite",
               "ref": "test/integration/usability.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 174
+              "durationMs": 188
             }
           ]
         },
@@ -1156,7 +1156,7 @@
               "ref": "test/integration/strategy-eval.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 146
+              "durationMs": 100
             }
           ]
         },
@@ -1213,27 +1213,34 @@
               "kind": "artifact",
               "ref": "test/benchmarks/session-strategies/README.md",
               "resolved": true,
-              "bytes": 3954
+              "bytes": 4794
             }
           ]
         },
         "tests": {
           "status": "passed",
           "declared": "passed",
-          "note": "13 regressions on a REAL benchmark task: reference passes, broken start fails, wrong patch fails, grader tampering detected, forbidChanges, deterministic family split",
+          "note": "16 regressions across three real tasks (reference passes, start fails, wrong patch fails, grader tampering detected, forbidChanges, deterministic family split) plus a set-level check that both should-reuse and should-restart kinds exist",
           "refs": [
             {
               "kind": "test-suite",
               "ref": "test/integration/acceptance-runner.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 575
+              "durationMs": 546
+            },
+            {
+              "kind": "test-suite",
+              "ref": "test/integration/benchmark-tasks.test.mjs",
+              "resolved": true,
+              "status": "passed",
+              "durationMs": 283
             },
             {
               "kind": "artifact",
-              "ref": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+              "ref": "test/benchmarks/session-strategies/README.md",
               "resolved": true,
-              "bytes": 1279
+              "bytes": 4794
             }
           ]
         },
@@ -1303,7 +1310,7 @@
               "ref": "test/smoke.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 570
+              "durationMs": 575
             }
           ]
         },
@@ -1367,7 +1374,7 @@
               "ref": "test/integration/trial-collector.test.mjs",
               "resolved": true,
               "status": "passed",
-              "durationMs": 223
+              "durationMs": 226
             }
           ]
         },

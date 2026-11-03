@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses a `0.MINOR.PATCH` version line while the host APIs settle.
 
+## [0.5.0-alpha.2-practice.5] — 2026-11-03
+
+R08's prerequisite that did not need money: a task set with both kinds.
+
+### Added
+- **Two more graded benchmark tasks (R07/R08):**
+  `should-reuse-module-fix` (family `module-followup`: keep a working function
+  intact while fixing the next one) and `should-restart-stale-api` (family
+  `api-migration`: the synchronous loader was removed, so a reused context is
+  actively wrong). Both follow the same contract as `example-local-fix`:
+  `start/` is the delivered tree, `reference/` is an overlay of the fix, and the
+  grader lives outside the worker's write scope.
+- `test/integration/benchmark-tasks.test.mjs` grades every task both ways
+  (start fails, reference passes), checks the delivery did not touch the frozen
+  acceptance files, and asserts the set covers `should-reuse` + `should-restart`
+  with one family per task.
+- `kind` is documented as a task-set convention (the runner ignores it).
+
 ## [0.5.0-alpha.2-practice.4] — 2026-11-03
 
 Closes two honesty gaps: external dispatches were neither accounted for nor

@@ -7,6 +7,18 @@ result.
 
 Start with `example-local-fix/` — it is real and runnable.
 
+## The tasks that ship today
+
+| task | `kind` | family | what it rewards |
+|---|---|---|---|
+| `example-local-fix` | should-reuse | `local-fix` | a small local fix in a session that already knows the module |
+| `should-reuse-module-fix` | should-reuse | `module-followup` | keeping an already-working function intact while fixing the next one |
+| `should-restart-stale-api` | should-restart | `api-migration` | noticing the synchronous loader was removed and migrating to the async contract |
+
+`kind` is a task-set convention read by
+`test/integration/benchmark-tasks.test.mjs`; the runner itself ignores it.
+Every task in the table is graded both ways (start fails, reference passes).
+
 ```
 example-local-fix/
   spec.json                     the task definition (graded, read-only)
@@ -14,6 +26,9 @@ example-local-fix/
   reference/src/parse-range.mjs the reference fix (must pass)
   acceptance/check.mjs          the fixed acceptance command (must pass/fail)
 ```
+
+`start/` is the whole tree a worker receives; `reference/` is an **overlay** of
+the files the fix changes (it does not have to repeat untouched files).
 
 ## Add a task
 

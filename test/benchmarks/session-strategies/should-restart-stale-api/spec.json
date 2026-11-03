@@ -1,0 +1,23 @@
+{
+  "taskId": "should-restart-stale-api",
+  "kind": "should-restart",
+  "split": "development",
+  "family": "api-migration",
+  "goal": "Migrate a caller that still uses the removed synchronous settings loader to the current async contract, without resurrecting the old API.",
+  "commands": [
+    {
+      "name": "behaviour",
+      "run": ["node", "acceptance/check.mjs"],
+      "expect": { "exitCode": 0, "stdoutContains": ["ok 5/5"], "stdoutNotContains": ["fail "] }
+    }
+  ],
+  "acceptanceFiles": ["acceptance/check.mjs", "spec.json"],
+  "forbidChanges": ["acceptance/", "spec.json"],
+  "writeScope": ["src/"],
+  "rubric": [
+    "the caller works against the async loader that exists today",
+    "the removed synchronous name does not survive anywhere in src/",
+    "defaults still apply when the file is missing",
+    "the fix is a migration, not a reimplementation of the loader"
+  ]
+}

@@ -591,10 +591,11 @@
         },
         "tests": {
           "status": "passed",
-          "note": "13 regressions on a REAL benchmark task: reference passes, broken start fails, wrong patch fails, grader tampering detected, forbidChanges, deterministic family split",
+          "note": "16 regressions across three real tasks (reference passes, start fails, wrong patch fails, grader tampering detected, forbidChanges, deterministic family split) plus a set-level check that both should-reuse and should-restart kinds exist",
           "refs": [
             "suite:test/integration/acceptance-runner.test.mjs",
-            "test/benchmarks/session-strategies/example-local-fix/spec.json"
+            "suite:test/integration/benchmark-tasks.test.mjs",
+            "test/benchmarks/session-strategies/README.md"
           ]
         },
         "hostProbe": {
