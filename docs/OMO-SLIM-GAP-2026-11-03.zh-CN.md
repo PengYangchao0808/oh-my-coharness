@@ -1,5 +1,7 @@
 # 当前 OMC / OMD 与 OMO-SLIM 的差距复核
 
+> **2026-11-03 路线修订**：本文保留为**历史差距证据**。按 [OMC-0X-CLOSEOUT.md](OMC-0X-CLOSEOUT.md)，0.X 的目标是**核心行为兼容**（角色、路由、工作流、正确性），**不再追求完整 OMO-Slim 生态复刻**；Observer、Companion、ACP/App-server、视觉增强等边缘能力移出 0.X 关键路径（归 1.X 或可选功能）。本文中的"完整能力覆盖差距"不再作为 0.X 的阻断项。
+
 日期：2026-11-03。本地对象：OMC `0.5.0-alpha.1` 工作区，整合 OMD `0.8.6`，包含未发布 alpha.2 基础改动。这里不是独立安装的 OMD 最新版测评。
 
 上游对象：查询时 OMO-SLIM master 的官方 README、package.json 和功能文档，package 声明 `3.0.6`。master 内容不等同于此前固定 commit 的快照；本次没有安装运行上游，也没有进行同任务性能对照。[上游版本声明](https://github.com/alvinunreal/oh-my-opencode-slim/blob/master/package.json)

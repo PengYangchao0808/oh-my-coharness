@@ -3,6 +3,8 @@
 > **总体定位**：从多模型协作插件，发展为跨 Harness 智能体操作层，最终形成可长期运行、可验证改进的 RSI-Agent 系统。
 > 状态：**产品路线文档**（方向与排期），不是验收证据，也不构成本仓库当前能力的声明。
 > 固定于 2026-11-03，起点版本 `0.5.0-alpha.2-practice.5`。文中 `0.6`–`0.9`、`1.0`–`1.9`、`2.0`–`2.9` 均为**建议排期**，不代表已发布版本。
+>
+> **2026-11-03 修订**：0.X 重定位为 **Internal Foundation**（内部技术验证，不发布 npm）；npm 首次公开发布转移到 **1.X Coharness Core GA**。0.9 由"1.0 发布候选"改为"内部架构冻结"。0.X 的实施与验收入口见 [OMC-0X-CLOSEOUT.md](OMC-0X-CLOSEOUT.md)，本文只保留方向。
 
 ---
 
@@ -10,11 +12,11 @@
 
 它们不是三个独立产品，而是同一个 OMC 架构逐级获得三种能力：
 
-| 时代 | 名称 | 要解决的问题 |
-|---|---|---|
-| 0.X | Multi-Model Orchestration | 让不同模型协同工作；以 DSH 为宿主，整合 OMO-Slim 的角色、路由、委派与多模型工作流 |
-| 1.X | Cross-Harness Agent Collaboration | 让不同 Harness 中的 Agent 真正协作；统一 Agent 协议、双向通信、执行生命周期、持久会话与跨 Harness 任务交接 |
-| 2.X | Persistent RSI-Agent | 让协作系统持续完成任务并逐步改进；借鉴 Superagent，引入长期 Workstream、授权账本、持续运行、反馈评估与受控自我改进 |
+| 时代 | 名称 | 要解决的问题 | 发布 |
+|---|---|---|---|
+| 0.X | **Internal Foundation**（Multi-Model Orchestration） | 让不同模型协同工作；以 DSH 为宿主，整合 OMO-Slim 的角色、路由、委派与多模型工作流 | **内部验证，不发布 npm** |
+| 1.X | **Product Differentiation**（Cross-Harness Agent Collaboration） | 让不同 Harness 中的 Agent 真正协作；统一 Agent 协议、双向通信、执行生命周期、持久会话与跨 Harness 任务交接 | **核心能力验收后首次 npm 发布** |
+| 2.X | **Persistent Intelligence**（Persistent RSI-Agent） | 让协作系统持续完成任务并逐步改进；借鉴 Superagent，引入长期 Workstream、授权账本、持续运行、反馈评估与受控自我改进 | 渐进式自主改进 |
 
 其逻辑可以浓缩为三个问题：
 
@@ -48,13 +50,15 @@
 
 ### 2.1 里程碑
 
-| 版本 | 核心目标 | 主要交付 |
-|---|---|---|
-| 0.5.x 当前 | OMO-Slim 功能集成 | 单一 Preset、角色路由、Native/CLI、Lane、Graph、Session |
-| 0.6 | 稳定性与正确性 | 可信父子身份、任务账本、统一验收、崩溃恢复、Writer 闸门 |
-| 0.7 | 多模型协作完善 | 模型能力检测、默认角色配置、路由回退、Council、多模型实测 |
-| 0.8 | 工作流与性能优化 | 上下文交接、会话复用策略、三策略 Benchmark、预算与进展诊断 |
-| 0.9 | 1.0 发布候选 | 配置迁移、跨平台验收、真实 Harness 测试、文档与兼容性冻结 |
+| 版本 | 核心目标 | 主要交付 | npm |
+|---|---|---|---|
+| 0.5.x 当前 | OMO-Slim 功能集成 | 单一 Preset、角色路由、Native/CLI、Lane、Graph、Session | 不发布 |
+| 0.6 | Correctness（稳定性与正确性） | 可信父子身份、任务账本、统一验收、崩溃恢复、Writer 闸门 | 不发布 |
+| 0.7 | Collaboration（多模型协作完善） | 模型能力检测、默认角色配置、路由回退、Council、多模型实测 | 不发布 |
+| 0.8 | Benchmark（工作流与性能优化） | 上下文交接、会话复用策略、三策略 Benchmark、预算与进展诊断 | 不发布 |
+| 0.9 | **Foundation Freeze（内部架构冻结）** | 配置迁移、跨平台验收、真实 Harness 测试、文档与兼容性冻结 | 不发布 |
+
+> 0.9 不再是"1.0 发布候选"。首次 npm 公开发布移到 **1.X Coharness Core GA**，门槛见 [OMC-0X-CLOSEOUT.md §9](OMC-0X-CLOSEOUT.md)。
 
 ### 2.2 应冻结的四组核心能力
 
@@ -75,7 +79,7 @@
 - 用同一任务集评估不同模型组合和会话策略，而不是预设 OMC 一定比 OMO-Slim 快。
 - 设置卡、安装和升级迁移在实际 Desktop 环境完成验收。
 
-现有 R08（真实实验）和 R09（发布验收）应归入这一阶段，**不需要推迟到 1.X**。
+现有 R08（真实实验）归入 **0.8 内部 Benchmark 验证**，R09（发布验收）归入 **0.9 内部架构冻结验收**，**均不推迟到 1.X，也不再以 npm 发布为目标**。
 
 ---
 
@@ -319,7 +323,7 @@ projectId → ticketId → assignmentId → attemptId → sessionId
 
 | 阶段 | 内容 |
 |---|---|
-| **近期** | 完成 0.X 的可信执行基础：优先修复统一验收、Graph 跨进程 Writer 控制、外部执行 intent/launching 账本、unknown 恢复问题。随后完成已有 R08、R09 的真实实验与发布验收 |
+| **近期** | 完成 0.X 的可信执行基础：优先修复统一验收、Graph 跨进程 Writer 控制、外部执行 intent/launching 账本、unknown 恢复问题。随后完成已有 R08、R09 的**内部**真实实验与架构冻结验收（均不发布 npm） |
 | **随后** | 定义 1.X Coharness Agent Contract：先写接口规范和能力矩阵，再用两种不同能力的真实 Harness 做通信原型。证明身份、消息、任务和产物能够跨 Harness 可靠传递后，再扩大支持范围 |
 | **中期** | 完成跨 Harness 多 Agent 闭环：在真实项目中测试多轮任务、异步协作、失败恢复和独立验收，冻结稳定协议，再开始 2.X 的长期责任模型 |
 | **远期** | 逐级开放 Persistent Agent 与 RSI：先实现授权的长期运行，再引入反馈学习、候选策略和灰度晋升。三层 Workstream 只在实测证明有收益的任务类型中启用 |
@@ -348,6 +352,7 @@ projectId → ticketId → assignmentId → attemptId → sessionId
 
 | 本路线 | 既有文档 / 代码 |
 |---|---|
+| **0.X 收官实施与验收入口** | [OMC-0X-CLOSEOUT.md](OMC-0X-CLOSEOUT.md)（0.6–0.9 目标、PR-01～PR-09、五项冻结验收、npm 首发门槛） |
 | 0.6 稳定性与正确性 | [STABILIZATION.zh-CN.md](STABILIZATION.zh-CN.md)（PR-01～PR-04、§7 验收矩阵） |
 | 0.5–0.9 的剩余接线 | [NEXT-PRACTICE.zh-CN.md](NEXT-PRACTICE.zh-CN.md)（R00–R10）、[R02–R10 执行方案](plans/r02-r10.execution-plan.zh-CN.md) |
 | 0.X 的执行路由与角色 | [ARCHITECTURE.zh-CN.md](ARCHITECTURE.zh-CN.md)、[ROLE-ROUTING.zh-CN.md](ROLE-ROUTING.zh-CN.md) |

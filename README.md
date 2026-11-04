@@ -3,6 +3,8 @@
 > **v0.5.0-alpha.2-practice.5** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”，本轮再往前一步：**原生子 Agent 的请求与用量进入同一套任务记录，预算到额会真正阻止下一次发送**。
 > 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
 > `practice.5` 表示这是一次**实践增量**，不是 alpha.2 的发布版本：R00–R04、R06–R07 已完成，R05 代码/设置卡/监控已完成但缺 Desktop 点击证据，R08–R10 与 alpha.2 发布闸门尚未执行。
+>
+> **路线（2026-11-03 修订）：0.X = Internal Foundation（内部技术验证，不发布 npm）。** 首次 npm 公开发布移到 **1.X Coharness Core GA**。`package.json` 已设 `private: true` 防误发；`npm pack` 与隔离安装测试保留。0.X 收官实施与验收入口见 [OMC-0X-CLOSEOUT.md](docs/OMC-0X-CLOSEOUT.md)。
 
 **本轮（2026-11-03，R02–R04）：**
 - `integration/request-gate.js`：**跨进程**逐请求预算闸门。锁内核对"已结算 + 在途 + 未知"，在 `agent/request`（`llm.stream` 之前，重试也计入）拒绝发送，`agent/pre-step` 提前拒绝该步；未知结果**保留名额**，释放需要带理由的审计调用。两个独立进程争最后一格时只有一个成功（真双进程测试）。
@@ -461,6 +463,7 @@ node scripts/pack-check.mjs
 
 | 文档 | 内容 |
 |---|---|
+| [`docs/OMC-0X-CLOSEOUT.md`](docs/OMC-0X-CLOSEOUT.md) | **0.X 收官实施与验收入口**：0.6–0.9 目标、PR-01～PR-09、五项冻结验收、npm 首发门槛 |
 | [`docs/ROADMAP.zh-CN.md`](docs/ROADMAP.zh-CN.md) | 0.X → 1.X → 2.X 产品路线：三个时代、里程碑、完成门槛与三层 Benchmark |
 | [`docs/SUPERAGENT-LAYERING.zh-CN.md`](docs/SUPERAGENT-LAYERING.zh-CN.md) | 分层维护体系设计：L0/L1/L2、Mandate 授权、统一验收出口、分期与收益对照门 |
 | [`docs/DURABLE-ORCHESTRATION.zh-CN.md`](docs/DURABLE-ORCHESTRATION.zh-CN.md) | profile 分区、跨进程锁、持久结果、工作图、消息邮箱、CLI 分类 |

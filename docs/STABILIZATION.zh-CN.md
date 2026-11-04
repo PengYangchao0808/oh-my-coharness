@@ -1,9 +1,11 @@
-# OMC 稳定化与发布方案（v0.6 稳定版候选）
+# OMC 稳定化与内部验收方案（v0.6 Correctness）
 
-> 状态：方案草案 · 目标版本 v0.6.0-stable-candidate · 基线 DeepSeek Harness Desktop **0.2.1-rc.3**
+> 状态：方案草案 · 目标版本 v0.6（**内部正确性版本，不发布 npm**）· 基线 DeepSeek Harness Desktop **0.2.1-rc.3**
 > 原则：**DSH 管 Native 模型，OMC 管外部 Harness 的执行与路由。两者共享角色定义，不重复管理模型 Provider。**
 
-本文件是发布门槛，不是功能清单。稳定化期间冻结 SuperAgent 集成、RPH 接口与新 Harness 接入；只有满足 §7 验收矩阵的改动才允许进入候选版。
+> **2026-11-03 路线修订**：0.6 不再以"公开发布稳定版候选"为目标，而是 0.X 内部正确性阶段。npm 首次公开发布转移到 **1.X Coharness Core GA**。本文保留全部正确性与内部验收要求，仅去掉公开发布目标；0.X 的实施与验收入口见 [OMC-0X-CLOSEOUT.md](OMC-0X-CLOSEOUT.md)。
+
+本文件是**内部验收门槛**，不是功能清单。稳定化期间冻结 SuperAgent 集成、RPH 接口与新 Harness 接入；只有满足 §7 验收矩阵的改动才允许进入候选版。
 
 ---
 
@@ -174,11 +176,11 @@ Native 承担调度与写入，订阅 Harness 承担评审与前端方案：
   - 仍保留手工填写 `provider` + `model` 的兜底入口，保证目录接口变动不会让角色无法固定模型。
 - 验收：两个 Tab 各自完成一次真实操作；每个 Native 角色能钉住不同 provider/model 并被执行侧确认生效；目录失败时有可见原因与兜底路径。
 
-### PR-04 · 发布验收与 CI
+### PR-04 · 内部验收与 CI
 
 - 结构化解密 Kimi/OpenCode/GLM 输出与会话解析；补齐跨平台 smoke、隔离权限测试、安装/升级/回滚测试。
-- 加入 CI（§8），产出带日期的验收报告与 Release Notes。
-- 验收：§7 全部 P0 通过后切 Release Candidate。
+- 加入 CI（§8），产出带日期的**内部**验收报告（不再产出对外 Release Notes）。
+- 验收：§7 全部 P0 通过后进入 0.7 多模型协作阶段；**不切 Release Candidate、不发布 npm**（首发门槛见 [OMC-0X-CLOSEOUT.md §9](OMC-0X-CLOSEOUT.md)）。
 
 **顺序约束**：PR-02 的删除不与 PR-01/PR-03 的路由重构混在同一提交；所有删除走独立 PR，可单独回滚。
 

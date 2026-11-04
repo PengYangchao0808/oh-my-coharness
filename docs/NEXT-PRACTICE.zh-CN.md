@@ -2,7 +2,9 @@
 
 制定日期：2026-11-03。适用工作区：Oh-My-CoHarness。
 
-> **进度（2026-11-03，practice.1）：R00 与 R01 已完成，R02 是下一步。**
+> **2026-11-03 路线修订**：0.X 重定位为 Internal Foundation（内部验证，不发布 npm）。R08 归入 **0.8 内部 Benchmark 验证**，R09 归入 **0.9 内部架构冻结验收**，**R10（有限候选/灰度/自动回退）移出 0.X，归 2.X**。最新状态以 [OMC-0X-CLOSEOUT.md](OMC-0X-CLOSEOUT.md) 与 [next-practice.backlog.json](plans/next-practice.backlog.json) 为准；本文 R02–R10 的原始方案作为技术细节保留，版本归属以上述两份文件为准。
+>
+> **进度（2026-11-03，practice.5）：R00–R04、R06–R07 已完成，R05 缺 Desktop 验收，R08–R10 未完成。**
 > - R00：[分层基线](evidence/alpha.2/practice-baseline.json)（由 `scripts/practice-baseline.mjs` 生成，须先跑 `scripts/run-tests.mjs`）；实现/测试/宿主探针/真实模型/Desktop/费用覆盖分开统计，任何 claimed pass 的产物缺失即降级为 `unverified`。
 > - R01：[`integration/native-runtime.js`](../integration/native-runtime.js) + [11 项组合回归](../test/integration/native-runtime.test.mjs) + [无模型宿主探针](evidence/alpha.2/practice-r01-native-runtime.json)：真实宿主中主控/child/嵌套 child 关联到同一父任务，重放不重复计费，`turn/end` 只结算执行状态。
 > - 仍未完成：真实计费模型链路、Desktop 点击、取消(aborted)的宿主级证据、R02 的逐请求闸门与跨进程预留。alpha.2 发布闸门**未**通过。
@@ -182,7 +184,7 @@ collector 从 R01/R03 汇总完整父任务，输出与现有评估器兼容的 
 
 验收：每个任务参考解能通过；故意错误补丁确实失败；同代码不同策略得到同一验收结果；模型自报完成不影响判分。
 
-### R08：分三档开展真实实验
+### R08：分三档开展真实实验（**0.8 内部 Benchmark 验证，不发布 npm**）
 
 | 档位 | 规模 | 目的 | 不能得出的结论 |
 |---|---|---|---|
@@ -200,13 +202,13 @@ A/B/C 定义分别为续接/按需缩减、新建/可靠交接、自适应规则
 
 使用现有评估器的保守检查：不完整数据阻止推荐；小样本全通过不直接证明非劣。预先声明主比较和门槛，反复查看过的 holdout 不能继续当作新证据。保留不同任务类型的优势，不强制选出一个所有场景通吃的策略。
 
-### R09：完成 alpha.2 的产品和发布验收
+### R09：完成内部架构冻结验收（**0.9 Foundation Freeze，非 npm 发布**）
 
 完成 A00–A29/G0–G4 对应证据；原生和 Codex 分别覆盖，其他 CLI 保持自己的 verified/unverified 标识。
 
 必须补齐：实际 Desktop 任务流程、取消/超时/父会话关闭、设置保存/回退、真实 tarball 隔离安装和文档同步。当前 CI 的宿主 placeholder 必须在报告中单列；要做真实宿主 CI，应配置适当 runner 和明确的模型预算。
 
-验收后再统一 package 版本、自检固定版本断言、CHANGELOG、支持矩阵与打包文件。发布说明只描述实际支持的路径：外部实时 steer、核心历史压缩、原生多 writer、自定义原生角色等未完成项不被顺带宣传。
+验收后再统一 package 版本、自检固定版本断言、CHANGELOG、支持矩阵与打包文件。**交付物是内部 0.9 Tag + 测试报告 + 本地 tarball，不是 npm 发布。** 说明只描述实际支持的路径：外部实时 steer、核心历史压缩、原生多 writer、自定义原生角色等未完成项不被顺带宣传。
 
 若费用/速度目标未达到，保持 observe 默认，公布结果和限制；不能通过删除失败样本、降低验收或隐藏人工帮助制造收益。
 

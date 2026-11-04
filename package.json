@@ -1,6 +1,7 @@
 {
   "name": "oh-my-coharness",
   "version": "0.5.0-alpha.2-practice.5",
+  "private": true,
   "description": "Oh My CoHarness: one agent preset with specialist roles that run natively in DeepSeek Harness or on the AI coding CLIs you already installed. 一个 Preset，角色可原生或交给外部 CLI。",
   "type": "module",
   "license": "MIT",

@@ -2,10 +2,11 @@
   "schemaVersion": 1,
   "createdAt": "2026-11-03",
   "kind": "remaining-practice-plan",
-  "baselineVersion": "0.5.0-alpha.2-practice.1",
-  "targetVersion": "0.5.0-alpha.2",
+  "baselineVersion": "0.5.0-alpha.2-practice.5",
+  "targetVersion": "0.9-foundation-freeze (internal, no npm publish)",
   "design": "docs/NEXT-PRACTICE.zh-CN.md",
-  "scope": "接通已有模块、真实对照与发布；R10 为后续版本",
+  "closeout": "docs/OMC-0X-CLOSEOUT.md",
+  "scope": "0.X Internal Foundation: 接通已有模块、正确性修复、真实对照与内部架构冻结；R08 归 0.8，R09 归 0.9，R10 移出 0.X 归 2.X；npm 首次公开发布转移到 1.X",
   "status": "in-progress",
   "startedByThisPlan": true,
   "progress": {
@@ -23,8 +24,8 @@
     "partial": [
       "R05"
     ],
-    "next": "R08 (needs a paid budget decision)",
-    "note": "R00-R04+R06+R07 done with tests and evidence; R05 code + schema + card done, Desktop evidence missing; R08 needs an approved budget, R09 needs Desktop/install acceptance, R10 is post-release. The alpha.2 release gate is NOT passed."
+    "next": "0.6 P0 correctness (C01-C06), then R08 as 0.8 internal benchmark (needs a paid budget decision)",
+    "note": "R00-R04+R06+R07 done with tests and evidence; R05 code + schema + card done, Desktop evidence missing; R08 needs an approved budget, R09 needs Desktop/install acceptance, R10 is out of 0.X (2.X). npm first public release moved to 1.X Coharness Core GA."
   },
   "tasks": [
     {
@@ -390,9 +391,10 @@
     },
     {
       "id": "R08",
-      "title": "真实三策略对照与缓存/费用核对",
+      "title": "真实三策略对照与缓存/费用核对（0.8 内部 Benchmark 验证）",
       "priority": "P1",
       "status": "planned",
+      "releaseScope": "0.8-internal-benchmark",
       "dependsOn": [
         "R05",
         "R06",
@@ -431,9 +433,10 @@
     },
     {
       "id": "R09",
-      "title": "alpha.2 产品验收与发布准备",
+      "title": "内部架构冻结验收（0.9 Foundation Freeze，非 npm 发布）",
       "priority": "P1",
       "status": "planned",
+      "releaseScope": "0.9-foundation-freeze",
       "dependsOn": [
         "R08"
       ],
@@ -469,10 +472,10 @@
     },
     {
       "id": "R10",
-      "title": "有限候选、灰度与自动回退",
+      "title": "有限候选、灰度与自动回退（移出 0.X，归 2.X RSI Controller）",
       "priority": "P2",
       "status": "planned",
-      "releaseScope": "post-alpha.2",
+      "releaseScope": "2.X",
       "dependsOn": [
         "R09"
       ],
