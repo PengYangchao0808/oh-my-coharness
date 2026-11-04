@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { mkdtemp, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 import {
@@ -11,6 +11,14 @@ import {
   mergeWorktree,
   runGit,
 } from '../../integration/worktree.js'
+
+// `createTaskWorktree` requires a platform-absolute repo path (it passes the cwd
+// to git and then joins the worktree under that root). A literal Windows path is
+// only absolute on Windows, so the fixture must follow the running platform;
+// otherwise Linux reports `OMC/WORKTREE-REPO` before any git call and the test
+// would be asserting the wrong thing.
+const REPO = process.platform === 'win32' ? 'C:/repo' : '/repo'
+const toPosix = (value) => value.replace(/\\/g, '/')
 
 function fakeGit(responder) {
   const calls = []
@@ -53,19 +61,32 @@ test('worktree records are durable and per parent', async () => {
 })
 
 test('a task worktree is a branch checkout under the repository root', async () => {
+  assert.equal(isAbsolute(REPO), true, 'the fixture repository must be absolute on this platform')
   const git = fakeGit((args) => {
-    if (args[0] === 'rev-parse') return { stdout: 'C:/repo\n' }
+    if (args[0] === 'rev-parse') return { stdout: `${REPO}\n` }
     if (args[0] === 'worktree' && args[1] === 'add') return { stdout: 'Preparing worktree\n' }
     return { stdout: '' }
   })
-  const created = await createTaskWorktree(git.ctx, { repo: 'C:/repo', name: 'task-codex' })
+  const created = await createTaskWorktree(git.ctx, { repo: REPO, name: 'task-codex' })
   assert.equal(created.ok, true)
-  assert.equal(created.repositoryRoot, 'C:/repo')
+  assert.equal(created.repositoryRoot, REPO)
   assert.match(created.branch, /^omc\/task-codex-/)
-  assert.match(created.path.replace(/\\/g, '/'), /^C:\/repo\/\.agents\/worktrees\/task-codex-/)
+  const worktreeRoot = toPosix(join(REPO, '.agents', 'worktrees'))
+  assert.ok(
+    toPosix(created.path).startsWith(`${worktreeRoot}/task-codex-`),
+    `the worktree must live under ${worktreeRoot} (got ${created.path})`,
+  )
   assert.deepEqual(git.calls[0], ['rev-parse', '--show-toplevel'])
   assert.equal(git.calls[1][0], 'worktree')
   assert.equal(git.calls[1][1], 'add')
+})
+
+test('a relative repository path is refused before git runs', async () => {
+  const git = fakeGit(() => ({ stdout: '' }))
+  const result = await createTaskWorktree(git.ctx, { repo: 'relative/repo', name: 'task-codex' })
+  assert.equal(result.ok, false)
+  assert.equal(result.code, 'OMC/WORKTREE-REPO')
+  assert.equal(git.calls.length, 0, 'an unusable repository path must not reach git')
 })
 
 test('task worktree capture returns status, tracked diff and files', async () => {
