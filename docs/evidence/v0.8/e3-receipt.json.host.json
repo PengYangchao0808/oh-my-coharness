@@ -1,0 +1,797 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-trial-host-run",
+  "at": "2026-11-04T16:14:39.636Z",
+  "argv": [
+    "--manifest",
+    "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\e3.json",
+    "--receipt",
+    "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\docs\\evidence\\v0.8\\e3-receipt.json",
+    "--max-usd",
+    "8",
+    "--confirm-paid-experiment",
+    "--allow-existing-desktop-profile",
+    "--node-executable",
+    "C:\\Users\\彭扬超\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\node\\bin\\node.exe"
+  ],
+  "manifestPath": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\e3.json",
+  "receiptPath": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\docs\\evidence\\v0.8\\e3-receipt.json",
+  "maxUsd": 8,
+  "planOnly": false,
+  "confirmPaidExperiment": true,
+  "profileMode": "existing-desktop",
+  "nodeExecutable": "C:\\Users\\彭扬超\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\node\\bin\\node.exe",
+  "host": {
+    "version": "0.2.1-rc.5",
+    "profile": "desktop",
+    "preset": "oh-my-coharness"
+  },
+  "modelCalls": null,
+  "plan": {
+    "ok": true,
+    "mode": "plan",
+    "executesAnything": false,
+    "manifestPath": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\e3.json",
+    "plan": {
+      "mode": "plan",
+      "runnerVersion": 1,
+      "executesAnything": false,
+      "manifest": {
+        "experimentId": "omc-0.8-e3-sipratt-4",
+        "digest": "eb10bf9d21f2bb7ef03cc5efbe499208e6c715321e0ef98180f23582cd86f03b",
+        "experimentGroup": "E3",
+        "arms": [
+          "single",
+          "multi-role"
+        ],
+        "dataKind": "live",
+        "split": "development",
+        "seed": "omc-0.8-e3-pilot-2026-11-04",
+        "repeats": 1,
+        "conditions": {
+          "provider": "kimi-coding",
+          "model": "k3.1-pro",
+          "reviewerProvider": "kimi-coding",
+          "reviewerModel": "kimi-for-coding",
+          "harness": "native",
+          "toolsetDigest": "2849cfd9063a68fb686748e11cb5fd683a7fc2f62527ada4a29947b56d68b19b",
+          "budgetDigest": "41c345b2981f81b2d92b02249da149260da28fd58fcca059f2b3cbee88433c9c",
+          "evaluatorVersion": "omc-acceptance-runner@1",
+          "environmentDigest": "a7a6a0fa6cbaab97397487f1cf84a805320cd545d9d07ea3fbb73494461d48fd",
+          "promptDigest": "9f19c95b89c62454ed5e55c070e5510964fa30c6c2ea7fa5b2ce7e1ee2fbcdc0",
+          "cacheRegime": "cold",
+          "executionStatus": "not-executed",
+          "modelSelected": true,
+          "harnessSelected": true,
+          "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
+        },
+        "policyVersions": {
+          "single": "role=single@native-kimi-k3.1-pro-v1",
+          "multi-role": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1"
+        }
+      },
+      "model": "k3.1-pro",
+      "provider": "kimi-coding",
+      "experimentGroup": "E3",
+      "arms": [
+        "single",
+        "multi-role"
+      ],
+      "prerequisite": null,
+      "concurrency": 1,
+      "deadline": "2026-12-31T23:59:59.000Z",
+      "budgetCaps": {
+        "totalUsd": 8,
+        "perTrialUsd": 2,
+        "maxUsdFromCli": 8,
+        "effectiveTotalUsd": 8
+      },
+      "assignmentCount": 4,
+      "taskCount": 2,
+      "tasks": [
+        {
+          "id": "upstream-sipratt-07-crdt",
+          "revision": "fixture@b689da7353fa757e",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "harness": "native",
+          "goal": "Implement the upstream CRDT Replica (RGA insert-after, tombstones, Lamport ids, out-of-order/duplicate delivery, deterministic concurrent order) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
+          "prompt": "Implement a convergent replicated text document (a CRDT) in Python, stdlib only.\n\nAPI:\n- `Replica(site_id: str)` — one collaborator's copy. `site_id` is unique per replica.\n- `r.local_insert(pos: int, ch: str) -> dict` — insert single char at index `pos` in r's current visible text; apply locally and return the operation as a JSON-serializable dict to broadcast.\n- `r.local_delete(pos: int) -> dict` — delete visible char at index `pos`; apply locally, return the op.\n- `r.apply(op: dict) -> None` — apply an op received from another replica (or a duplicate of any op, including one's own).\n- `r.text() -> str` — current visible text.\n\nRequired semantics (exactly these — they are what the tests check):\n1. IDENTITY: every inserted character gets the id `(counter, site_id)` where `counter` is a Lamport clock: each replica's counter starts at 0, increments by 1 on each LOCAL insert, and on receiving any op updates to `max(local, op_counter)` before/so that later local ids stay unique and causally greater. Deletes do not create new ids; a delete op names the id of the deleted character.\n2. STRUCTURE (RGA / insert-after): an insert op records the id of the character it was inserted AFTER (`origin`), or the sentinel origin `None` for position 0. Deleted characters become invisible TOMBSTONES but keep their place in the sequence (they still serve as origins).\n3. CONCURRENT ORDER RULE: characters inserted after the SAME origin appear in DESCENDING order of `(counter, site_id)` — i.e. higher counter first; ties on counter broken by higher site_id first. (This makes a replica's own consecutive typing read left-to-right, and gives one deterministic answer for concurrent inserts.) When walking to place a new node after its origin, it must skip over any nodes (and their descendants) with greater `(counter, site_id)` per this rule — the standard RGA insertion scan.\n4. DELIVERY: ops may arrive OUT OF ORDER and DUPLICATED. `apply` must be idempotent (same op twice = once). An insert whose origin hasn't arrived yet, or a delete whose target hasn't arrived yet, must be BUFFERED and applied automatically once its dependency arrives. No exceptions thrown for any of this.\n5. CONVERGENCE: any set of replicas that has received the same set of ops (in any order, with any duplication) has identical `text()`.\n\nOutput only the Python code, no explanation.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Write the complete implementation to `solution.py` at the worktree root (not a nested directory).\n- Use the Python standard library only, as required above.\n- Do not edit anything under `bench/`; the harness grades `solution.py` with the frozen hidden test.\n",
+          "promptMeta": {
+            "sha256": "4fdd3a8208d1fc38645b575e46e319a5089130fbc15ddf27e65cbb0d15e68427",
+            "source": {
+              "kind": "upstream-module-literal",
+              "path": "test/benchmarks/imported/sipratt-p/07-crdt/prompt.md",
+              "upstreamSha256": "73444868e0921fa5706af724767ea550fc185d6ab79bf463abb4fbb319b3341f",
+              "upstreamModule": "bench/coding_benchmark_v3.py",
+              "moduleSha256": "2525a4def2080876e6d86c972eda999cbebeefba3772ebe63a7d114ae1896f10",
+              "anchor": "CRDT_TASK[\"prompt\"]"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "startPath": ".",
+            "referencePath": "tasks/refs/ref_crdt.py",
+            "writeScope": [
+              "solution.py"
+            ]
+          },
+          "acceptance": {
+            "spec": "test/benchmarks/plans/acceptance/e3-07-crdt.json",
+            "specPath": "test/benchmarks/plans/acceptance/e3-07-crdt.json",
+            "specSha256": "100d6ef8f914f2c5c55bc8f3e10166e57fd36c175b67e8a3a2d8ae24053ca5e8",
+            "command": [
+              "python",
+              "test/benchmarks/plans/acceptance/e3-check.py",
+              "07-crdt"
+            ],
+            "acceptanceFiles": [
+              "bench/coding_benchmark_v3.py",
+              "bench/coding_benchmark_v4.py"
+            ],
+            "forbidChanges": [
+              "bench/"
+            ],
+            "gradingSha256": "2a2277a3e489a4014047390f7776837b6b617a912893f015de4ae11e1b12418d",
+            "fixtureSpec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json"
+          },
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+            "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+            "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          }
+        },
+        {
+          "id": "upstream-sipratt-08-orchestrator",
+          "revision": "fixture@f187aa3d1158157d",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "harness": "native",
+          "goal": "Implement the upstream async DAG Orchestrator (real concurrency, failure->skip, per-task timeout cancellation, cycle/unknown-dep/duplicate validation) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
+          "prompt": "Implement an async task orchestrator in Python (pure stdlib, asyncio only).\n\nAPI:\n- `class Orchestrator:`\n  - `add_task(name: str, fn, deps: list[str] = []) -> None`\n    `fn` is an async callable invoked as `await fn(results)` where `results` is a\n    dict {dep_name: dep_result} containing ONLY that task's declared deps.\n    Re-adding an existing name raises `ValueError`. A dep that was never added\n    by the time `run()` is called raises `ValueError` from `run()`.\n  - `async def run(self, task_timeout: float | None = None) -> dict`\n    Executes the whole DAG and returns {name: outcome} for EVERY task, where\n    outcome is one of:\n      {\"status\": \"ok\", \"result\": <return value>}\n      {\"status\": \"failed\", \"error\": <the exception instance>}\n      {\"status\": \"cancelled\"}            # exceeded task_timeout\n      {\"status\": \"skipped\"}              # any transitive dep not \"ok\"\n\nRULES — read carefully, they are exactly graded:\n1. CONCURRENCY IS REAL: tasks whose deps are satisfied run concurrently\n   (the tests wall-clock this). A task starts as soon as ALL its deps are \"ok\"\n   — not in topological \"levels\"/batches: if A takes 0.3s and B takes 0.1s and\n   C depends only on B, C must start ~0.1s in, while A is still running.\n2. A task failure (exception) marks it \"failed\"; every transitive dependent\n   becomes \"skipped\" (never started). Unrelated tasks keep running to completion.\n3. `task_timeout` applies per task: a task exceeding it is cancelled\n   (asyncio-cancelled, not left running) and reported \"cancelled\"; its\n   dependents are \"skipped\".\n4. Cycles: `run()` raises `ValueError` BEFORE starting any task.\n5. `run()` never raises for task failures/timeouts — they are reported in the\n   returned dict.\n\nOutput only the Python code, no explanation.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Write the complete implementation to `solution.py` at the worktree root (not a nested directory).\n- Use the Python standard library only, as required above.\n- Do not edit anything under `bench/`; the harness grades `solution.py` with the frozen hidden test.\n",
+          "promptMeta": {
+            "sha256": "9b0b9c0a848261e870d0bc2f555da8d575084ab83193445a32918acb0b26ac21",
+            "source": {
+              "kind": "upstream-module-literal",
+              "path": "test/benchmarks/imported/sipratt-p/08-orchestrator/prompt.md",
+              "upstreamSha256": "78de8b00ef6a3824f977eb6daa20e23c1323e69738a8938129715f31dc27e990",
+              "upstreamModule": "bench/coding_benchmark_v4.py",
+              "moduleSha256": "b356ed42369e4eaf8233bd22f64bf828bfdc839f28cacb41d9b1021fa19a74a9",
+              "anchor": "ORCH_TASK[\"prompt\"]"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "startPath": ".",
+            "referencePath": "tasks/refs/ref_orchestrator.py",
+            "writeScope": [
+              "solution.py"
+            ]
+          },
+          "acceptance": {
+            "spec": "test/benchmarks/plans/acceptance/e3-08-orchestrator.json",
+            "specPath": "test/benchmarks/plans/acceptance/e3-08-orchestrator.json",
+            "specSha256": "dec2872c4cf706791877f34eb5cda7915301de04a48a0993a9803f92df189075",
+            "command": [
+              "python",
+              "test/benchmarks/plans/acceptance/e3-check.py",
+              "08-orchestrator"
+            ],
+            "acceptanceFiles": [
+              "bench/coding_benchmark_v3.py",
+              "bench/coding_benchmark_v4.py"
+            ],
+            "forbidChanges": [
+              "bench/"
+            ],
+            "gradingSha256": "8bbbeef3ece89797e59a70d960907709a44b7b33ed88718fb0c1faa2d1612db3",
+            "fixtureSpec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json"
+          },
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+            "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+            "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          }
+        }
+      ],
+      "trials": [
+        {
+          "trialId": "54003f375cfcecf10a29ed09",
+          "taskId": "upstream-sipratt-08-orchestrator",
+          "repeat": 0,
+          "arm": "multi-role",
+          "strategy": "multi-role",
+          "group": "E3",
+          "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+          "taskRevision": "fixture@f187aa3d1158157d",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+            "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+            "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        },
+        {
+          "trialId": "07277b6e8ccad37234e343db",
+          "taskId": "upstream-sipratt-08-orchestrator",
+          "repeat": 0,
+          "arm": "single",
+          "strategy": "single",
+          "group": "E3",
+          "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+          "taskRevision": "fixture@f187aa3d1158157d",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+            "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+            "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        },
+        {
+          "trialId": "8e90fcc79cbc31fd23d732a7",
+          "taskId": "upstream-sipratt-07-crdt",
+          "repeat": 0,
+          "arm": "single",
+          "strategy": "single",
+          "group": "E3",
+          "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+          "taskRevision": "fixture@b689da7353fa757e",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+            "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+            "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        },
+        {
+          "trialId": "b1fbcfea45f07e8327a076e8",
+          "taskId": "upstream-sipratt-07-crdt",
+          "repeat": 0,
+          "arm": "multi-role",
+          "strategy": "multi-role",
+          "group": "E3",
+          "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+          "taskRevision": "fixture@b689da7353fa757e",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+            "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+            "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        }
+      ],
+      "problems": [],
+      "warnings": []
+    }
+  },
+  "execute": {
+    "ok": false,
+    "code": "OMC/TRIAL-CHECKOUT",
+    "problems": [
+      "OMC/TRIAL-CHECKOUT: task upstream-sipratt-07-crdt: repo must be an absolute checkout: .ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "OMC/TRIAL-CHECKOUT: task upstream-sipratt-08-orchestrator: repo must be an absolute checkout: .ops/benchmark-repos/sipratt-p--coding-agent-bench"
+    ],
+    "executesAnything": false,
+    "plan": {
+      "mode": "plan",
+      "runnerVersion": 1,
+      "executesAnything": false,
+      "manifest": {
+        "experimentId": "omc-0.8-e3-sipratt-4",
+        "digest": "eb10bf9d21f2bb7ef03cc5efbe499208e6c715321e0ef98180f23582cd86f03b",
+        "experimentGroup": "E3",
+        "arms": [
+          "single",
+          "multi-role"
+        ],
+        "dataKind": "live",
+        "split": "development",
+        "seed": "omc-0.8-e3-pilot-2026-11-04",
+        "repeats": 1,
+        "conditions": {
+          "provider": "kimi-coding",
+          "model": "k3.1-pro",
+          "reviewerProvider": "kimi-coding",
+          "reviewerModel": "kimi-for-coding",
+          "harness": "native",
+          "toolsetDigest": "2849cfd9063a68fb686748e11cb5fd683a7fc2f62527ada4a29947b56d68b19b",
+          "budgetDigest": "41c345b2981f81b2d92b02249da149260da28fd58fcca059f2b3cbee88433c9c",
+          "evaluatorVersion": "omc-acceptance-runner@1",
+          "environmentDigest": "a7a6a0fa6cbaab97397487f1cf84a805320cd545d9d07ea3fbb73494461d48fd",
+          "promptDigest": "9f19c95b89c62454ed5e55c070e5510964fa30c6c2ea7fa5b2ce7e1ee2fbcdc0",
+          "cacheRegime": "cold",
+          "executionStatus": "not-executed",
+          "modelSelected": true,
+          "harnessSelected": true,
+          "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
+        },
+        "policyVersions": {
+          "single": "role=single@native-kimi-k3.1-pro-v1",
+          "multi-role": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1"
+        }
+      },
+      "model": "k3.1-pro",
+      "provider": "kimi-coding",
+      "experimentGroup": "E3",
+      "arms": [
+        "single",
+        "multi-role"
+      ],
+      "prerequisite": null,
+      "concurrency": 1,
+      "deadline": "2026-12-31T23:59:59.000Z",
+      "budgetCaps": {
+        "totalUsd": 8,
+        "perTrialUsd": 2,
+        "maxUsdFromCli": 8,
+        "effectiveTotalUsd": 8
+      },
+      "assignmentCount": 4,
+      "taskCount": 2,
+      "tasks": [
+        {
+          "id": "upstream-sipratt-07-crdt",
+          "revision": "fixture@b689da7353fa757e",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "harness": "native",
+          "goal": "Implement the upstream CRDT Replica (RGA insert-after, tombstones, Lamport ids, out-of-order/duplicate delivery, deterministic concurrent order) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
+          "prompt": "Implement a convergent replicated text document (a CRDT) in Python, stdlib only.\n\nAPI:\n- `Replica(site_id: str)` — one collaborator's copy. `site_id` is unique per replica.\n- `r.local_insert(pos: int, ch: str) -> dict` — insert single char at index `pos` in r's current visible text; apply locally and return the operation as a JSON-serializable dict to broadcast.\n- `r.local_delete(pos: int) -> dict` — delete visible char at index `pos`; apply locally, return the op.\n- `r.apply(op: dict) -> None` — apply an op received from another replica (or a duplicate of any op, including one's own).\n- `r.text() -> str` — current visible text.\n\nRequired semantics (exactly these — they are what the tests check):\n1. IDENTITY: every inserted character gets the id `(counter, site_id)` where `counter` is a Lamport clock: each replica's counter starts at 0, increments by 1 on each LOCAL insert, and on receiving any op updates to `max(local, op_counter)` before/so that later local ids stay unique and causally greater. Deletes do not create new ids; a delete op names the id of the deleted character.\n2. STRUCTURE (RGA / insert-after): an insert op records the id of the character it was inserted AFTER (`origin`), or the sentinel origin `None` for position 0. Deleted characters become invisible TOMBSTONES but keep their place in the sequence (they still serve as origins).\n3. CONCURRENT ORDER RULE: characters inserted after the SAME origin appear in DESCENDING order of `(counter, site_id)` — i.e. higher counter first; ties on counter broken by higher site_id first. (This makes a replica's own consecutive typing read left-to-right, and gives one deterministic answer for concurrent inserts.) When walking to place a new node after its origin, it must skip over any nodes (and their descendants) with greater `(counter, site_id)` per this rule — the standard RGA insertion scan.\n4. DELIVERY: ops may arrive OUT OF ORDER and DUPLICATED. `apply` must be idempotent (same op twice = once). An insert whose origin hasn't arrived yet, or a delete whose target hasn't arrived yet, must be BUFFERED and applied automatically once its dependency arrives. No exceptions thrown for any of this.\n5. CONVERGENCE: any set of replicas that has received the same set of ops (in any order, with any duplication) has identical `text()`.\n\nOutput only the Python code, no explanation.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Write the complete implementation to `solution.py` at the worktree root (not a nested directory).\n- Use the Python standard library only, as required above.\n- Do not edit anything under `bench/`; the harness grades `solution.py` with the frozen hidden test.\n",
+          "promptMeta": {
+            "sha256": "4fdd3a8208d1fc38645b575e46e319a5089130fbc15ddf27e65cbb0d15e68427",
+            "source": {
+              "kind": "upstream-module-literal",
+              "path": "test/benchmarks/imported/sipratt-p/07-crdt/prompt.md",
+              "upstreamSha256": "73444868e0921fa5706af724767ea550fc185d6ab79bf463abb4fbb319b3341f",
+              "upstreamModule": "bench/coding_benchmark_v3.py",
+              "moduleSha256": "2525a4def2080876e6d86c972eda999cbebeefba3772ebe63a7d114ae1896f10",
+              "anchor": "CRDT_TASK[\"prompt\"]"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "startPath": ".",
+            "referencePath": "tasks/refs/ref_crdt.py",
+            "writeScope": [
+              "solution.py"
+            ]
+          },
+          "acceptance": {
+            "spec": "test/benchmarks/plans/acceptance/e3-07-crdt.json",
+            "specPath": "test/benchmarks/plans/acceptance/e3-07-crdt.json",
+            "specSha256": "100d6ef8f914f2c5c55bc8f3e10166e57fd36c175b67e8a3a2d8ae24053ca5e8",
+            "command": [
+              "python",
+              "test/benchmarks/plans/acceptance/e3-check.py",
+              "07-crdt"
+            ],
+            "acceptanceFiles": [
+              "bench/coding_benchmark_v3.py",
+              "bench/coding_benchmark_v4.py"
+            ],
+            "forbidChanges": [
+              "bench/"
+            ],
+            "gradingSha256": "2a2277a3e489a4014047390f7776837b6b617a912893f015de4ae11e1b12418d",
+            "fixtureSpec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json"
+          },
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+            "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+            "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          }
+        },
+        {
+          "id": "upstream-sipratt-08-orchestrator",
+          "revision": "fixture@f187aa3d1158157d",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "harness": "native",
+          "goal": "Implement the upstream async DAG Orchestrator (real concurrency, failure->skip, per-task timeout cancellation, cycle/unknown-dep/duplicate validation) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
+          "prompt": "Implement an async task orchestrator in Python (pure stdlib, asyncio only).\n\nAPI:\n- `class Orchestrator:`\n  - `add_task(name: str, fn, deps: list[str] = []) -> None`\n    `fn` is an async callable invoked as `await fn(results)` where `results` is a\n    dict {dep_name: dep_result} containing ONLY that task's declared deps.\n    Re-adding an existing name raises `ValueError`. A dep that was never added\n    by the time `run()` is called raises `ValueError` from `run()`.\n  - `async def run(self, task_timeout: float | None = None) -> dict`\n    Executes the whole DAG and returns {name: outcome} for EVERY task, where\n    outcome is one of:\n      {\"status\": \"ok\", \"result\": <return value>}\n      {\"status\": \"failed\", \"error\": <the exception instance>}\n      {\"status\": \"cancelled\"}            # exceeded task_timeout\n      {\"status\": \"skipped\"}              # any transitive dep not \"ok\"\n\nRULES — read carefully, they are exactly graded:\n1. CONCURRENCY IS REAL: tasks whose deps are satisfied run concurrently\n   (the tests wall-clock this). A task starts as soon as ALL its deps are \"ok\"\n   — not in topological \"levels\"/batches: if A takes 0.3s and B takes 0.1s and\n   C depends only on B, C must start ~0.1s in, while A is still running.\n2. A task failure (exception) marks it \"failed\"; every transitive dependent\n   becomes \"skipped\" (never started). Unrelated tasks keep running to completion.\n3. `task_timeout` applies per task: a task exceeding it is cancelled\n   (asyncio-cancelled, not left running) and reported \"cancelled\"; its\n   dependents are \"skipped\".\n4. Cycles: `run()` raises `ValueError` BEFORE starting any task.\n5. `run()` never raises for task failures/timeouts — they are reported in the\n   returned dict.\n\nOutput only the Python code, no explanation.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Write the complete implementation to `solution.py` at the worktree root (not a nested directory).\n- Use the Python standard library only, as required above.\n- Do not edit anything under `bench/`; the harness grades `solution.py` with the frozen hidden test.\n",
+          "promptMeta": {
+            "sha256": "9b0b9c0a848261e870d0bc2f555da8d575084ab83193445a32918acb0b26ac21",
+            "source": {
+              "kind": "upstream-module-literal",
+              "path": "test/benchmarks/imported/sipratt-p/08-orchestrator/prompt.md",
+              "upstreamSha256": "78de8b00ef6a3824f977eb6daa20e23c1323e69738a8938129715f31dc27e990",
+              "upstreamModule": "bench/coding_benchmark_v4.py",
+              "moduleSha256": "b356ed42369e4eaf8233bd22f64bf828bfdc839f28cacb41d9b1021fa19a74a9",
+              "anchor": "ORCH_TASK[\"prompt\"]"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "startPath": ".",
+            "referencePath": "tasks/refs/ref_orchestrator.py",
+            "writeScope": [
+              "solution.py"
+            ]
+          },
+          "acceptance": {
+            "spec": "test/benchmarks/plans/acceptance/e3-08-orchestrator.json",
+            "specPath": "test/benchmarks/plans/acceptance/e3-08-orchestrator.json",
+            "specSha256": "dec2872c4cf706791877f34eb5cda7915301de04a48a0993a9803f92df189075",
+            "command": [
+              "python",
+              "test/benchmarks/plans/acceptance/e3-check.py",
+              "08-orchestrator"
+            ],
+            "acceptanceFiles": [
+              "bench/coding_benchmark_v3.py",
+              "bench/coding_benchmark_v4.py"
+            ],
+            "forbidChanges": [
+              "bench/"
+            ],
+            "gradingSha256": "8bbbeef3ece89797e59a70d960907709a44b7b33ed88718fb0c1faa2d1612db3",
+            "fixtureSpec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json"
+          },
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+            "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+            "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          }
+        }
+      ],
+      "trials": [
+        {
+          "trialId": "54003f375cfcecf10a29ed09",
+          "taskId": "upstream-sipratt-08-orchestrator",
+          "repeat": 0,
+          "arm": "multi-role",
+          "strategy": "multi-role",
+          "group": "E3",
+          "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+          "taskRevision": "fixture@f187aa3d1158157d",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+            "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+            "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        },
+        {
+          "trialId": "07277b6e8ccad37234e343db",
+          "taskId": "upstream-sipratt-08-orchestrator",
+          "repeat": 0,
+          "arm": "single",
+          "strategy": "single",
+          "group": "E3",
+          "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+          "taskRevision": "fixture@f187aa3d1158157d",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+            "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+            "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        },
+        {
+          "trialId": "8e90fcc79cbc31fd23d732a7",
+          "taskId": "upstream-sipratt-07-crdt",
+          "repeat": 0,
+          "arm": "single",
+          "strategy": "single",
+          "group": "E3",
+          "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+          "taskRevision": "fixture@b689da7353fa757e",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+            "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+            "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        },
+        {
+          "trialId": "b1fbcfea45f07e8327a076e8",
+          "taskId": "upstream-sipratt-07-crdt",
+          "repeat": 0,
+          "arm": "multi-role",
+          "strategy": "multi-role",
+          "group": "E3",
+          "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+          "taskRevision": "fixture@b689da7353fa757e",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "provenance": {
+            "experiment": "E3",
+            "dataset": "sipratt-p/coding-agent-bench",
+            "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+            "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+            "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+            "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+            "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+            "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+              "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified-functional",
+            "quarantined": [
+              "code_quality",
+              "official_score"
+            ],
+            "origin": "upstream"
+          },
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 8
+          }
+        }
+      ],
+      "problems": [],
+      "warnings": []
+    }
+  },
+  "exitCode": 1,
+  "trialsOk": false
+}

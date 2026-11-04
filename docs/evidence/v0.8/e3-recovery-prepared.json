@@ -1,0 +1,615 @@
+{
+  "plan": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\e3.json",
+  "manifestDigest": "eb10bf9d21f2bb7ef03cc5efbe499208e6c715321e0ef98180f23582cd86f03b",
+  "preparedAt": "2026-11-04T16:42:14.999Z",
+  "completed": [
+    {
+      "trialId": "54003f375cfcecf10a29ed09",
+      "taskId": "upstream-sipratt-08-orchestrator",
+      "repeat": 0,
+      "arm": "multi-role",
+      "strategy": "multi-role",
+      "group": "E3",
+      "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@f187aa3d1158157d",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-08-orchestrator:c3b1a35fb4bc3430de946602d7af774fdc673732b295dac658b71ef6d25f9a2d",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 18,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-54003f375cfcecf10a29ed09-writer-962848a0",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-54003f375cfcecf10a29ed09-reviewer-73a22420",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:19:28.544Z",
+      "endedAt": "2026-11-04T16:27:25.277Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-multi-role-upstream-sipratt-08-orchestr-mw2bnvxo"
+    },
+    {
+      "trialId": "07277b6e8ccad37234e343db",
+      "taskId": "upstream-sipratt-08-orchestrator",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E3",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@f187aa3d1158157d",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-08-orchestrator:64446cd98475269f8620c088d40eb247248d1390a65eef5fea48bb9b21926fed",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 4,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-07277b6e8ccad37234e343db-writer-bb666090",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:27:26.591Z",
+      "endedAt": "2026-11-04T16:32:02.997Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-single-upstream-sipratt-08-orchestrator-mw2by50k"
+    },
+    {
+      "trialId": "8e90fcc79cbc31fd23d732a7",
+      "taskId": "upstream-sipratt-07-crdt",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E3",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@b689da7353fa757e",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-07-crdt:132cd99e01aa5c5a42e545f50b0c66710a2c3420c7b52b6d9d7eba06365accdc",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 6,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-8e90fcc79cbc31fd23d732a7-writer-3b339c02",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:32:04.709Z",
+      "endedAt": "2026-11-04T16:36:35.695Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-single-upstream-sipratt-07-crdt-0-mw2c43nd"
+    },
+    {
+      "trialId": "b1fbcfea45f07e8327a076e8",
+      "taskId": "upstream-sipratt-07-crdt",
+      "repeat": 0,
+      "arm": "multi-role",
+      "strategy": "multi-role",
+      "group": "E3",
+      "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@b689da7353fa757e",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-07-crdt:43ef81478c047a552c636b1f7bb34920004b8e7585418a0f83666d7a3d5e1284",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 23,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-b1fbcfea45f07e8327a076e8-writer-182185e0",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-b1fbcfea45f07e8327a076e8-reviewer-09450f6c",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:32:34.086Z",
+      "endedAt": "2026-11-04T16:40:17.616Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-multi-role-upstream-sipratt-07-crdt-0-mw2c4qbh"
+    }
+  ],
+  "unknown": [],
+  "recoveryManifest": null,
+  "records": [
+    {
+      "trialId": "54003f375cfcecf10a29ed09",
+      "taskId": "upstream-sipratt-08-orchestrator",
+      "repeat": 0,
+      "arm": "multi-role",
+      "strategy": "multi-role",
+      "group": "E3",
+      "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@f187aa3d1158157d",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-08-orchestrator:c3b1a35fb4bc3430de946602d7af774fdc673732b295dac658b71ef6d25f9a2d",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 18,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-54003f375cfcecf10a29ed09-writer-962848a0",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-54003f375cfcecf10a29ed09-reviewer-73a22420",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:19:28.544Z",
+      "endedAt": "2026-11-04T16:27:25.277Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-multi-role-upstream-sipratt-08-orchestr-mw2bnvxo"
+    },
+    {
+      "trialId": "07277b6e8ccad37234e343db",
+      "taskId": "upstream-sipratt-08-orchestrator",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E3",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@f187aa3d1158157d",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-08-orchestrator:64446cd98475269f8620c088d40eb247248d1390a65eef5fea48bb9b21926fed",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 4,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-07277b6e8ccad37234e343db-writer-bb666090",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:27:26.591Z",
+      "endedAt": "2026-11-04T16:32:02.997Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-single-upstream-sipratt-08-orchestrator-mw2by50k"
+    },
+    {
+      "trialId": "8e90fcc79cbc31fd23d732a7",
+      "taskId": "upstream-sipratt-07-crdt",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E3",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@b689da7353fa757e",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-07-crdt:132cd99e01aa5c5a42e545f50b0c66710a2c3420c7b52b6d9d7eba06365accdc",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 6,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-8e90fcc79cbc31fd23d732a7-writer-3b339c02",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:32:04.709Z",
+      "endedAt": "2026-11-04T16:36:35.695Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-single-upstream-sipratt-07-crdt-0-mw2c43nd"
+    },
+    {
+      "trialId": "b1fbcfea45f07e8327a076e8",
+      "taskId": "upstream-sipratt-07-crdt",
+      "repeat": 0,
+      "arm": "multi-role",
+      "strategy": "multi-role",
+      "group": "E3",
+      "policyVersion": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@b689da7353fa757e",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "branch": null,
+      "repositoryRoot": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-sipratt-07-crdt:43ef81478c047a552c636b1f7bb34920004b8e7585418a0f83666d7a3d5e1284",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 23,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "solution.py"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-b1fbcfea45f07e8327a076e8-writer-182185e0",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-b1fbcfea45f07e8327a076e8-reviewer-09450f6c",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T16:32:34.086Z",
+      "endedAt": "2026-11-04T16:40:17.616Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\sipratt-p--coding-agent-bench\\.agents\\worktrees\\omc-0.8-e3-sipratt-4-multi-role-upstream-sipratt-07-crdt-0-mw2c4qbh"
+    }
+  ]
+}

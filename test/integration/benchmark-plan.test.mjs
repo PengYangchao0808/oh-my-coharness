@@ -34,8 +34,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs'
+import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { SESSION_STRATEGIES, createStrategyExperiment } from '../../integration/strategy-eval.js'
@@ -61,12 +61,15 @@ const EXPECTED = {
   E3: { trials: 4, tasks: 2, arms: ['single', 'multi-role'], repo: 'E3', base: '3e9bca9b78790c0d537a505a4f5850e4c7cb35d8' },
 }
 const PREREQUISITE_ID = 'omc-session-primer'
-const POSIX_ROOT = root.split('\\').join('/')
+const rootReal = realpathSync(root)
+// Plans must be portable: repositories are workspace-relative and resolved by
+// the trial service against the workspace, never absolute machine paths.
 const REPOS = {
-  E1: `${POSIX_ROOT}/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark`,
-  E2: POSIX_ROOT,
-  E3: `${POSIX_ROOT}/.ops/benchmark-repos/sipratt-p--coding-agent-bench`,
+  E1: '.ops/benchmark-repos/latitude-dev--coding-agent-benchmark',
+  E2: '.',
+  E3: '.ops/benchmark-repos/sipratt-p--coding-agent-bench',
 }
+const repoAbs = (rel) => (rel === '.' ? root : join(root, ...rel.split('/')))
 const WRITER = { provider: 'kimi-coding', model: 'k3.1-pro' }
 const REVIEWER = { provider: 'kimi-coding', model: 'kimi-for-coding' }
 const EXPECTED_ROLES = {
@@ -112,8 +115,41 @@ const commitSha256 = (repo, commit, path) => {
  * allowed to advance past it: later commits must not invalidate a plan.
  */
 function assertFrozenCommit(repo, commit) {
-  assert.equal(String(git(repo, ['cat-file', '-t', commit]).stdout).trim(), 'commit', `${repo}: ${commit} is not a commit object`)
+  assert.equal(
+    String(git(repo, ['cat-file', '-t', commit]).stdout).trim(),
+    'commit',
+    `${repo}: ${commit} is not a commit object (CI needs a full-history clone / fetch-depth: 0, and E1/E3 need prepareFrozenCheckout)`,
+  )
   assert.equal(String(git(repo, ['rev-parse', '--verify', `${commit}^{commit}`]).stdout).trim(), commit.toLowerCase(), `${repo}: ${commit} does not resolve to itself`)
+}
+
+/** A plan path must be workspace-relative: no drive, no leading slash, no `..`. */
+function assertPortablePath(value, label) {
+  assert.equal(typeof value, 'string', `${label} must be a string`)
+  assert.ok(value.length > 0, `${label} must not be empty`)
+  assert.ok(!isAbsolute(value), `${label} must be workspace-relative, not absolute: ${value}`)
+  assert.ok(!/^[A-Za-z]:/.test(value), `${label} must not carry a Windows drive: ${value}`)
+  assert.ok(!value.includes('\\'), `${label} must use forward slashes: ${value}`)
+  assert.ok(!value.split('/').includes('..'), `${label} must not climb out with ..: ${value}`)
+  return value
+}
+function workspacePath(value, label) {
+  assertPortablePath(value, label)
+  return resolve(root, value)
+}
+/** The resolved path (realpath) must stay inside the workspace. */
+function assertInsideWorkspace(value, label) {
+  const abs = workspacePath(value, label)
+  if (!existsSync(abs)) return abs
+  const real = realpathSync(abs)
+  assert.ok(real === rootReal || real.startsWith(`${rootReal}${sep}`), `${label} escapes the workspace: ${value} -> ${real}`)
+  return real
+}
+/** True when the frozen upstream checkout needed for git-object checks exists. */
+function checkoutAvailable(group) {
+  if (group === 'E2') return true
+  const abs = repoAbs(REPOS[group])
+  return existsSync(abs) && git(abs, ['rev-parse', '--git-dir']).status === 0
 }
 
 function extractLiteral(source, marker, token) {
@@ -215,29 +251,38 @@ test('each plan is deterministic, matches the exported API and freezes condition
   }
 })
 
-test('repositories, base commits and worktree checks are real', () => {
+test('repositories, base commits and worktree checks are real and portable', (t) => {
   for (const group of GROUPS) {
     const expected = EXPECTED[group]
     const plan = CLI.get(group)
     const check = planFile(group).inputs.worktreeCheck
-    assert.ok(existsSync(REPOS[group]), `${group}: frozen checkout is missing: ${REPOS[group]}`)
-    // The base commit is immutable evidence, not "whatever HEAD is today".
-    // HEAD may equal or be ahead of it; only the object and its contents matter.
-    assert.ok(String(git(REPOS[group], ['rev-parse', 'HEAD']).stdout).trim(), `${group}: checkout has no HEAD`)
-    assertFrozenCommit(REPOS[group], expected.base)
+    assertPortablePath(check.repo, `${group}.worktreeCheck.repo`)
+    assert.equal(check.repo, REPOS[group], `${group}: repo must be the workspace-relative checkout`)
+    assertPortablePath(planFile(group).inputs.upstreamCheckouts[Object.keys(planFile(group).inputs.upstreamCheckouts)[0]].localPath, `${group}.upstreamCheckouts.localPath`)
     assert.equal(check.checked, true, `${group}: the worktree base must be verified, not assumed`)
-    assert.equal(check.repo, REPOS[group])
     assert.equal(check.baseCommit, expected.base, `${group}: the plan must not chase a newer commit`)
     assert.deepEqual(check.missing, [], `${group}: every required path must exist at the base commit`)
     assert.ok(check.verifiedPaths.length > 0)
-    for (const row of check.verifiedPaths) {
-      assert.ok(commitHas(REPOS[group], expected.base, row.path), `${group}: ${row.path} is not in the frozen commit`)
-    }
-    if (group === 'E2') {
-      assert.ok(check.digestChecks.length >= 8, 'E2 must also check the frozen spec/grading digests')
-      for (const row of check.digestChecks) {
-        assert.equal(row.expected, row.actual, `${group}/${row.taskId}: committed ${row.kind} differs from the frozen digest`)
-        assert.equal(commitSha256(REPOS[group], expected.base, row.path), row.expected, `${group}/${row.taskId}: committed ${row.path} drifted`)
+
+    const repo = repoAbs(REPOS[group])
+    const available = checkoutAvailable(group)
+    if (!available) {
+      // CI has no `.ops` upstream checkout. Only machine-specific git-object
+      // verification is skipped; the portable plan checks below still run.
+      t.diagnostic(`${group}: frozen checkout ${REPOS[group]} is not available; git-object path/digest checks skipped (prepareFrozenCheckout is required before --execute)`)
+    } else {
+      assert.ok(String(git(repo, ['rev-parse', 'HEAD']).stdout).trim(), `${group}: checkout has no HEAD`)
+      // The base commit is immutable evidence, not "whatever HEAD is today".
+      assertFrozenCommit(repo, expected.base)
+      for (const row of check.verifiedPaths) {
+        assert.ok(commitHas(repo, expected.base, row.path), `${group}: ${row.path} is not in the frozen commit`)
+      }
+      if (group === 'E2') {
+        assert.ok(check.digestChecks.length >= 8, 'E2 must also check the frozen spec/grading digests')
+        for (const row of check.digestChecks) {
+          assert.equal(row.expected, row.actual, `${group}/${row.taskId}: committed ${row.kind} differs from the frozen digest`)
+          assert.equal(commitSha256(repo, expected.base, row.path), row.expected, `${group}/${row.taskId}: committed ${row.path} drifted`)
+        }
       }
     }
 
@@ -245,6 +290,7 @@ test('repositories, base commits and worktree checks are real', () => {
       assert.equal(task.repo, REPOS[group], `${group}/${task.id}: wrong repo`)
       assert.equal(task.baseCommit, expected.base, `${group}/${task.id}: wrong baseCommit`)
       assert.equal(task.harness, 'native')
+      assertPortablePath(task.repo, `${group}/${task.id}.repo`)
       const trial = plan.trials.find((row) => row.taskId === task.id)
       assert.ok(trial, `${group}/${task.id}: no assignment`)
       assert.equal(trial.baseCommit, expected.base)
@@ -254,18 +300,19 @@ test('repositories, base commits and worktree checks are real', () => {
       const spec = readJson(join(root, REGISTERED_BY_ID.get(task.id).specPath))
       assert.equal(trial.provenance.baseCommit, spec.provenance.baseCommit)
 
+      if (!available) continue
       // The committed bytes, not just object existence, must match the frozen
       // digest of the grading artifact.
       if (group === 'E1') {
         assert.equal(
-          commitSha256(REPOS[group], expected.base, task.acceptance.acceptanceFiles[0]),
+          commitSha256(repo, expected.base, task.acceptance.acceptanceFiles[0]),
           spec.provenance.grading.sha256,
           `${task.id}: committed upstream test differs from the frozen grading digest`,
         )
       }
       if (group === 'E3') {
         assert.equal(
-          commitSha256(REPOS[group], expected.base, task.promptMeta.source.upstreamModule),
+          commitSha256(repo, expected.base, task.promptMeta.source.upstreamModule),
           task.promptMeta.source.moduleSha256,
           `${task.id}: committed upstream module differs from the frozen prompt module`,
         )
@@ -274,15 +321,22 @@ test('repositories, base commits and worktree checks are real', () => {
   }
 })
 
-test('every acceptance spec is a real frozen document and its files resolve in the worktree', () => {
+test('every acceptance spec is a portable frozen document and its files resolve', (t) => {
   for (const group of GROUPS) {
     const plan = CLI.get(group)
-    const repo = REPOS[group]
+    const repoRel = REPOS[group]
+    const repo = repoAbs(repoRel)
     const base = EXPECTED[group].base
+    const available = checkoutAvailable(group)
+    const datasetDigests = MANIFEST.datasets[group === 'E1' ? 'latitude-dev/coding-agent-benchmark' : group === 'E3' ? 'sipratt-p/coding-agent-bench' : 'omc-authored'].upstreamDigests ?? {}
+    if (!available) t.diagnostic(`${group}: acceptance files are checked against the frozen commit only when ${repoRel} exists; vendored bytes are checked unconditionally`)
+
     for (const task of plan.tasks) {
-      const specPath = task.acceptance.spec
-      assert.ok(isAbsolute(specPath), `${group}/${task.id}: acceptance.spec must be absolute: ${specPath}`)
-      assert.ok(existsSync(specPath), `${group}/${task.id}: acceptance spec is missing: ${specPath}`)
+      const specRel = task.acceptance.spec
+      assertPortablePath(specRel, `${group}/${task.id}: acceptance.spec`)
+      assert.ok(!isAbsolute(specRel), `${group}/${task.id}: acceptance.spec must not be absolute`)
+      const specPath = assertInsideWorkspace(specRel, `${group}/${task.id}: acceptance.spec`)
+      assert.ok(existsSync(specPath), `${group}/${task.id}: acceptance spec is missing: ${specRel}`)
       assert.equal(sha256(readText(specPath)), task.acceptance.specSha256, `${group}/${task.id}: acceptance spec digest drifted`)
 
       const spec = readJson(specPath)
@@ -294,16 +348,39 @@ test('every acceptance spec is a real frozen document and its files resolve in t
       assert.deepEqual(spec.forbidChanges, task.acceptance.forbidChanges, `${group}/${task.id}: forbidChanges drifted`)
       assert.ok(spec.acceptanceFiles.length > 0, `${group}/${task.id}: nothing protects the grading files`)
 
-      // Absolute command arguments must exist (wrappers live outside the worktree).
-      for (const arg of task.acceptance.command.filter(isAbsolute)) {
-        assert.ok(existsSync(arg), `${group}/${task.id}: command argument is missing: ${arg}`)
+      // Command arguments are either workspace-relative (wrappers resolved by
+      // the trial service) or worktree-relative upstream paths. No absolute
+      // machine path may sneak back into a plan or its acceptance document.
+      for (const arg of task.acceptance.command) {
+        assert.ok(!isAbsolute(arg), `${group}/${task.id}: command argument must not be absolute: ${arg}`)
+        assert.ok(!/^[A-Za-z]:/.test(arg), `${group}/${task.id}: command argument must not carry a drive: ${arg}`)
       }
-      // Frozen worktree-relative files must be in the base commit.
+      for (const arg of task.acceptance.command.filter((value) => /[\\/]|\.(mjs|js|py|json)$/.test(value))) {
+        const isExecutable = arg === spec.commands[0].run[0]
+        if (isExecutable) continue
+        const fromWorkspace = resolve(root, arg)
+        if (existsSync(fromWorkspace)) {
+          assertInsideWorkspace(arg, `${group}/${task.id}: command argument`)
+          continue
+        }
+        if (!available) continue // worktree path verification needs the checkout
+        assert.ok(commitHas(repo, base, arg), `${group}/${task.id}: command argument not found in workspace or at ${base}: ${arg}`)
+      }
+
       for (const file of [...spec.acceptanceFiles, task.workspace.referencePath].filter((path) => path !== '.')) {
-        assert.ok(commitHas(repo, base, file), `${group}/${task.id}: ${file} is missing at ${base}`)
+        assertPortablePath(file, `${group}/${task.id}: acceptance file`)
+        // Always verify vendored bytes where a vendored counterpart exists.
+        const vendored = datasetDigests[file]
+        if (vendored) {
+          const local = join(root, vendored.localPath)
+          assert.ok(existsSync(local), `${group}/${task.id}: vendored copy of ${file} is missing`)
+          assert.equal(sha256(readText(local)), vendored.sha256, `${group}/${task.id}: vendored bytes of ${file} drifted`)
+        }
+        if (available) assert.ok(commitHas(repo, base, file), `${group}/${task.id}: ${file} is missing at ${base}`)
       }
       if (task.workspace.startPath !== '.') {
-        assert.ok(commitHas(repo, base, task.workspace.startPath), `${group}/${task.id}: start workspace is missing at ${base}`)
+        assertPortablePath(task.workspace.startPath, `${group}/${task.id}: startPath`)
+        if (available) assert.ok(commitHas(repo, base, task.workspace.startPath), `${group}/${task.id}: start workspace is missing at ${base}`)
       }
       assert.ok(task.workspace.writeScope.length > 0)
       assert.ok(task.acceptance.gradingSha256, `${group}/${task.id}: the fixture grading digest must stay pinned`)
@@ -318,7 +395,7 @@ test('every prompt is a real, sourced, digested instruction', () => {
       assert.equal(typeof task.prompt, 'string', `${group}/${task.id}: prompt must be a string`)
       assert.ok(task.prompt.trim().length > 0)
       assert.equal(task.promptMeta.sha256, sha256(task.prompt), `${group}/${task.id}: prompt digest does not match its text`)
-      const sourcePath = join(root, task.promptMeta.source.path)
+      const sourcePath = assertInsideWorkspace(task.promptMeta.source.path, `${group}/${task.id}: prompt source`)
       assert.ok(existsSync(sourcePath), `${group}/${task.id}: prompt source is missing`)
 
       if (group === 'E1') {
@@ -329,7 +406,7 @@ test('every prompt is a real, sourced, digested instruction', () => {
         assert.match(task.prompt, new RegExp(`tasks/${REGISTERED_BY_ID.get(task.id).taskId.replace('upstream-latitude-', '')}/workspace`))
       } else if (group === 'E3') {
         assert.equal(task.promptMeta.source.kind, 'upstream-module-literal')
-        const literalPath = join(root, task.promptMeta.source.path)
+        const literalPath = assertInsideWorkspace(task.promptMeta.source.path, `${task.id}: prompt source`)
         const literal = readText(literalPath)
         assert.equal(task.promptMeta.source.upstreamSha256, sha256(literal))
         const dataset = MANIFEST.datasets[task.provenance.dataset]
@@ -349,7 +426,8 @@ test('every prompt is a real, sourced, digested instruction', () => {
         for (const step of task.chain) {
           assert.equal(step.goal, step.prompt, `${task.id}/${step.id}: the executed goal must be the full turn prompt`)
           assert.equal(step.promptMeta.sha256, sha256(step.prompt))
-          assert.equal(step.prompt, readText(join(root, step.promptMeta.source.path)), `${task.id}/${step.id}: turn prompt drifted`)
+          const stepSource = assertInsideWorkspace(step.promptMeta.source.path, `${task.id}/${step.id}: turn prompt source`)
+          assert.equal(step.prompt, readText(stepSource), `${task.id}/${step.id}: turn prompt drifted`)
           assert.match(step.prompt, /acceptance\/check\.mjs/)
         }
         assert.deepEqual(task.chain[0].promptMeta, task.promptMeta)
@@ -366,7 +444,8 @@ test('every prompt is a real, sourced, digested instruction', () => {
   const e2 = CLI.get('E2')
   assert.equal(typeof e2.prerequisite.prompt, 'string')
   assert.equal(e2.prerequisite.promptMeta.sha256, sha256(e2.prerequisite.prompt))
-  assert.equal(e2.prerequisite.prompt, readText(join(root, e2.prerequisite.promptMeta.source.path)))
+  const primerSource = assertInsideWorkspace(e2.prerequisite.promptMeta.source.path, 'E2 prerequisite prompt source')
+  assert.equal(e2.prerequisite.prompt, readText(primerSource))
 })
 
 test('armExecution freezes the real native single / multi-role semantics', () => {
@@ -436,6 +515,41 @@ test('E2 freezes the shared prerequisite and ordered chains without counting the
   assert.equal(plan.trials.some((trial) => trial.taskId === PREREQUISITE_ID), false, 'the prerequisite must not be a trial')
   assert.equal(plan.assignmentCount, 9)
   assert.equal(plan.assignmentCount + plan.prerequisites.length, 12, '9 trials + 3 arm-level prerequisite runs')
+})
+
+test('plans carry no machine-specific absolute paths (CI-portable)', () => {
+  const driveAbsolute = /(?:^|["'\s])[A-Za-z]:[\\/]/m
+  for (const group of GROUPS) {
+    const raw = readText(PLAN_FILES[group])
+    assert.doesNotMatch(raw, driveAbsolute, `${group}: a Windows drive path leaked into the plan`)
+    assert.doesNotMatch(raw, /Calculations/, `${group}: a machine-specific workspace path leaked into the plan`)
+
+    for (const task of CLI.get(group).tasks) {
+      assertPortablePath(task.repo, `${group}/${task.id}.repo`)
+      assertPortablePath(task.acceptance.spec, `${group}/${task.id}.acceptance.spec`)
+      assertPortablePath(task.workspace.startPath, `${group}/${task.id}.workspace.startPath`)
+      assertPortablePath(task.workspace.referencePath, `${group}/${task.id}.workspace.referencePath`)
+      assertPortablePath(task.promptMeta.source.path, `${group}/${task.id}.promptMeta.source.path`)
+      for (const arg of task.acceptance.command) {
+        assert.ok(!isAbsolute(arg), `${group}/${task.id}: command argument must not be absolute: ${arg}`)
+        assert.ok(!/^[A-Za-z]:/.test(arg), `${group}/${task.id}: command argument must not carry a drive: ${arg}`)
+      }
+
+      // Paths that live in this checkout must resolve inside it after realpath.
+      assertInsideWorkspace(task.acceptance.spec, `${group}/${task.id}.acceptance.spec`)
+      assertInsideWorkspace(task.promptMeta.source.path, `${group}/${task.id}.promptMeta.source.path`)
+      if (existsSync(repoAbs(task.repo))) assertInsideWorkspace(task.repo, `${group}/${task.id}.repo`)
+      if (group === 'E2') {
+        assertInsideWorkspace(task.workspace.startPath, `${group}/${task.id}.workspace.startPath`)
+        assertInsideWorkspace(task.workspace.referencePath, `${group}/${task.id}.workspace.referencePath`)
+      }
+    }
+    const document = planFile(group)
+    assertPortablePath(document.inputs.worktreeCheck.repo, `${group}.inputs.worktreeCheck.repo`)
+    for (const [id, entry] of Object.entries(document.inputs.upstreamCheckouts)) {
+      assertPortablePath(entry.localPath, `${group}.inputs.upstreamCheckouts.${id}.localPath`)
+    }
+  }
 })
 
 test('the plans stay not-executed and execute remains gated behind both paid flags plus a host', () => {

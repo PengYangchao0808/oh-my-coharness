@@ -17,6 +17,7 @@ import { join } from 'node:path'
 import { createStrategyExperiment } from '../../integration/strategy-eval.js'
 import { createHostExecutor } from '../../integration/host-executor.js'
 import { createUsageLedger } from '../../integration/usage-ledger.js'
+import { nativeTrialSessionId } from '../../src/index.js'
 
 const ROLE = (id, writer, provider, model, prompt = null) => ({
   id,
@@ -277,4 +278,11 @@ test('t10: a reviewer step is read-only and a writer-only graph node gets the wr
   assert.equal(dispatch.calls[1].mode, 'read-only')
   assert.equal(outcome.changedFiles.length, 1)
   assert.deepEqual(outcome.changedFiles, ['src/impl.js'])
+})
+
+test('t11: a non-resume native step never reuses the prior session id', () => {
+  const prior = nativeTrialSessionId({ taskId: 'trial-a', roleId: 'writer' })
+  assert.notEqual(nativeTrialSessionId({ taskId: 'trial-a', roleId: 'writer', reuse: false, priorSessionId: prior }), prior)
+  assert.notEqual(nativeTrialSessionId({ taskId: 'trial-a', roleId: 'writer', reuse: false, priorSessionId: prior }), nativeTrialSessionId({ taskId: 'trial-a', roleId: 'writer' }))
+  assert.equal(nativeTrialSessionId({ taskId: 'trial-a', roleId: 'writer', reuse: true, priorSessionId: prior }), prior)
 })

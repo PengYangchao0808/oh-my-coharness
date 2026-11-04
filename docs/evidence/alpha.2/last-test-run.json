@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "omc-test-run",
-  "startedAt": "2026-11-04T12:05:00.832Z",
-  "finishedAt": "2026-11-04T12:05:24.836Z",
+  "startedAt": "2026-11-04T16:46:18.664Z",
+  "finishedAt": "2026-11-04T16:46:46.766Z",
   "node": "v24.21.0",
   "platform": "win32-x64",
   "cwd": "E:\\Calculations\\Plugins\\Oh-My-CoHarness",
@@ -12,343 +12,343 @@
       "file": "test/smoke.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 582
+      "durationMs": 655
     },
     {
       "file": "test/integration/contracts.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 88
+      "durationMs": 100
     },
     {
       "file": "test/integration/preset.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 76
+      "durationMs": 86
     },
     {
       "file": "test/integration/client.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 53
+      "durationMs": 57
     },
     {
       "file": "test/integration/migration.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 67
+      "durationMs": 66
     },
     {
       "file": "test/integration/golden.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 53
+      "durationMs": 62
     },
     {
       "file": "test/integration/handoff.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 51
+      "durationMs": 53
     },
     {
       "file": "test/integration/session-adapters.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 47
+      "durationMs": 55
     },
     {
       "file": "test/integration/sessions.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 1111
+      "durationMs": 1115
     },
     {
       "file": "test/integration/provider-session.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 164
+      "durationMs": 181
     },
     {
       "file": "test/integration/model-policy.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 47
+      "durationMs": 50
     },
     {
       "file": "test/integration/adapters.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 48
+      "durationMs": 54
     },
     {
       "file": "test/integration/connection.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 78
+      "durationMs": 82
     },
     {
       "file": "test/integration/surface-strict.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 66
+      "durationMs": 69
     },
     {
       "file": "test/integration/report-cache.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 103
+      "durationMs": 117
     },
     {
       "file": "test/integration/usability.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 273
+      "durationMs": 303
     },
     {
       "file": "test/integration/fleet.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 99
+      "durationMs": 98
     },
     {
       "file": "test/integration/durability.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 204
+      "durationMs": 221
     },
     {
       "file": "test/integration/cli-result.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 48
+      "durationMs": 53
     },
     {
       "file": "test/integration/wp01-correctness.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 151
+      "durationMs": 150
     },
     {
       "file": "test/integration/wp02-usage-ledger.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 121
+      "durationMs": 133
     },
     {
       "file": "test/integration/native-runtime.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 62
+      "durationMs": 69
     },
     {
       "file": "test/integration/budget-runtime.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 981
+      "durationMs": 984
     },
     {
       "file": "test/integration/managed-native.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 66
+      "durationMs": 67
     },
     {
       "file": "test/integration/runtime-status.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 94
+      "durationMs": 102
     },
     {
       "file": "test/integration/acceptance-runner.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 562
+      "durationMs": 624
     },
     {
       "file": "test/integration/trial-collector.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 227
+      "durationMs": 259
     },
     {
       "file": "test/integration/efficiency-settings.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 96
+      "durationMs": 103
     },
     {
       "file": "test/integration/external-accounting.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 147
+      "durationMs": 136
     },
     {
       "file": "test/integration/benchmark-tasks.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 370
+      "durationMs": 420
     },
     {
       "file": "test/integration/session-strategy.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 168
+      "durationMs": 171
     },
     {
       "file": "test/integration/wp03-packet.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 83
+      "durationMs": 82
     },
     {
       "file": "test/integration/wp04-context.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 65
+      "durationMs": 62
     },
     {
       "file": "test/integration/wp05-managed.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 89
+      "durationMs": 90
     },
     {
       "file": "test/integration/wp06-budget.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 59
+      "durationMs": 66
     },
     {
       "file": "test/integration/graph.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 77
+      "durationMs": 82
     },
     {
       "file": "test/integration/mailbox.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 169
+      "durationMs": 158
     },
     {
       "file": "test/integration/project-policy.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 56
+      "durationMs": 59
     },
     {
       "file": "test/integration/worktree.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 61
+      "durationMs": 66
     },
     {
       "file": "test/integration/custom-roles.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 81
+      "durationMs": 71
     },
     {
       "file": "test/integration/role-result.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 45
+      "durationMs": 46
     },
     {
       "file": "test/integration/preset-snapshot.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 74
+      "durationMs": 72
     },
     {
       "file": "test/integration/strategy-eval.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 113
+      "durationMs": 116
     },
     {
       "file": "test/integration/identity.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 200
+      "durationMs": 211
     },
     {
       "file": "test/integration/pr02-acceptance.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 97
+      "durationMs": 100
     },
     {
       "file": "test/integration/pr03-writer-policy.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 5492
+      "durationMs": 5488
     },
     {
       "file": "test/integration/pr04-routing.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 168
+      "durationMs": 142
     },
     {
       "file": "test/integration/pr05-workflow.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 564
+      "durationMs": 445
     },
     {
       "file": "test/integration/pr07-host-tool.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 315
+      "durationMs": 307
     },
     {
       "file": "test/integration/pr08-arm-semantics.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 93
+      "durationMs": 110
     },
     {
       "file": "test/integration/writer-lease.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 4432
+      "durationMs": 4413
     },
     {
       "file": "test/integration/host-executor.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 112
+      "durationMs": 96
     },
     {
       "file": "test/integration/manifest-provenance.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 3218
+      "durationMs": 3193
     },
     {
       "file": "test/integration/benchmark-plan.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 1863
+      "durationMs": 5744
     },
     {
       "file": "test/integration/registration-surface.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 113
+      "durationMs": 120
     },
     {
       "file": "vendor/omd/test/result.test.mjs",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 57
+      "durationMs": 63
     }
   ],
   "totals": {
     "suites": 56,
     "passed": 56,
     "failed": 0,
-    "durationMs": 23999
+    "durationMs": 28097
   }
 }

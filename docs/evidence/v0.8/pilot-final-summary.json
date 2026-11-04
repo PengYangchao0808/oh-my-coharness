@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-pilot-execution-summary",
+  "at": "2026-11-04T14:05:00.000Z",
+  "scope": "authorized 25-trial pilot, exploratory only",
+  "groups": {
+    "E1": {
+      "manifest": "test/benchmarks/plans/e1.json",
+      "assigned": 12,
+      "executed": 12,
+      "passed": 12,
+      "failed": 0,
+      "recovered": 12,
+      "recovery": "11 completed trials re-graded with zero model calls using a baseline reconstructed from the frozen base commit; one watchdog-unknown tail recovered with a new attempt",
+      "calls": { "single": 51, "same-model-multi-role": 64, "different-model-multi-role": 96, "total": 211 },
+      "costUsd": null,
+      "costKnown": false,
+      "receipt": "docs/evidence/v0.8/e1-receipt.json",
+      "records": "docs/evidence/v0.8/e1-records.json",
+      "report": "docs/evidence/v0.8/e1-report.json",
+      "historicalBlocked": "docs/evidence/v0.8/e1-blocked.json"
+    },
+    "E2": {
+      "manifest": "test/benchmarks/plans/e2.json",
+      "assigned": 9,
+      "executed": 9,
+      "passed": 8,
+      "failed": 1,
+      "recovered": 3,
+      "recovery": "only the three infrastructure-failed fresh_handoff trials were recovered; step 2 only, existing worktree, new session id, old attempts/usage preserved; six passed trials and three prerequisites were not rerun",
+      "arms": {
+        "reuse_compact": { "assigned": 3, "passed": 3 },
+        "adaptive": { "assigned": 3, "passed": 3 },
+        "fresh_handoff": { "assigned": 3, "passed": 2, "failed": 1 }
+      },
+      "prerequisites": { "assigned": 3, "passed": 3, "rerun": false },
+      "calls": 154,
+      "prerequisiteCalls": 55,
+      "costUsd": null,
+      "costKnown": false,
+      "failedTrial": {
+        "trialId": "95a785752da5200053b174d0",
+        "taskId": "should-reuse-module-fix",
+        "arm": "fresh_handoff",
+        "execution": "completed",
+        "acceptance": "failed",
+        "classification": "real model acceptance failure, not infrastructure"
+      },
+      "receipt": "docs/evidence/v0.8/e2-receipt.json",
+      "previousReceipt": "docs/evidence/v0.8/e2-receipt.pre-recovery.json",
+      "records": "docs/evidence/v0.8/e2-records.json",
+      "report": "docs/evidence/v0.8/e2-report.json",
+      "recoveryBlockedHistory": "docs/evidence/v0.8/e2-recovery-blocked.json"
+    },
+    "E3": {
+      "manifest": "test/benchmarks/plans/e3.json",
+      "assigned": 4,
+      "executed": 4,
+      "passed": 4,
+      "failed": 0,
+      "recovered": 4,
+      "recovery": "all four executions completed; acceptance was re-run with zero model calls after fixing workspace-relative acceptance command resolution",
+      "arms": { "single": { "assigned": 2, "passed": 2 }, "multi-role": { "assigned": 2, "passed": 2 } },
+      "calls": { "single": 10, "multi-role": 41, "total": 51 },
+      "costUsd": null,
+      "costKnown": false,
+      "receipt": "docs/evidence/v0.8/e3-receipt.json",
+      "previousReceipt": "docs/evidence/v0.8/e3-receipt.pre-recovery.json",
+      "records": "docs/evidence/v0.8/e3-records.json",
+      "report": "docs/evidence/v0.8/e3-report.json"
+    }
+  },
+  "totals": {
+    "assigned": 25,
+    "executed": 25,
+    "passed": 24,
+    "failed": 1,
+    "uniqueTrialIds": 25,
+    "callsFromReceipts": 416,
+    "costUsd": null,
+    "costKnown": false
+  },
+  "honestLimits": [
+    "This is an exploratory pilot, not evidence that OMC is better than OMD or that it has a performance lead.",
+    "All kimi-coding costs are null/unknown; spentUsd=0 was never treated as a real zero cost.",
+    "E1 post-hoc acceptance baselines are reconstructed from the frozen base commit, not the original in-memory baseline timestamp.",
+    "E2 fresh_handoff recovery reran only step 2 on the retained first-step worktree; the old failed attempt/usage remain in the stores.",
+    "E3 acceptance was re-run zero-model after a workspace-relative command path defect; the original acceptance failure was infrastructure, not model quality.",
+    "Trial counts are from frozen assignments; 25 unique trialIds, no duplicate trialId in the merged receipts."
+  ]
+}

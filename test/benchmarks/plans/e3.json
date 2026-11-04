@@ -55,7 +55,7 @@
       {
         "id": "upstream-sipratt-07-crdt",
         "revision": "fixture@b689da7353fa757e",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench",
+        "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
         "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
         "harness": "native",
         "goal": "Implement the upstream CRDT Replica (RGA insert-after, tombstones, Lamport ids, out-of-order/duplicate delivery, deterministic concurrent order) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
@@ -73,7 +73,7 @@
         },
         "workspace": {
           "kind": "upstream-checkout",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
           "startPath": ".",
           "referencePath": "tasks/refs/ref_crdt.py",
           "writeScope": [
@@ -81,12 +81,12 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e3-07-crdt.json",
+          "spec": "test/benchmarks/plans/acceptance/e3-07-crdt.json",
           "specPath": "test/benchmarks/plans/acceptance/e3-07-crdt.json",
-          "specSha256": "1376171e7cbfc2c6ddd4282dd0f013f8765ab5cb2a245d05b1f0ef00618a1170",
+          "specSha256": "100d6ef8f914f2c5c55bc8f3e10166e57fd36c175b67e8a3a2d8ae24053ca5e8",
           "command": [
             "python",
-            "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e3-check.py",
+            "test/benchmarks/plans/acceptance/e3-check.py",
             "07-crdt"
           ],
           "acceptanceFiles": [
@@ -103,7 +103,7 @@
           "experiment": "E3",
           "dataset": "sipratt-p/coding-agent-bench",
           "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
           "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
           "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
           "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
@@ -127,7 +127,7 @@
       {
         "id": "upstream-sipratt-08-orchestrator",
         "revision": "fixture@f187aa3d1158157d",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench",
+        "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
         "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
         "harness": "native",
         "goal": "Implement the upstream async DAG Orchestrator (real concurrency, failure->skip, per-task timeout cancellation, cycle/unknown-dep/duplicate validation) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
@@ -145,7 +145,7 @@
         },
         "workspace": {
           "kind": "upstream-checkout",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
           "startPath": ".",
           "referencePath": "tasks/refs/ref_orchestrator.py",
           "writeScope": [
@@ -153,12 +153,12 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e3-08-orchestrator.json",
+          "spec": "test/benchmarks/plans/acceptance/e3-08-orchestrator.json",
           "specPath": "test/benchmarks/plans/acceptance/e3-08-orchestrator.json",
-          "specSha256": "9879d77eec3513f2da2ba64c495ae3ad627ae1ba88860ad8cd179e97fc6d4540",
+          "specSha256": "dec2872c4cf706791877f34eb5cda7915301de04a48a0993a9803f92df189075",
           "command": [
             "python",
-            "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e3-check.py",
+            "test/benchmarks/plans/acceptance/e3-check.py",
             "08-orchestrator"
           ],
           "acceptanceFiles": [
@@ -175,7 +175,7 @@
           "experiment": "E3",
           "dataset": "sipratt-p/coding-agent-bench",
           "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench",
+          "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
           "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
           "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
           "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
@@ -203,7 +203,7 @@
       "reviewerProvider": "kimi-coding",
       "reviewerModel": "kimi-for-coding",
       "harness": "native",
-      "toolsetDigest": "cd9c1b1ab9b9467f65dbe857e8239bfc5c10cc08d84dc551e5b3a4f4eb63f51e",
+      "toolsetDigest": "2849cfd9063a68fb686748e11cb5fd683a7fc2f62527ada4a29947b56d68b19b",
       "budgetDigest": "41c345b2981f81b2d92b02249da149260da28fd58fcca059f2b3cbee88433c9c",
       "evaluatorVersion": "omc-acceptance-runner@1",
       "environmentDigest": "a7a6a0fa6cbaab97397487f1cf84a805320cd545d9d07ea3fbb73494461d48fd",
@@ -214,7 +214,7 @@
       "harnessSelected": true,
       "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
     },
-    "conditionsDigest": "dbd3f7cbdb13fa141b195e804d9064c234d10e9c01f3f477d3415a2dc53a619d",
+    "conditionsDigest": "ce4b7da5629ce7c525597de83486f691e961f1a53a3bdf6290ae979ffd77a4ba",
     "policyVersions": {
       "single": "role=single@native-kimi-k3.1-pro-v1",
       "multi-role": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1"
@@ -262,7 +262,7 @@
         "arm": "multi-role"
       }
     ],
-    "digest": "95b6dfb8aeecfb70569667bf6a63ca18364751668d0da570efb590729161b650"
+    "digest": "eb10bf9d21f2bb7ef03cc5efbe499208e6c715321e0ef98180f23582cd86f03b"
   },
   "execution": {
     "armExecution": {
@@ -315,16 +315,15 @@
       "sipratt-p/coding-agent-bench": {
         "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
         "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
-        "localPath": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench"
+        "localPath": ".ops/benchmark-repos/sipratt-p--coding-agent-bench"
       }
     },
     "worktreeCheck": {
       "checked": true,
-      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
       "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
       "checkedAt": "2026-11-04T05:10:07Z",
       "method": "git -C <frozen upstream checkout> cat-file -e <baseCommit>:<path> for every workspace and frozen acceptance path",
-      "headMatchesBase": true,
       "missing": [],
       "verifiedPaths": [
         {

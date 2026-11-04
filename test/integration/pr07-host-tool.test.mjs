@@ -65,7 +65,7 @@ function experimentSpec(repo, { group = 'E1', prompt = 'Implement the task.', ch
     repo,
     baseCommit: 'abc1234567',
     harness: 'codex',
-    acceptance: { spec: 'spec.json' },
+    acceptance: { spec: join(repo, 'spec.json') },
     ...(chains
       ? { kind: 'chain', chain: [{ id: 'step-1', goal: 'Inspect the failing case.' }, { id: 'step-2', goal: 'Apply the minimal fix.' }] }
       : { prompt }),
@@ -87,7 +87,7 @@ function experimentSpec(repo, { group = 'E1', prompt = 'Implement the task.', ch
         baseCommit: 'abc1234567',
         harness: 'codex',
         prompt: 'Warm up on the fixture.',
-        acceptance: { spec: 'spec.json' },
+        acceptance: { spec: join(repo, 'spec.json') },
       },
     } : {}),
     conditions: {
@@ -634,4 +634,33 @@ test('PR-07: smokeTrialIds executes exactly one frozen assignment, never the who
   const receipt = JSON.parse(readFileSync(doc.receiptPath, 'utf8'))
   assert.equal(receipt.trials.length, 1)
   assert.equal(receipt.trials[0].trialId, single.trialId)
+})
+
+test('PR-07 relative: task repo and acceptance spec resolve from the calling workspace; escape is refused', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'omc-pr07-relative-'))
+  const doc = documentFor(workspace, { receipt: 'receipts/relative.json' })
+  const parsed = JSON.parse(readFileSync(doc.manifestPath, 'utf8'))
+  parsed.spec.tasks[0].repo = 'repo'
+  parsed.spec.tasks[0].acceptance = { spec: 'repo/spec.json' }
+  writeFileSync(doc.manifestPath, JSON.stringify(parsed), 'utf8')
+  const fixture = serviceFixture(workspace, doc.repo)
+  const result = await fixture.service({
+    trial_action: 'execute', trial_manifest: doc.manifestPath, confirm_paid_experiment: true,
+    max_usd: 1, trial_receipt: doc.receiptPath, trial_repo: 'repo',
+  }, execFor(workspace))
+  assert.equal(result.ok, true, JSON.stringify(result.problems ?? []))
+  assert.ok(fixture.dispatches.length > 0)
+
+  const escapeDoc = documentFor(workspace, { receipt: 'receipts/escape.json' })
+  const escapeParsed = JSON.parse(readFileSync(escapeDoc.manifestPath, 'utf8'))
+  escapeParsed.spec.tasks[0].repo = '../outside-repo'
+  writeFileSync(escapeDoc.manifestPath, JSON.stringify(escapeParsed), 'utf8')
+  const escapeFixture = serviceFixture(workspace, escapeDoc.repo)
+  const escape = await escapeFixture.service({
+    trial_action: 'execute', trial_manifest: escapeDoc.manifestPath, confirm_paid_experiment: true,
+    max_usd: 1, trial_receipt: escapeDoc.receiptPath, trial_repo: '../outside-repo',
+  }, execFor(workspace))
+  assert.equal(escape.ok, false)
+  assert.equal(escape.code, 'OMC/TRIAL-CHECKOUT')
+  assert.equal(escapeFixture.dispatches.length, 0)
 })

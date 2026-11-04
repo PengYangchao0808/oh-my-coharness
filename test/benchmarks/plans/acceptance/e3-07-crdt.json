@@ -4,7 +4,7 @@
   "commands": [
     {
       "name": "upstream-crdt-hidden-tests",
-      "run": ["python", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e3-check.py", "07-crdt"],
+      "run": ["python", "test/benchmarks/plans/acceptance/e3-check.py", "07-crdt"],
       "expect": {
         "exitCode": 0,
         "stdoutContains": ["ok 5/5"],

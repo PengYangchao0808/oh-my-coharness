@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-pilot-blocked",
+  "at": "2026-11-04T13:45:00.000Z",
+  "group": "E2",
+  "blockedBy": {
+    "classification": "provider quota exhausted",
+    "exactError": "dispatch step restore-inclusive-range ended failed: 429 {\"error\":{\"type\":\"rate_limit_error\",\"message\":\"You've reached your 5-hour usage limit. Your quota will reset when the current 5-hour window ends. To continue now, purchase extra usage or upgrade your plan: https://www.kimi.com/settings/subscription?tab=quota\"},\"type\":\"error\"}",
+    "detail": "The first of the three authorized fresh_handoff recoveries started a new session (session id no longer duplicated) but the kimi-coding provider returned a 5-hour quota 429 before the second step could complete.",
+    "notRetried": true,
+    "otherRecoveriesNotStarted": [
+      "bf24437e347675eed791bec6",
+      "95a785752da5200053b174d0"
+    ]
+  },
+  "e2State": {
+    "receipt": "docs/evidence/v0.8/e2-receipt.json",
+    "records": "docs/evidence/v0.8/e2-records.json",
+    "report": "docs/evidence/v0.8/e2-report.json",
+    "trials": 9,
+    "passed": 6,
+    "failed": 3,
+    "reuse_compact": "3/3 passed",
+    "adaptive": "3/3 passed",
+    "fresh_handoff": "0/3; all three infrastructure failures, not model-answer failures",
+    "prerequisites": "3 completed/passed; not rerun",
+    "callsFromOriginalReceipt": 123,
+    "costUsd": null
+  },
+  "firstRecoveryAttempt": {
+    "trialId": "3713f89c306729c7191f3297",
+    "arm": "fresh_handoff",
+    "recoveredStep": "restore-inclusive-range",
+    "existingWorktree": "E:/Calculations/Plugins/Oh-My-CoHarness/.agents/worktrees/omc-0.8-e2-session-9-fresh_handoff-example-local-fix-0-mw25hdyn",
+    "firstStepPreserved": true,
+    "newSessionId": "omc-trial-3713f89c306729c7191f3297-writer-f8366875",
+    "execution": "failed",
+    "calls": 6,
+    "costUsd": null,
+    "reason": "provider 5-hour quota 429",
+    "receipt": "docs/evidence/v0.8/e2-recovery-3713f89c306729c7191f3297-receipt.json",
+    "note": "The new-session code path worked; this is not the earlier duplicate-session bug."
+  },
+  "e1Recovered": {
+    "receipt": "docs/evidence/v0.8/e1-receipt.json",
+    "records": "docs/evidence/v0.8/e1-records.json",
+    "report": "docs/evidence/v0.8/e1-report.json",
+    "trials": 12,
+    "passed": 12,
+    "recovered": true
+  },
+  "e3": {
+    "executed": false,
+    "reason": "Blocked on E2 provider quota; E3 was not started."
+  },
+  "fullRunDecision": {
+    "canContinue": false,
+    "reason": "E2 cannot be completed while the kimi-coding 5-hour quota is exhausted. Do not retry now and do not start E3. When quota resets, recover only the two unattempted fresh_handoff trials and the one quota-failed recovery, preserving old attempts and the six passed trials."
+  }
+}

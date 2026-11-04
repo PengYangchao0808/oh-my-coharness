@@ -294,7 +294,7 @@ export function createHostExecutor(deps = {}) {
         'no DSH host context and no injected dispatch surface; refusing to fabricate a trial result')
     }
 
-    const { trial, worktree, budget = {}, manifest, plan = {} } = input ?? {}
+    const { trial, worktree, budget = {}, manifest, plan = {}, onlyStepIds = null, handoff: initialHandoff = null } = input ?? {}
     if (!trial || typeof trial !== 'object') throw hostError(HOST_EXECUTOR_INPUT, 'trial is required')
     if (!manifest || typeof manifest !== 'object') throw hostError(HOST_EXECUTOR_INPUT, 'manifest is required')
     if (!worktree || typeof worktree !== 'object') throw hostError(HOST_EXECUTOR_INPUT, 'worktree is required')
@@ -398,9 +398,13 @@ export function createHostExecutor(deps = {}) {
       // 2. Explainable session choice per step. The rule table is driven by the
       //    REAL prior step/session, never by the arm name alone.
       const chain = Array.isArray(task.chain) && task.chain.length > 1 ? task.chain : null
-      const steps = typeof resolveSteps === 'function'
+      let steps = typeof resolveSteps === 'function'
         ? resolveSteps({ trial, task, manifest, plan, worktree })
         : resolveTrialSteps({ manifest, trial, task })
+      if (Array.isArray(onlyStepIds)) {
+        steps = steps.filter((step) => onlyStepIds.includes(step.id))
+        if (!steps.length) throw hostError(HOST_EXECUTOR_INPUT, `recovery selected no execution step for ${trial.trialId}`)
+      }
       const stepResults = []
       const sessions = []
       let prior = null
@@ -446,7 +450,7 @@ export function createHostExecutor(deps = {}) {
           status: prior.status,
           output: prior.output ?? null,
           route: prior.route ?? null,
-        } : null
+        } : initialHandoff
         let request = {
           harness: step.role?.surface ?? configuredHarness ?? task.harness ?? manifest.conditions?.harness ?? undefined,
           model: step.role?.model ?? configuredModel ?? manifest.conditions?.model ?? undefined,

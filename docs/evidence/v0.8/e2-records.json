@@ -1,0 +1,1984 @@
+{
+  "plan": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\e2.json",
+  "receipt": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\docs\\evidence\\v0.8\\e2-receipt.json",
+  "manifestDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+  "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+  "collected": [
+    {
+      "trialId": "3713f89c306729c7191f3297",
+      "incomplete": [
+        "prerequisite.costUsd",
+        "prerequisite.usage.uncachedInputTokens",
+        "prerequisite.usage.cacheReadTokens",
+        "prerequisite.usage.cacheWriteTokens",
+        "prerequisite.usage.outputTokens",
+        "usage.uncachedInputTokens",
+        "usage.cacheReadTokens",
+        "usage.cacheWriteTokens",
+        "usage.outputTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 3713f89c306729c7191f3297 ran frozen benchmark task example-local-fix; both ids are recorded",
+        "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-3713f89c306729c7191f3297-writer-63549704 ran one turn, native child omc-trial-3713f89c306729c7191f3297-writer-a636e2f4 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "bbf70c686a9ecdb3ed3faebc",
+      "incomplete": [
+        "prerequisite.costUsd",
+        "prerequisite.usage.uncachedInputTokens",
+        "prerequisite.usage.cacheReadTokens",
+        "prerequisite.usage.cacheWriteTokens",
+        "prerequisite.usage.outputTokens",
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task bbf70c686a9ecdb3ed3faebc ran frozen benchmark task example-local-fix; both ids are recorded",
+        "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn, session:resume, native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "0597f45ffbbf30facbbf4fab",
+      "incomplete": [
+        "prerequisite.costUsd",
+        "prerequisite.usage.uncachedInputTokens",
+        "prerequisite.usage.cacheReadTokens",
+        "prerequisite.usage.cacheWriteTokens",
+        "prerequisite.usage.outputTokens",
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 0597f45ffbbf30facbbf4fab ran frozen benchmark task example-local-fix; both ids are recorded",
+        "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn, session:resume, native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "bf24437e347675eed791bec6",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task bf24437e347675eed791bec6 ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+        "the shared prerequisite for arm fresh_handoff is a single execution (trial 3713f89c306729c7191f3297); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-bf24437e347675eed791bec6-writer-a4871c53 ran one turn, native child omc-trial-bf24437e347675eed791bec6-writer-e416724e ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "febd4f847dcf2fd467f7a3dd",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task febd4f847dcf2fd467f7a3dd ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+        "the shared prerequisite for arm reuse_compact is a single execution (trial 0597f45ffbbf30facbbf4fab); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn, session:resume, native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "7f452e5c7735a57bdaecae16",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 7f452e5c7735a57bdaecae16 ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+        "the shared prerequisite for arm adaptive is a single execution (trial bbf70c686a9ecdb3ed3faebc); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn, session:resume, native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "95a785752da5200053b174d0",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 95a785752da5200053b174d0 ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+        "the shared prerequisite for arm fresh_handoff is a single execution (trial 3713f89c306729c7191f3297); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-95a785752da5200053b174d0-writer-37541ce4 ran one turn, native child omc-trial-95a785752da5200053b174d0-writer-a37ae746 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "d88bd24ae41c5e193b94ae00",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task d88bd24ae41c5e193b94ae00 ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+        "the shared prerequisite for arm adaptive is a single execution (trial bbf70c686a9ecdb3ed3faebc); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn, session:resume, native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "abe419a397c2b6be33ba816d",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task abe419a397c2b6be33ba816d ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+        "the shared prerequisite for arm reuse_compact is a single execution (trial 0597f45ffbbf30facbbf4fab); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn, session:resume, native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    }
+  ],
+  "export": {
+    "complete": true,
+    "trials": [
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "3713f89c306729c7191f3297",
+        "policyVersion": "session=fresh_handoff@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:example-local-fix:30edc6815ece13f83e2f596f9dd901104fb61425f1cf08abc1bd8427308261ae",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 6,
+        "attempts": 4,
+        "humanInterventions": 0,
+        "elapsedMs": 107901,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": {
+          "execution": "completed",
+          "calls": 18,
+          "costUsd": null,
+          "costBasis": "unknown",
+          "costVersion": null,
+          "usage": {
+            "uncachedInputTokens": null,
+            "cacheReadTokens": null,
+            "cacheWriteTokens": null,
+            "outputTokens": null
+          },
+          "elapsedMs": 231919,
+          "taskId": "omc-session-primer",
+          "trialId": "e422e97d68949c7feec0f5c0",
+          "repeat": null,
+          "role": "prerequisite",
+          "countedAsTrial": false,
+          "arm": "fresh_handoff"
+        },
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "3713f89c306729c7191f3297",
+        "benchmarkTaskId": "example-local-fix",
+        "repeat": 0,
+        "strategy": "fresh_handoff",
+        "parentId": "omc-trial-f56fb3fc-57bf-440c-9bdb-1796fe67b64c",
+        "startedAt": "2026-11-04T16:06:29.530Z",
+        "endedAt": "2026-11-04T16:08:17.431Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-3713f89c306729c7191f3297-writer-63549704 ran one turn",
+          "native child omc-trial-3713f89c306729c7191f3297-writer-a636e2f4 ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "prerequisite.costUsd",
+          "prerequisite.usage.uncachedInputTokens",
+          "prerequisite.usage.cacheReadTokens",
+          "prerequisite.usage.cacheWriteTokens",
+          "prerequisite.usage.outputTokens",
+          "usage.uncachedInputTokens",
+          "usage.cacheReadTokens",
+          "usage.cacheWriteTokens",
+          "usage.outputTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 3713f89c306729c7191f3297 ran frozen benchmark task example-local-fix; both ids are recorded",
+          "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-3713f89c306729c7191f3297-writer-63549704 ran one turn, native child omc-trial-3713f89c306729c7191f3297-writer-a636e2f4 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "bbf70c686a9ecdb3ed3faebc",
+        "policyVersion": "session=adaptive@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:example-local-fix:5c6635da8394c2741e5c72ee8dbd0c354e38486cb330e75ed5114fafd4eaf949",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 16,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 247636,
+        "usage": {
+          "uncachedInputTokens": 11824,
+          "cacheReadTokens": 308480,
+          "cacheWriteTokens": null,
+          "outputTokens": 5772
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": {
+          "execution": "completed",
+          "calls": 14,
+          "costUsd": null,
+          "costBasis": "unknown",
+          "costVersion": null,
+          "usage": {
+            "uncachedInputTokens": null,
+            "cacheReadTokens": null,
+            "cacheWriteTokens": null,
+            "outputTokens": null
+          },
+          "elapsedMs": 219270,
+          "taskId": "omc-session-primer",
+          "trialId": "b601745a5ebbc4b15ef9a46c",
+          "repeat": null,
+          "role": "prerequisite",
+          "countedAsTrial": false,
+          "arm": "adaptive"
+        },
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "bbf70c686a9ecdb3ed3faebc",
+        "benchmarkTaskId": "example-local-fix",
+        "repeat": 0,
+        "strategy": "adaptive",
+        "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+        "startedAt": "2026-11-04T13:32:39.945Z",
+        "endedAt": "2026-11-04T13:36:47.581Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn",
+          "session:resume",
+          "native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "prerequisite.costUsd",
+          "prerequisite.usage.uncachedInputTokens",
+          "prerequisite.usage.cacheReadTokens",
+          "prerequisite.usage.cacheWriteTokens",
+          "prerequisite.usage.outputTokens",
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task bbf70c686a9ecdb3ed3faebc ran frozen benchmark task example-local-fix; both ids are recorded",
+          "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn, session:resume, native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "0597f45ffbbf30facbbf4fab",
+        "policyVersion": "session=reuse_compact@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:example-local-fix:7c3ec65cd0c60669c96274574eeb671928c23ef8daf2a52024b88faf8d4170e1",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 15,
+        "attempts": 4,
+        "humanInterventions": 0,
+        "elapsedMs": 223446,
+        "usage": {
+          "uncachedInputTokens": 10836,
+          "cacheReadTokens": 279040,
+          "cacheWriteTokens": null,
+          "outputTokens": 5979
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": {
+          "execution": "completed",
+          "calls": 23,
+          "costUsd": null,
+          "costBasis": "unknown",
+          "costVersion": null,
+          "usage": {
+            "uncachedInputTokens": null,
+            "cacheReadTokens": null,
+            "cacheWriteTokens": null,
+            "outputTokens": null
+          },
+          "elapsedMs": 554127,
+          "taskId": "omc-session-primer",
+          "trialId": "de89c099fb7feee915b00e5c",
+          "repeat": null,
+          "role": "prerequisite",
+          "countedAsTrial": false,
+          "arm": "reuse_compact"
+        },
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "0597f45ffbbf30facbbf4fab",
+        "benchmarkTaskId": "example-local-fix",
+        "repeat": 0,
+        "strategy": "reuse_compact",
+        "parentId": "omc-trial-bcc6be54-6f1c-47c7-a5a6-7cebaff1fcdd",
+        "startedAt": "2026-11-04T13:46:02.914Z",
+        "endedAt": "2026-11-04T13:49:46.360Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn",
+          "session:resume",
+          "native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "prerequisite.costUsd",
+          "prerequisite.usage.uncachedInputTokens",
+          "prerequisite.usage.cacheReadTokens",
+          "prerequisite.usage.cacheWriteTokens",
+          "prerequisite.usage.outputTokens",
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 0597f45ffbbf30facbbf4fab ran frozen benchmark task example-local-fix; both ids are recorded",
+          "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn, session:resume, native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "bf24437e347675eed791bec6",
+        "policyVersion": "session=fresh_handoff@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:should-restart-stale-api:8435b0825bfd70fa5dc4648616aaf39ee5704575fd0adbc96f39c8869a322330",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 13,
+        "attempts": 4,
+        "humanInterventions": 0,
+        "elapsedMs": 107839,
+        "usage": {
+          "uncachedInputTokens": 13378,
+          "cacheReadTokens": 252160,
+          "cacheWriteTokens": null,
+          "outputTokens": 5758
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "bf24437e347675eed791bec6",
+        "benchmarkTaskId": "should-restart-stale-api",
+        "repeat": 0,
+        "strategy": "fresh_handoff",
+        "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+        "startedAt": "2026-11-04T16:08:29.855Z",
+        "endedAt": "2026-11-04T16:10:17.694Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-bf24437e347675eed791bec6-writer-a4871c53 ran one turn",
+          "native child omc-trial-bf24437e347675eed791bec6-writer-e416724e ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task bf24437e347675eed791bec6 ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+          "the shared prerequisite for arm fresh_handoff is a single execution (trial 3713f89c306729c7191f3297); this trial does not repeat it or its cost",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-bf24437e347675eed791bec6-writer-a4871c53 ran one turn, native child omc-trial-bf24437e347675eed791bec6-writer-e416724e ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "febd4f847dcf2fd467f7a3dd",
+        "policyVersion": "session=reuse_compact@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:should-restart-stale-api:84eb2aac92fb79b26c78633121dddf770c2e9c1b8fe537f3d2688ca14cbeb8da",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 13,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 236691,
+        "usage": {
+          "uncachedInputTokens": 13225,
+          "cacheReadTokens": 275968,
+          "cacheWriteTokens": null,
+          "outputTokens": 6112
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "febd4f847dcf2fd467f7a3dd",
+        "benchmarkTaskId": "should-restart-stale-api",
+        "repeat": 0,
+        "strategy": "reuse_compact",
+        "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+        "startedAt": "2026-11-04T13:52:29.480Z",
+        "endedAt": "2026-11-04T13:56:26.171Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn",
+          "session:resume",
+          "native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task febd4f847dcf2fd467f7a3dd ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+          "the shared prerequisite for arm reuse_compact is a single execution (trial 0597f45ffbbf30facbbf4fab); this trial does not repeat it or its cost",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn, session:resume, native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "7f452e5c7735a57bdaecae16",
+        "policyVersion": "session=adaptive@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:should-restart-stale-api:bb08f8c83328b64f43d8adb921a6330054248538f417e45fa3e1188e2918695a",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 20,
+        "attempts": 4,
+        "humanInterventions": 0,
+        "elapsedMs": 240952,
+        "usage": {
+          "uncachedInputTokens": 16951,
+          "cacheReadTokens": 432896,
+          "cacheWriteTokens": null,
+          "outputTokens": 9335
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "7f452e5c7735a57bdaecae16",
+        "benchmarkTaskId": "should-restart-stale-api",
+        "repeat": 0,
+        "strategy": "adaptive",
+        "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+        "startedAt": "2026-11-04T13:56:26.754Z",
+        "endedAt": "2026-11-04T14:00:27.706Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn",
+          "session:resume",
+          "native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 7f452e5c7735a57bdaecae16 ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+          "the shared prerequisite for arm adaptive is a single execution (trial bbf70c686a9ecdb3ed3faebc); this trial does not repeat it or its cost",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn, session:resume, native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "95a785752da5200053b174d0",
+        "policyVersion": "session=fresh_handoff@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "failed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:should-reuse-module-fix:79f47f1a04a1c793fc09ed4b29f2bdbc10463b06b89359a2eda088c25dbe6f79",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 12,
+        "attempts": 3,
+        "humanInterventions": 0,
+        "elapsedMs": 201242,
+        "usage": {
+          "uncachedInputTokens": 9427,
+          "cacheReadTokens": 217088,
+          "cacheWriteTokens": null,
+          "outputTokens": 4554
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": null,
+        "status": "completed",
+        "observedAcceptance": "failed",
+        "taskId": "95a785752da5200053b174d0",
+        "benchmarkTaskId": "should-reuse-module-fix",
+        "repeat": 0,
+        "strategy": "fresh_handoff",
+        "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+        "startedAt": "2026-11-04T16:10:28.344Z",
+        "endedAt": "2026-11-04T16:13:49.586Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-95a785752da5200053b174d0-writer-37541ce4 ran one turn",
+          "native child omc-trial-95a785752da5200053b174d0-writer-a37ae746 ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 95a785752da5200053b174d0 ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+          "the shared prerequisite for arm fresh_handoff is a single execution (trial 3713f89c306729c7191f3297); this trial does not repeat it or its cost",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-95a785752da5200053b174d0-writer-37541ce4 ran one turn, native child omc-trial-95a785752da5200053b174d0-writer-a37ae746 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "d88bd24ae41c5e193b94ae00",
+        "policyVersion": "session=adaptive@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:should-reuse-module-fix:53ace4243f443cece1744e318d5999d80fccb28e2c6b32c612af2eba09aa6d71",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 18,
+        "attempts": 3,
+        "humanInterventions": 0,
+        "elapsedMs": 147658,
+        "usage": {
+          "uncachedInputTokens": 11586,
+          "cacheReadTokens": 334592,
+          "cacheWriteTokens": null,
+          "outputTokens": 4932
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "d88bd24ae41c5e193b94ae00",
+        "benchmarkTaskId": "should-reuse-module-fix",
+        "repeat": 0,
+        "strategy": "adaptive",
+        "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+        "startedAt": "2026-11-04T14:04:17.991Z",
+        "endedAt": "2026-11-04T14:06:45.649Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn",
+          "session:resume",
+          "native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task d88bd24ae41c5e193b94ae00 ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+          "the shared prerequisite for arm adaptive is a single execution (trial bbf70c686a9ecdb3ed3faebc); this trial does not repeat it or its cost",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn, session:resume, native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+        "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+        "dataKind": "live",
+        "trialId": "abe419a397c2b6be33ba816d",
+        "policyVersion": "session=reuse_compact@omc-native-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:should-reuse-module-fix:1c6363f6cb5147ad36d52270db4fadd3c1e13866637880734a22ae4d5ce9ba72",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 14,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 193319,
+        "usage": {
+          "uncachedInputTokens": 11742,
+          "cacheReadTokens": 271616,
+          "cacheWriteTokens": null,
+          "outputTokens": 4461
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "prerequisite": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "abe419a397c2b6be33ba816d",
+        "benchmarkTaskId": "should-reuse-module-fix",
+        "repeat": 0,
+        "strategy": "reuse_compact",
+        "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+        "startedAt": "2026-11-04T14:06:46.287Z",
+        "endedAt": "2026-11-04T14:09:59.606Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn",
+          "session:resume",
+          "native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task abe419a397c2b6be33ba816d ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+          "the shared prerequisite for arm reuse_compact is a single execution (trial 0597f45ffbbf30facbbf4fab); this trial does not repeat it or its cost",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions session:new-packet, native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn, session:resume, native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      }
+    ],
+    "problems": [],
+    "manifest": {
+      "schemaVersion": 1,
+      "experimentId": "omc-0.8-e2-session-9",
+      "experimentGroup": "E2",
+      "dataKind": "live",
+      "split": "development",
+      "allocation": "blocked-task-repeat/fisher-yates-xorshift32@1",
+      "seed": "omc-0.8-e2-pilot-2026-11-04",
+      "repeats": 1,
+      "arms": [
+        "reuse_compact",
+        "fresh_handoff",
+        "adaptive"
+      ],
+      "armExecution": {
+        "reuse_compact": {
+          "roles": [
+            {
+              "id": "writer",
+              "writer": true,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "k3.1-pro"
+            }
+          ]
+        },
+        "fresh_handoff": {
+          "roles": [
+            {
+              "id": "writer",
+              "writer": true,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "k3.1-pro"
+            }
+          ]
+        },
+        "adaptive": {
+          "roles": [
+            {
+              "id": "writer",
+              "writer": true,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "k3.1-pro"
+            }
+          ]
+        }
+      },
+      "tasks": [
+        {
+          "id": "example-local-fix",
+          "revision": "fixture@d3d4b9c177614ab8",
+          "repo": ".",
+          "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+          "harness": "native",
+          "goal": "Make src/parse-range.mjs honour the documented range contract: inclusive ascending ranges, single values, blank input means an empty list, descending and non-numeric input throw.",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/example-local-fix/`.\n- Create `test/benchmarks/session-strategies/example-local-fix/src/` by copying\n  `test/benchmarks/session-strategies/example-local-fix/start/src/` once. Do not\n  edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only reproduces the failure. Do not modify any file. Report exactly\nwhich of the 7 contract cases in the acceptance script fail and what\n`src/parse-range.mjs` currently returns for each failing input (include the\n`\"1-3\"` case). The fix is the next turn.\n",
+          "promptMeta": {
+            "sha256": "355c15a76aa4933a56d12bc9cb832e6a43e98d86820065b3046eb52e137950ff",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/example-local-fix/prompts/01-reproduce.md"
+            }
+          },
+          "workspace": {
+            "kind": "omc-fixture",
+            "repo": ".",
+            "startPath": "test/benchmarks/session-strategies/example-local-fix/start",
+            "referencePath": "test/benchmarks/session-strategies/example-local-fix/reference/src/parse-range.mjs",
+            "writeScope": [
+              "test/benchmarks/session-strategies/example-local-fix/src/"
+            ]
+          },
+          "acceptance": {
+            "spec": "test/benchmarks/plans/acceptance/e2-example-local-fix.json",
+            "specPath": "test/benchmarks/plans/acceptance/e2-example-local-fix.json",
+            "specSha256": "63401c017ae6863a3df044f472fa7f2ecead6700f558a6934baf9ce70ab61ce5",
+            "command": [
+              "node",
+              "test/benchmarks/plans/acceptance/e2-check.mjs",
+              "test/benchmarks/session-strategies/example-local-fix"
+            ],
+            "acceptanceFiles": [
+              "test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs",
+              "test/benchmarks/session-strategies/example-local-fix/spec.json",
+              "test/benchmarks/session-strategies/example-local-fix/start/src/parse-range.mjs",
+              "test/benchmarks/session-strategies/example-local-fix/reference/src/parse-range.mjs"
+            ],
+            "forbidChanges": [
+              "test/benchmarks/session-strategies/example-local-fix/acceptance/",
+              "test/benchmarks/session-strategies/example-local-fix/spec.json",
+              "test/benchmarks/session-strategies/example-local-fix/start/",
+              "test/benchmarks/session-strategies/example-local-fix/reference/"
+            ],
+            "gradingSha256": "8bd59f8d994b613594c6f02782ea013af64c8239d843d148f8122c2ff9eb4c06",
+            "fixtureSpec": "test/benchmarks/session-strategies/example-local-fix/spec.json"
+          },
+          "kind": "chain",
+          "chain": [
+            {
+              "id": "reproduce-inclusive-range",
+              "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/example-local-fix/`.\n- Create `test/benchmarks/session-strategies/example-local-fix/src/` by copying\n  `test/benchmarks/session-strategies/example-local-fix/start/src/` once. Do not\n  edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only reproduces the failure. Do not modify any file. Report exactly\nwhich of the 7 contract cases in the acceptance script fail and what\n`src/parse-range.mjs` currently returns for each failing input (include the\n`\"1-3\"` case). The fix is the next turn.\n",
+              "specGoal": "Run acceptance/check.mjs against start/ and record which of the 7 documented contract cases fail.",
+              "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/example-local-fix/`.\n- Create `test/benchmarks/session-strategies/example-local-fix/src/` by copying\n  `test/benchmarks/session-strategies/example-local-fix/start/src/` once. Do not\n  edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only reproduces the failure. Do not modify any file. Report exactly\nwhich of the 7 contract cases in the acceptance script fail and what\n`src/parse-range.mjs` currently returns for each failing input (include the\n`\"1-3\"` case). The fix is the next turn.\n",
+              "promptMeta": {
+                "sha256": "355c15a76aa4933a56d12bc9cb832e6a43e98d86820065b3046eb52e137950ff",
+                "source": {
+                  "kind": "omc-authored",
+                  "path": "test/benchmarks/session-strategies/example-local-fix/prompts/01-reproduce.md"
+                }
+              }
+            },
+            {
+              "id": "restore-inclusive-range",
+              "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/example-local-fix/` and its working sources\nare in `src/` (created from `start/src` in the previous turn).\n\nFix `test/benchmarks/session-strategies/example-local-fix/src/parse-range.mjs`\nso `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`\nprints `ok 7/7`: inclusive ascending ranges, single values, blank input -> empty\nlist, descending -> `RangeError`, non-numeric -> `TypeError`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes\nand keep the export name `parseRange`.\n",
+              "specGoal": "Change only src/parse-range.mjs so all 7 contract cases pass, keeping the suite untouched.",
+              "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/example-local-fix/` and its working sources\nare in `src/` (created from `start/src` in the previous turn).\n\nFix `test/benchmarks/session-strategies/example-local-fix/src/parse-range.mjs`\nso `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`\nprints `ok 7/7`: inclusive ascending ranges, single values, blank input -> empty\nlist, descending -> `RangeError`, non-numeric -> `TypeError`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes\nand keep the export name `parseRange`.\n",
+              "promptMeta": {
+                "sha256": "1f79bbc4537b01793d5c2321d63a42de1065534957306c963c6c0d68bfb94554",
+                "source": {
+                  "kind": "omc-authored",
+                  "path": "test/benchmarks/session-strategies/example-local-fix/prompts/02-restore.md"
+                }
+              }
+            }
+          ],
+          "provenance": {
+            "experiment": "E2",
+            "dataset": "omc-authored",
+            "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+            "repo": ".",
+            "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+            "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+            "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+            "fixture": "test/benchmarks/session-strategies/example-local-fix",
+            "spec": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+            "specSha256": "d3d4b9c177614ab8d1d05f838f518f4f8ba8c86210c9fd07f7e3794bdc87f48c",
+            "license": {
+              "spdx": "MIT",
+              "path": "LICENSE",
+              "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified",
+            "quarantined": [],
+            "origin": "omc-authored"
+          }
+        },
+        {
+          "id": "should-reuse-module-fix",
+          "revision": "fixture@5b358b7f3410a514",
+          "repo": ".",
+          "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+          "harness": "native",
+          "goal": "Fix the truncate() length bug in a module whose slugify() already works, without regressing slugify.",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-reuse-module-fix/`.\n- Create `test/benchmarks/session-strategies/should-reuse-module-fix/src/` by\n  copying `test/benchmarks/session-strategies/should-reuse-module-fix/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only audits the failure. Do not modify any file. Report which\n`truncate()` cases fail and confirm that the two `slugify()` cases currently\npass, quoting the observed values. The fix is the next turn.\n",
+          "promptMeta": {
+            "sha256": "b0bb5d3b4dc5dd7e0ad6c87c50ebd6d8aeaae6e82c7070d56a3e2a81632c7a7d",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-reuse-module-fix/prompts/01-audit-slugify.md"
+            }
+          },
+          "workspace": {
+            "kind": "omc-fixture",
+            "repo": ".",
+            "startPath": "test/benchmarks/session-strategies/should-reuse-module-fix/start",
+            "referencePath": "test/benchmarks/session-strategies/should-reuse-module-fix/reference/src/text-utils.mjs",
+            "writeScope": [
+              "test/benchmarks/session-strategies/should-reuse-module-fix/src/"
+            ]
+          },
+          "acceptance": {
+            "spec": "test/benchmarks/plans/acceptance/e2-should-reuse-module-fix.json",
+            "specPath": "test/benchmarks/plans/acceptance/e2-should-reuse-module-fix.json",
+            "specSha256": "109346234dfdc32dd201ba4debb194045f1d9f410b88eab86e76603bea27b507",
+            "command": [
+              "node",
+              "test/benchmarks/plans/acceptance/e2-check.mjs",
+              "test/benchmarks/session-strategies/should-reuse-module-fix"
+            ],
+            "acceptanceFiles": [
+              "test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs",
+              "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+              "test/benchmarks/session-strategies/should-reuse-module-fix/start/src/text-utils.mjs",
+              "test/benchmarks/session-strategies/should-reuse-module-fix/reference/src/text-utils.mjs"
+            ],
+            "forbidChanges": [
+              "test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/",
+              "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+              "test/benchmarks/session-strategies/should-reuse-module-fix/start/",
+              "test/benchmarks/session-strategies/should-reuse-module-fix/reference/"
+            ],
+            "gradingSha256": "36a07dd7f1bda4288f6ba3cd40bf284f207916a9a37f1932088f933d5a5156d1",
+            "fixtureSpec": "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json"
+          },
+          "kind": "chain",
+          "chain": [
+            {
+              "id": "audit-slugify",
+              "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-reuse-module-fix/`.\n- Create `test/benchmarks/session-strategies/should-reuse-module-fix/src/` by\n  copying `test/benchmarks/session-strategies/should-reuse-module-fix/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only audits the failure. Do not modify any file. Report which\n`truncate()` cases fail and confirm that the two `slugify()` cases currently\npass, quoting the observed values. The fix is the next turn.\n",
+              "specGoal": "Confirm the existing slugify() assertions pass on the start tree before touching truncate().",
+              "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-reuse-module-fix/`.\n- Create `test/benchmarks/session-strategies/should-reuse-module-fix/src/` by\n  copying `test/benchmarks/session-strategies/should-reuse-module-fix/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only audits the failure. Do not modify any file. Report which\n`truncate()` cases fail and confirm that the two `slugify()` cases currently\npass, quoting the observed values. The fix is the next turn.\n",
+              "promptMeta": {
+                "sha256": "b0bb5d3b4dc5dd7e0ad6c87c50ebd6d8aeaae6e82c7070d56a3e2a81632c7a7d",
+                "source": {
+                  "kind": "omc-authored",
+                  "path": "test/benchmarks/session-strategies/should-reuse-module-fix/prompts/01-audit-slugify.md"
+                }
+              }
+            },
+            {
+              "id": "fix-truncate-length",
+              "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-reuse-module-fix/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nFix only `truncate()` in\n`test/benchmarks/session-strategies/should-reuse-module-fix/src/text-utils.mjs`\nso `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`\nprints `ok 6/6`, including the ellipsis-length, short-text, `max=1` and `max=0`\ncases, while `slugify()` keeps its current behaviour.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+              "specGoal": "Fix only truncate() so the 6-case suite passes without regressing slugify().",
+              "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-reuse-module-fix/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nFix only `truncate()` in\n`test/benchmarks/session-strategies/should-reuse-module-fix/src/text-utils.mjs`\nso `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`\nprints `ok 6/6`, including the ellipsis-length, short-text, `max=1` and `max=0`\ncases, while `slugify()` keeps its current behaviour.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+              "promptMeta": {
+                "sha256": "e45eea62d237ce10fe86b55ad4ce223573f9f98218f972cedebd1ab90a212cad",
+                "source": {
+                  "kind": "omc-authored",
+                  "path": "test/benchmarks/session-strategies/should-reuse-module-fix/prompts/02-fix-truncate.md"
+                }
+              }
+            }
+          ],
+          "provenance": {
+            "experiment": "E2",
+            "dataset": "omc-authored",
+            "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+            "repo": ".",
+            "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+            "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+            "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+            "fixture": "test/benchmarks/session-strategies/should-reuse-module-fix",
+            "spec": "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+            "specSha256": "5b358b7f3410a514c722b245ca9d4a1d759383c9164c89adae44e208838e890e",
+            "license": {
+              "spdx": "MIT",
+              "path": "LICENSE",
+              "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified",
+            "quarantined": [],
+            "origin": "omc-authored"
+          }
+        },
+        {
+          "id": "should-restart-stale-api",
+          "revision": "fixture@ad3c97518313affe",
+          "repo": ".",
+          "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+          "harness": "native",
+          "goal": "Migrate a caller that still uses the removed synchronous settings loader to the current async contract, without resurrecting the old API.",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-restart-stale-api/`.\n- Create `test/benchmarks/session-strategies/should-restart-stale-api/src/` by\n  copying `test/benchmarks/session-strategies/should-restart-stale-api/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only detects the stale context. Do not modify any file. Report the\nimport/loader error, confirm that `loadConfigSync` no longer exists anywhere in\n`src/`, and name the async replacement exported by `src/config.mjs`. The\nmigration is the next turn.\n",
+          "promptMeta": {
+            "sha256": "b888f9543ef9840170714fa5a48f73909a3fcd9ed724da043fa7e2c16d3d1b7f",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-restart-stale-api/prompts/01-detect-removed-loader.md"
+            }
+          },
+          "workspace": {
+            "kind": "omc-fixture",
+            "repo": ".",
+            "startPath": "test/benchmarks/session-strategies/should-restart-stale-api/start",
+            "referencePath": "test/benchmarks/session-strategies/should-restart-stale-api/reference/src/read-settings.mjs",
+            "writeScope": [
+              "test/benchmarks/session-strategies/should-restart-stale-api/src/"
+            ]
+          },
+          "acceptance": {
+            "spec": "test/benchmarks/plans/acceptance/e2-should-restart-stale-api.json",
+            "specPath": "test/benchmarks/plans/acceptance/e2-should-restart-stale-api.json",
+            "specSha256": "282fb96c0970b2b05a7bd16f2fb1ca911f2ff6ff3dcc34a6b5db5e20018895e4",
+            "command": [
+              "node",
+              "test/benchmarks/plans/acceptance/e2-check.mjs",
+              "test/benchmarks/session-strategies/should-restart-stale-api"
+            ],
+            "acceptanceFiles": [
+              "test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs",
+              "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+              "test/benchmarks/session-strategies/should-restart-stale-api/start/src/config.mjs",
+              "test/benchmarks/session-strategies/should-restart-stale-api/start/src/read-settings.mjs",
+              "test/benchmarks/session-strategies/should-restart-stale-api/reference/src/read-settings.mjs"
+            ],
+            "forbidChanges": [
+              "test/benchmarks/session-strategies/should-restart-stale-api/acceptance/",
+              "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+              "test/benchmarks/session-strategies/should-restart-stale-api/start/",
+              "test/benchmarks/session-strategies/should-restart-stale-api/reference/"
+            ],
+            "gradingSha256": "85ba2b90af07443b0ee36d1cd8f1e1acbdbaa494d4e9294de2d4e91e1b5710ac",
+            "fixtureSpec": "test/benchmarks/session-strategies/should-restart-stale-api/spec.json"
+          },
+          "kind": "chain",
+          "chain": [
+            {
+              "id": "detect-removed-sync-loader",
+              "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-restart-stale-api/`.\n- Create `test/benchmarks/session-strategies/should-restart-stale-api/src/` by\n  copying `test/benchmarks/session-strategies/should-restart-stale-api/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only detects the stale context. Do not modify any file. Report the\nimport/loader error, confirm that `loadConfigSync` no longer exists anywhere in\n`src/`, and name the async replacement exported by `src/config.mjs`. The\nmigration is the next turn.\n",
+              "specGoal": "Run the suite against start/ and confirm the synchronous settings loader no longer exists.",
+              "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-restart-stale-api/`.\n- Create `test/benchmarks/session-strategies/should-restart-stale-api/src/` by\n  copying `test/benchmarks/session-strategies/should-restart-stale-api/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only detects the stale context. Do not modify any file. Report the\nimport/loader error, confirm that `loadConfigSync` no longer exists anywhere in\n`src/`, and name the async replacement exported by `src/config.mjs`. The\nmigration is the next turn.\n",
+              "promptMeta": {
+                "sha256": "b888f9543ef9840170714fa5a48f73909a3fcd9ed724da043fa7e2c16d3d1b7f",
+                "source": {
+                  "kind": "omc-authored",
+                  "path": "test/benchmarks/session-strategies/should-restart-stale-api/prompts/01-detect-removed-loader.md"
+                }
+              }
+            },
+            {
+              "id": "migrate-caller-to-async",
+              "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-restart-stale-api/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nMigrate `test/benchmarks/session-strategies/should-restart-stale-api/src/read-settings.mjs`\nto the current async contract so\n`node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`\nprints `ok 5/5`: `readSettings` is async, reads JSON from disk, applies defaults\nfor missing keys and for a missing file, and the removed synchronous name\n`loadConfigSync` does not appear anywhere in `src/`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+              "specGoal": "Rewrite only the caller against the current async loader; do not resurrect the removed name.",
+              "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-restart-stale-api/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nMigrate `test/benchmarks/session-strategies/should-restart-stale-api/src/read-settings.mjs`\nto the current async contract so\n`node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`\nprints `ok 5/5`: `readSettings` is async, reads JSON from disk, applies defaults\nfor missing keys and for a missing file, and the removed synchronous name\n`loadConfigSync` does not appear anywhere in `src/`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+              "promptMeta": {
+                "sha256": "17e41c76a027405d8f950f60c27d673e80afecaa5e1f692ac42faf02916a9dd9",
+                "source": {
+                  "kind": "omc-authored",
+                  "path": "test/benchmarks/session-strategies/should-restart-stale-api/prompts/02-migrate-caller.md"
+                }
+              }
+            }
+          ],
+          "provenance": {
+            "experiment": "E2",
+            "dataset": "omc-authored",
+            "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+            "repo": ".",
+            "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+            "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+            "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+            "fixture": "test/benchmarks/session-strategies/should-restart-stale-api",
+            "spec": "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+            "specSha256": "ad3c97518313affe2ca082155c4f6b86407a137a8548bff41b34cc62c7a45ac2",
+            "license": {
+              "spdx": "MIT",
+              "path": "LICENSE",
+              "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified",
+            "quarantined": [],
+            "origin": "omc-authored"
+          }
+        }
+      ],
+      "prerequisite": {
+        "id": "omc-session-primer",
+        "revision": "fixture@359e8b957031e1ab",
+        "repo": ".",
+        "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+        "harness": "native",
+        "goal": "Make summariseTasks() deterministic: reject non-arrays and missing ids, normalise ids/statuses, sort by id and join with newlines, so the same task list always produces the same brief.",
+        "prompt": "# Shared prerequisite prompt (E2 session primer)\n\nYou are starting a fresh coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The fixture lives at `test/benchmarks/prerequisites/session-primer/`.\n- Create `test/benchmarks/prerequisites/session-primer/src/` by copying\n  `test/benchmarks/prerequisites/session-primer/start/src/` once. Do not edit\n  anything under `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/prerequisites/session-primer/acceptance/check.mjs`.\n  It exits 1 and prints the failing rows.\n- Fix `test/benchmarks/prerequisites/session-primer/src/session-brief.mjs` so\n  the same task list always produces the same brief:\n  - a non-array argument throws `TypeError`;\n  - an entry without a non-empty string `id` throws `TypeError`;\n  - ids are trimmed, statuses are trimmed and lower-cased;\n  - a missing status becomes an empty status (row is `\"id: \"`);\n  - rows are sorted by id and joined with exactly one newline;\n  - an empty list yields the empty string.\n- Re-run the same command until it prints `ok 6/6`.\n\nDo not edit the grader or the spec. This is the shared warm-up turn: the session\nstrategy continues afterwards with the real E2 tasks, so leave the workspace\nclean and the passing suite in place.\n",
+        "promptMeta": {
+          "sha256": "3eb27031a35192f2111ae0f0ecd7cebfa520e27eabf3968287eb77efa91237fe",
+          "source": {
+            "kind": "omc-authored",
+            "path": "test/benchmarks/prerequisites/session-primer/prompt.md"
+          }
+        },
+        "workspace": {
+          "kind": "omc-fixture",
+          "repo": ".",
+          "startPath": "test/benchmarks/prerequisites/session-primer/start",
+          "referencePath": "test/benchmarks/prerequisites/session-primer/reference/src/session-brief.mjs",
+          "writeScope": [
+            "test/benchmarks/prerequisites/session-primer/src/"
+          ]
+        },
+        "acceptance": {
+          "spec": "test/benchmarks/plans/acceptance/e2-session-primer.json",
+          "specPath": "test/benchmarks/plans/acceptance/e2-session-primer.json",
+          "specSha256": "8b37653fe4db3a05dc0fc6445286836e8f4ff4704601d0a6957775e668e3cd64",
+          "command": [
+            "node",
+            "test/benchmarks/plans/acceptance/e2-check.mjs",
+            "test/benchmarks/prerequisites/session-primer"
+          ],
+          "acceptanceFiles": [
+            "test/benchmarks/prerequisites/session-primer/acceptance/check.mjs",
+            "test/benchmarks/prerequisites/session-primer/spec.json",
+            "test/benchmarks/prerequisites/session-primer/start/src/session-brief.mjs",
+            "test/benchmarks/prerequisites/session-primer/reference/src/session-brief.mjs"
+          ],
+          "forbidChanges": [
+            "test/benchmarks/prerequisites/session-primer/acceptance/",
+            "test/benchmarks/prerequisites/session-primer/spec.json",
+            "test/benchmarks/prerequisites/session-primer/start/",
+            "test/benchmarks/prerequisites/session-primer/reference/"
+          ],
+          "gradingSha256": "e4cf015004ef69011cfb7edb758d0254ae285884674e6626aa63078fcc5201bf",
+          "fixtureSpec": "test/benchmarks/prerequisites/session-primer/spec.json"
+        },
+        "provenance": {
+          "experiment": "E2",
+          "dataset": "omc-authored",
+          "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+          "repo": ".",
+          "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+          "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+          "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+          "fixture": "test/benchmarks/prerequisites/session-primer",
+          "spec": "test/benchmarks/prerequisites/session-primer/spec.json",
+          "specSha256": "359e8b957031e1ab4d817690966b819685af60fc6703b032b580ae5ae3d97977",
+          "license": {
+            "spdx": "MIT",
+            "path": "LICENSE",
+            "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+          },
+          "importedAt": "2026-11-04T05:10:07Z",
+          "status": "verified",
+          "quarantined": [],
+          "origin": "omc-authored",
+          "purpose": "Shared E2 prerequisite: one warm-session primer run once per arm before that arm's first trial. It is real graded work but is not counted as a trial, so it does not change the 4/2/3 task counts.",
+          "countedAsTrial": false
+        }
+      },
+      "conditions": {
+        "provider": "kimi-coding",
+        "model": "k3.1-pro",
+        "reviewerProvider": "kimi-coding",
+        "reviewerModel": "kimi-for-coding",
+        "harness": "native",
+        "toolsetDigest": "761bc27b2053a183b24d6ee170f48ad20ee6c1bc98d83301fe8f27d81fa1e011",
+        "budgetDigest": "a8cdd6a674309c23d5f87675a21d6a9f1e08a594329f043c27b6caf7e14d51c0",
+        "evaluatorVersion": "omc-acceptance-runner@1",
+        "environmentDigest": "4f2160304d644e1f97a7145bbf0cb3230015483f7bb290914c495cd4b00041ee",
+        "promptDigest": "bb9b9e13d98c80542b873de614c371924ec6303c6d969030cfc92a4054f65912",
+        "cacheRegime": "cold",
+        "executionStatus": "not-executed",
+        "modelSelected": true,
+        "harnessSelected": true,
+        "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
+      },
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "policyVersions": {
+        "reuse_compact": "session=reuse_compact@omc-native-v1",
+        "fresh_handoff": "session=fresh_handoff@omc-native-v1",
+        "adaptive": "session=adaptive@omc-native-v1"
+      },
+      "optimizerCostUsd": {
+        "reuse_compact": 0,
+        "fresh_handoff": 0,
+        "adaptive": 0
+      },
+      "promotion": {
+        "candidate": "adaptive",
+        "reference": "reuse_compact",
+        "minTasks": 30,
+        "minRepeats": 2,
+        "minCostReduction": 0.1,
+        "maxQualityLoss": 0,
+        "maxLatencyIncrease": 0.05
+      },
+      "assignments": [
+        {
+          "trialId": "3713f89c306729c7191f3297",
+          "taskId": "example-local-fix",
+          "repeat": 0,
+          "strategy": "fresh_handoff",
+          "arm": "fresh_handoff"
+        },
+        {
+          "trialId": "bbf70c686a9ecdb3ed3faebc",
+          "taskId": "example-local-fix",
+          "repeat": 0,
+          "strategy": "adaptive",
+          "arm": "adaptive"
+        },
+        {
+          "trialId": "0597f45ffbbf30facbbf4fab",
+          "taskId": "example-local-fix",
+          "repeat": 0,
+          "strategy": "reuse_compact",
+          "arm": "reuse_compact"
+        },
+        {
+          "trialId": "bf24437e347675eed791bec6",
+          "taskId": "should-restart-stale-api",
+          "repeat": 0,
+          "strategy": "fresh_handoff",
+          "arm": "fresh_handoff"
+        },
+        {
+          "trialId": "febd4f847dcf2fd467f7a3dd",
+          "taskId": "should-restart-stale-api",
+          "repeat": 0,
+          "strategy": "reuse_compact",
+          "arm": "reuse_compact"
+        },
+        {
+          "trialId": "7f452e5c7735a57bdaecae16",
+          "taskId": "should-restart-stale-api",
+          "repeat": 0,
+          "strategy": "adaptive",
+          "arm": "adaptive"
+        },
+        {
+          "trialId": "95a785752da5200053b174d0",
+          "taskId": "should-reuse-module-fix",
+          "repeat": 0,
+          "strategy": "fresh_handoff",
+          "arm": "fresh_handoff"
+        },
+        {
+          "trialId": "d88bd24ae41c5e193b94ae00",
+          "taskId": "should-reuse-module-fix",
+          "repeat": 0,
+          "strategy": "adaptive",
+          "arm": "adaptive"
+        },
+        {
+          "trialId": "abe419a397c2b6be33ba816d",
+          "taskId": "should-reuse-module-fix",
+          "repeat": 0,
+          "strategy": "reuse_compact",
+          "arm": "reuse_compact"
+        }
+      ],
+      "prerequisiteTrials": [
+        {
+          "trialId": "de89c099fb7feee915b00e5c",
+          "taskId": "omc-session-primer",
+          "repeat": null,
+          "strategy": "reuse_compact",
+          "arm": "reuse_compact",
+          "role": "prerequisite",
+          "countedAsTrial": false
+        },
+        {
+          "trialId": "e422e97d68949c7feec0f5c0",
+          "taskId": "omc-session-primer",
+          "repeat": null,
+          "strategy": "fresh_handoff",
+          "arm": "fresh_handoff",
+          "role": "prerequisite",
+          "countedAsTrial": false
+        },
+        {
+          "trialId": "b601745a5ebbc4b15ef9a46c",
+          "taskId": "omc-session-primer",
+          "repeat": null,
+          "strategy": "adaptive",
+          "arm": "adaptive",
+          "role": "prerequisite",
+          "countedAsTrial": false
+        }
+      ],
+      "digest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f"
+    },
+    "observational": false
+  },
+  "records": [
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "3713f89c306729c7191f3297",
+      "policyVersion": "session=fresh_handoff@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:example-local-fix:30edc6815ece13f83e2f596f9dd901104fb61425f1cf08abc1bd8427308261ae",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 6,
+      "attempts": 4,
+      "humanInterventions": 0,
+      "elapsedMs": 107901,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": {
+        "execution": "completed",
+        "calls": 18,
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        },
+        "elapsedMs": 231919,
+        "taskId": "omc-session-primer",
+        "trialId": "e422e97d68949c7feec0f5c0",
+        "repeat": null,
+        "role": "prerequisite",
+        "countedAsTrial": false,
+        "arm": "fresh_handoff"
+      },
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "3713f89c306729c7191f3297",
+      "benchmarkTaskId": "example-local-fix",
+      "repeat": 0,
+      "strategy": "fresh_handoff",
+      "parentId": "omc-trial-f56fb3fc-57bf-440c-9bdb-1796fe67b64c",
+      "startedAt": "2026-11-04T16:06:29.530Z",
+      "endedAt": "2026-11-04T16:08:17.431Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-3713f89c306729c7191f3297-writer-63549704 ran one turn",
+        "native child omc-trial-3713f89c306729c7191f3297-writer-a636e2f4 ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "prerequisite.costUsd",
+        "prerequisite.usage.uncachedInputTokens",
+        "prerequisite.usage.cacheReadTokens",
+        "prerequisite.usage.cacheWriteTokens",
+        "prerequisite.usage.outputTokens",
+        "usage.uncachedInputTokens",
+        "usage.cacheReadTokens",
+        "usage.cacheWriteTokens",
+        "usage.outputTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 3713f89c306729c7191f3297 ran frozen benchmark task example-local-fix; both ids are recorded",
+        "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-3713f89c306729c7191f3297-writer-63549704 ran one turn, native child omc-trial-3713f89c306729c7191f3297-writer-a636e2f4 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "bbf70c686a9ecdb3ed3faebc",
+      "policyVersion": "session=adaptive@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:example-local-fix:5c6635da8394c2741e5c72ee8dbd0c354e38486cb330e75ed5114fafd4eaf949",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 16,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 247636,
+      "usage": {
+        "uncachedInputTokens": 11824,
+        "cacheReadTokens": 308480,
+        "cacheWriteTokens": null,
+        "outputTokens": 5772
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": {
+        "execution": "completed",
+        "calls": 14,
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        },
+        "elapsedMs": 219270,
+        "taskId": "omc-session-primer",
+        "trialId": "b601745a5ebbc4b15ef9a46c",
+        "repeat": null,
+        "role": "prerequisite",
+        "countedAsTrial": false,
+        "arm": "adaptive"
+      },
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "bbf70c686a9ecdb3ed3faebc",
+      "benchmarkTaskId": "example-local-fix",
+      "repeat": 0,
+      "strategy": "adaptive",
+      "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+      "startedAt": "2026-11-04T13:32:39.945Z",
+      "endedAt": "2026-11-04T13:36:47.581Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn",
+        "session:resume",
+        "native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "prerequisite.costUsd",
+        "prerequisite.usage.uncachedInputTokens",
+        "prerequisite.usage.cacheReadTokens",
+        "prerequisite.usage.cacheWriteTokens",
+        "prerequisite.usage.outputTokens",
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task bbf70c686a9ecdb3ed3faebc ran frozen benchmark task example-local-fix; both ids are recorded",
+        "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn, session:resume, native child omc-trial-bbf70c686a9ecdb3ed3faebc-writer-001bf5d3 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "0597f45ffbbf30facbbf4fab",
+      "policyVersion": "session=reuse_compact@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:example-local-fix:7c3ec65cd0c60669c96274574eeb671928c23ef8daf2a52024b88faf8d4170e1",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 15,
+      "attempts": 4,
+      "humanInterventions": 0,
+      "elapsedMs": 223446,
+      "usage": {
+        "uncachedInputTokens": 10836,
+        "cacheReadTokens": 279040,
+        "cacheWriteTokens": null,
+        "outputTokens": 5979
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": {
+        "execution": "completed",
+        "calls": 23,
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        },
+        "elapsedMs": 554127,
+        "taskId": "omc-session-primer",
+        "trialId": "de89c099fb7feee915b00e5c",
+        "repeat": null,
+        "role": "prerequisite",
+        "countedAsTrial": false,
+        "arm": "reuse_compact"
+      },
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "0597f45ffbbf30facbbf4fab",
+      "benchmarkTaskId": "example-local-fix",
+      "repeat": 0,
+      "strategy": "reuse_compact",
+      "parentId": "omc-trial-bcc6be54-6f1c-47c7-a5a6-7cebaff1fcdd",
+      "startedAt": "2026-11-04T13:46:02.914Z",
+      "endedAt": "2026-11-04T13:49:46.360Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn",
+        "session:resume",
+        "native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "prerequisite.costUsd",
+        "prerequisite.usage.uncachedInputTokens",
+        "prerequisite.usage.cacheReadTokens",
+        "prerequisite.usage.cacheWriteTokens",
+        "prerequisite.usage.outputTokens",
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 0597f45ffbbf30facbbf4fab ran frozen benchmark task example-local-fix; both ids are recorded",
+        "the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn, session:resume, native child omc-trial-0597f45ffbbf30facbbf4fab-writer-574ba173 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "bf24437e347675eed791bec6",
+      "policyVersion": "session=fresh_handoff@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:should-restart-stale-api:8435b0825bfd70fa5dc4648616aaf39ee5704575fd0adbc96f39c8869a322330",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 13,
+      "attempts": 4,
+      "humanInterventions": 0,
+      "elapsedMs": 107839,
+      "usage": {
+        "uncachedInputTokens": 13378,
+        "cacheReadTokens": 252160,
+        "cacheWriteTokens": null,
+        "outputTokens": 5758
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "bf24437e347675eed791bec6",
+      "benchmarkTaskId": "should-restart-stale-api",
+      "repeat": 0,
+      "strategy": "fresh_handoff",
+      "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+      "startedAt": "2026-11-04T16:08:29.855Z",
+      "endedAt": "2026-11-04T16:10:17.694Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-bf24437e347675eed791bec6-writer-a4871c53 ran one turn",
+        "native child omc-trial-bf24437e347675eed791bec6-writer-e416724e ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task bf24437e347675eed791bec6 ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+        "the shared prerequisite for arm fresh_handoff is a single execution (trial 3713f89c306729c7191f3297); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-bf24437e347675eed791bec6-writer-a4871c53 ran one turn, native child omc-trial-bf24437e347675eed791bec6-writer-e416724e ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "febd4f847dcf2fd467f7a3dd",
+      "policyVersion": "session=reuse_compact@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:should-restart-stale-api:84eb2aac92fb79b26c78633121dddf770c2e9c1b8fe537f3d2688ca14cbeb8da",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 13,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 236691,
+      "usage": {
+        "uncachedInputTokens": 13225,
+        "cacheReadTokens": 275968,
+        "cacheWriteTokens": null,
+        "outputTokens": 6112
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "febd4f847dcf2fd467f7a3dd",
+      "benchmarkTaskId": "should-restart-stale-api",
+      "repeat": 0,
+      "strategy": "reuse_compact",
+      "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+      "startedAt": "2026-11-04T13:52:29.480Z",
+      "endedAt": "2026-11-04T13:56:26.171Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn",
+        "session:resume",
+        "native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task febd4f847dcf2fd467f7a3dd ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+        "the shared prerequisite for arm reuse_compact is a single execution (trial 0597f45ffbbf30facbbf4fab); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn, session:resume, native child omc-trial-febd4f847dcf2fd467f7a3dd-writer-70ddcb17 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "7f452e5c7735a57bdaecae16",
+      "policyVersion": "session=adaptive@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:should-restart-stale-api:bb08f8c83328b64f43d8adb921a6330054248538f417e45fa3e1188e2918695a",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 20,
+      "attempts": 4,
+      "humanInterventions": 0,
+      "elapsedMs": 240952,
+      "usage": {
+        "uncachedInputTokens": 16951,
+        "cacheReadTokens": 432896,
+        "cacheWriteTokens": null,
+        "outputTokens": 9335
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "7f452e5c7735a57bdaecae16",
+      "benchmarkTaskId": "should-restart-stale-api",
+      "repeat": 0,
+      "strategy": "adaptive",
+      "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+      "startedAt": "2026-11-04T13:56:26.754Z",
+      "endedAt": "2026-11-04T14:00:27.706Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn",
+        "session:resume",
+        "native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 7f452e5c7735a57bdaecae16 ran frozen benchmark task should-restart-stale-api; both ids are recorded",
+        "the shared prerequisite for arm adaptive is a single execution (trial bbf70c686a9ecdb3ed3faebc); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn, session:resume, native child omc-trial-7f452e5c7735a57bdaecae16-writer-3965e5bf ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "95a785752da5200053b174d0",
+      "policyVersion": "session=fresh_handoff@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "failed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:should-reuse-module-fix:79f47f1a04a1c793fc09ed4b29f2bdbc10463b06b89359a2eda088c25dbe6f79",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 12,
+      "attempts": 3,
+      "humanInterventions": 0,
+      "elapsedMs": 201242,
+      "usage": {
+        "uncachedInputTokens": 9427,
+        "cacheReadTokens": 217088,
+        "cacheWriteTokens": null,
+        "outputTokens": 4554
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": null,
+      "status": "completed",
+      "observedAcceptance": "failed",
+      "taskId": "95a785752da5200053b174d0",
+      "benchmarkTaskId": "should-reuse-module-fix",
+      "repeat": 0,
+      "strategy": "fresh_handoff",
+      "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+      "startedAt": "2026-11-04T16:10:28.344Z",
+      "endedAt": "2026-11-04T16:13:49.586Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-95a785752da5200053b174d0-writer-37541ce4 ran one turn",
+        "native child omc-trial-95a785752da5200053b174d0-writer-a37ae746 ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 95a785752da5200053b174d0 ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+        "the shared prerequisite for arm fresh_handoff is a single execution (trial 3713f89c306729c7191f3297); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-95a785752da5200053b174d0-writer-37541ce4 ran one turn, native child omc-trial-95a785752da5200053b174d0-writer-a37ae746 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "d88bd24ae41c5e193b94ae00",
+      "policyVersion": "session=adaptive@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:should-reuse-module-fix:53ace4243f443cece1744e318d5999d80fccb28e2c6b32c612af2eba09aa6d71",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 18,
+      "attempts": 3,
+      "humanInterventions": 0,
+      "elapsedMs": 147658,
+      "usage": {
+        "uncachedInputTokens": 11586,
+        "cacheReadTokens": 334592,
+        "cacheWriteTokens": null,
+        "outputTokens": 4932
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "d88bd24ae41c5e193b94ae00",
+      "benchmarkTaskId": "should-reuse-module-fix",
+      "repeat": 0,
+      "strategy": "adaptive",
+      "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+      "startedAt": "2026-11-04T14:04:17.991Z",
+      "endedAt": "2026-11-04T14:06:45.649Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn",
+        "session:resume",
+        "native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task d88bd24ae41c5e193b94ae00 ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+        "the shared prerequisite for arm adaptive is a single execution (trial bbf70c686a9ecdb3ed3faebc); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn, session:resume, native child omc-trial-d88bd24ae41c5e193b94ae00-writer-c88f3a19 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+      "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
+      "dataKind": "live",
+      "trialId": "abe419a397c2b6be33ba816d",
+      "policyVersion": "session=reuse_compact@omc-native-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:should-reuse-module-fix:1c6363f6cb5147ad36d52270db4fadd3c1e13866637880734a22ae4d5ce9ba72",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 14,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 193319,
+      "usage": {
+        "uncachedInputTokens": 11742,
+        "cacheReadTokens": 271616,
+        "cacheWriteTokens": null,
+        "outputTokens": 4461
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "prerequisite": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "abe419a397c2b6be33ba816d",
+      "benchmarkTaskId": "should-reuse-module-fix",
+      "repeat": 0,
+      "strategy": "reuse_compact",
+      "parentId": "omc-trial-a5504f67-30a1-4a77-a91f-14307e67e11a",
+      "startedAt": "2026-11-04T14:06:46.287Z",
+      "endedAt": "2026-11-04T14:09:59.606Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn",
+        "session:resume",
+        "native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task abe419a397c2b6be33ba816d ran frozen benchmark task should-reuse-module-fix; both ids are recorded",
+        "the shared prerequisite for arm reuse_compact is a single execution (trial 0597f45ffbbf30facbbf4fab); this trial does not repeat it or its cost",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions session:new-packet, native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn, session:resume, native child omc-trial-abe419a397c2b6be33ba816d-writer-75710666 ran one turn are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    }
+  ]
+}

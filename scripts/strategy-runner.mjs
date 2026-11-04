@@ -446,15 +446,16 @@ function outcomePatch(outcome, { manifest, task }) {
  * the runner must never fall back to this repository's HEAD when the frozen
  * plan names another commit.
  */
-async function verifyFrozenRefs(ctx, { manifest, repo }) {
+async function verifyFrozenRefs(ctx, { manifest, repo, workspaceRoot = null }) {
   const problems = []
   const resolvedBases = new Map()
   const tasks = [...manifest.tasks, ...(manifest.prerequisite ? [manifest.prerequisite] : [])]
   for (const task of tasks) {
     if (!task.repo && !task.baseCommit) continue
-    const target = task.repo ?? repo
+    const targetRaw = task.repo ?? repo
+    const target = isAbsolute(targetRaw) ? targetRaw : resolve(workspaceRoot ?? repo, targetRaw)
     if (!isAbsolute(target)) {
-      problems.push({ code: 'OMC/WORKTREE-REPO', detail: `task ${task.id}: repo is not an absolute path: ${target}` })
+      problems.push({ code: 'OMC/WORKTREE-REPO', detail: `task ${task.id}: repo is not resolvable: ${targetRaw}` })
       continue
     }
     if (task.baseCommit) {
@@ -516,6 +517,11 @@ export async function executePlan({
   runTrial = defaultRunTrial,
   repo = process.cwd(),
   onlyTrialIds = null,
+  worktreeOverride = null,
+  onlyStepIds = null,
+  handoff = null,
+  skipPrerequisites = false,
+  workspaceRoot = null,
   now = () => new Date().toISOString(),
 } = {}) {
   const plan = planExperiment({ document, maxUsd })
@@ -535,7 +541,10 @@ export async function executePlan({
       return { ok: false, code: MANIFEST_INVALID, problems: ['onlyTrialIds must be a non-empty array when supplied'], plan, receipt: null }
     }
     const wanted = new Set(onlyTrialIds.filter((id) => typeof id === 'string' && id !== ''))
-    const known = new Set(manifest.assignments.map((row) => row.trialId))
+    const known = new Set([
+      ...manifest.assignments.map((row) => row.trialId),
+      ...(manifest.prerequisiteTrials ?? []).map((row) => row.trialId),
+    ])
     const unknown = [...wanted].filter((id) => !known.has(id))
     if (unknown.length) {
       return { ok: false, code: MANIFEST_INVALID, problems: [`onlyTrialIds names unknown trial(s): ${unknown.join(', ')}`], plan, receipt: null }
@@ -557,7 +566,7 @@ export async function executePlan({
     }
   }
 
-  const frozen = await verifyFrozenRefs(ctx, { manifest, repo })
+  const frozen = await verifyFrozenRefs(ctx, { manifest, repo, workspaceRoot })
   if (frozen.problems.length) {
     return {
       ok: false,
@@ -591,7 +600,9 @@ export async function executePlan({
   const runPrerequisite = async (arm) => {
     const task = manifest.prerequisite
     const frozenTrial = (manifest.prerequisiteTrials ?? []).find((row) => row.strategy === arm) ?? null
-    const effectiveRepo = task.repo ?? repo
+    const effectiveRepo = task.repo
+      ? (isAbsolute(task.repo) ? task.repo : resolve(workspaceRoot ?? repo, task.repo))
+      : repo
     const base = resolvedBases.get(task.id) ?? task.baseCommit ?? 'HEAD'
     const remainingUsd = Math.max(0, effectiveTotalUsd - spentUsd)
     const perTrialUsd = Math.min(Number(budget.perTrialUsd), remainingUsd)
@@ -656,6 +667,8 @@ export async function executePlan({
         },
         manifest,
         plan,
+        ...(onlyStepIds ? { onlyStepIds } : {}),
+        ...(handoff ? { handoff } : {}),
       })
     } catch (error) {
       prerequisites.push({ ...baseRow, stage: 'executor', ok: false, code: error?.code ?? EXECUTOR_FAILED, detail: error?.message ?? String(error) })
@@ -676,7 +689,7 @@ export async function executePlan({
       aborted = stop
       break
     }
-    if (manifest.prerequisite && !completedPrerequisites.has(assignment.strategy)) {
+    if (!skipPrerequisites && manifest.prerequisite && !completedPrerequisites.has(assignment.strategy)) {
       completedPrerequisites.add(assignment.strategy)
       if (!(await runPrerequisite(assignment.strategy))) break
       const afterPrerequisite = stopReason(assignment.trialId)
@@ -701,15 +714,40 @@ export async function executePlan({
       aborted = { code: MANIFEST_INVALID, detail: `frozen allocation names an unknown task: ${assignment.taskId}` }
       break
     }
-    const effectiveRepo = task.repo ?? repo
+    const effectiveRepo = task.repo
+      ? (isAbsolute(task.repo) ? task.repo : resolve(workspaceRoot ?? repo, task.repo))
+      : repo
     const base = resolvedBases.get(task.id) ?? task.baseCommit ?? 'HEAD'
     const remainingUsd = Math.max(0, effectiveTotalUsd - spentUsd)
     const perTrialUsd = Math.min(Number(budget.perTrialUsd), remainingUsd)
-    const worktree = await createTaskWorktree(ctx, {
-      repo: effectiveRepo,
-      name: `${manifest.experimentId}-${assignment.strategy}-${assignment.taskId}-${assignment.repeat}`,
-      base,
-    })
+    let worktree
+    if (worktreeOverride) {
+      const path = typeof worktreeOverride?.path === 'string' ? resolve(worktreeOverride.path) : null
+      if (!path || !existsSync(path)) {
+        results.push({
+          ...receiptBaseRow({ manifest, assignment, task, resolvedBase: base }),
+          stage: 'worktree',
+          ok: false,
+          code: 'OMC/WORKTREE-RECOVERY',
+          detail: `the recovery worktree does not exist: ${String(path)}`,
+        })
+        aborted = { code: 'OMC/WORKTREE-RECOVERY', detail: `the recovery worktree does not exist: ${String(path)}` }
+        break
+      }
+      worktree = {
+        ok: true,
+        path,
+        branch: worktreeOverride.branch ?? null,
+        baseCommit: worktreeOverride.baseCommit ?? task.baseCommit ?? base,
+        repositoryRoot: worktreeOverride.repositoryRoot ?? effectiveRepo,
+      }
+    } else {
+      worktree = await createTaskWorktree(ctx, {
+        repo: effectiveRepo,
+        name: `${manifest.experimentId}-${assignment.strategy}-${assignment.taskId}-${assignment.repeat}`,
+        base,
+      })
+    }
     if (!worktree.ok) {
       results.push({
         ...receiptBaseRow({ manifest, assignment, task, resolvedBase: base }),
@@ -763,6 +801,8 @@ export async function executePlan({
         },
         manifest,
         plan,
+        ...(onlyStepIds ? { onlyStepIds } : {}),
+        ...(handoff ? { handoff } : {}),
       })
     } catch (error) {
       results.push({

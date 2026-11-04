@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-pilot-blocked",
+  "at": "2026-11-04T13:30:00.000Z",
+  "group": "E2",
+  "authorizedScope": {
+    "trials": 9,
+    "prerequisites": 3,
+    "maxUsd": 12,
+    "perTrialUsd": 2,
+    "concurrency": 1,
+    "manifest": "test/benchmarks/plans/e2.json",
+    "receipt": "docs/evidence/v0.8/e2-receipt.json"
+  },
+  "blockedBy": {
+    "classification": "infrastructure: fresh_handoff native session-id reuse",
+    "exactError": "session \"omc-trial-<trialId>-writer-<id>\" already exists",
+    "affectedTrials": [
+      "3713f89c306729c7191f3297",
+      "bf24437e347675eed791bec6",
+      "95a785752da5200053b174d0"
+    ],
+    "detail": "For fresh_handoff, native dispatch created a new child but reused the prior state's sessionId because the ID expression fell back to sessionState.sessionId when not resuming. The host rejected the duplicate session before the second turn; no acceptance pass was claimed.",
+    "fixApplied": "src/index.js now generates a fresh sessionId whenever the step is not a legal resume. Existing offline tests pass; the E2 run above is not retroactively repaired.",
+    "notRetried": true
+  },
+  "observed": {
+    "trials": 9,
+    "completedPassed": 6,
+    "failed": 3,
+    "reuse_compact": { "assigned": 3, "passed": 3 },
+    "adaptive": { "assigned": 3, "passed": 3 },
+    "fresh_handoff": { "assigned": 3, "passed": 0, "failed": 3, "cause": "infrastructure" },
+    "prerequisites": 3,
+    "prerequisiteExecution": "completed",
+    "prerequisiteAcceptance": "passed"
+  },
+  "usageObserved": {
+    "trialCallsFromReceipt": 123,
+    "prerequisiteCalls": null,
+    "costUsd": null,
+    "costKnown": false,
+    "note": "Cost is null/unknown; spentUsd=0 in the host summary is not a zero-cost claim."
+  },
+  "e1Recovered": {
+    "receipt": "docs/evidence/v0.8/e1-receipt.json",
+    "records": "docs/evidence/v0.8/e1-records.json",
+    "report": "docs/evidence/v0.8/e1-report.json",
+    "trials": 12,
+    "uniqueTrialIds": 12,
+    "completedAcceptancePassed": 12,
+    "recovery": "11 completed trials were re-graded with zero model calls using a baseline reconstructed from the frozen base commit; the watchdog tail was one new attempt.",
+    "note": "Recovered receipt is labelled recovered=true; post-hoc acceptance baseline source is reconstructed-from-frozen-base, not the original in-memory timestamp."
+  },
+  "e3": {
+    "executed": false,
+    "reason": "Stopped after an E2 infrastructure failure as instructed; E3 must not start."
+  },
+  "evidence": {
+    "e1Receipt": "docs/evidence/v0.8/e1-receipt.json",
+    "e1RecoveryPrepared": "docs/evidence/v0.8/e1-recovery-prepared.json",
+    "e1RecoveryTail": "docs/evidence/v0.8/e1-recovery-tail.json",
+    "e2Receipt": "docs/evidence/v0.8/e2-receipt.json",
+    "e2Records": "docs/evidence/v0.8/e2-records.json",
+    "e2Report": "docs/evidence/v0.8/e2-report.json",
+    "e2Stdout": "docs/evidence/v0.8/e2.stdout.log",
+    "e2Stderr": "docs/evidence/v0.8/e2.stderr.log"
+  },
+  "fullRunDecision": {
+    "canContinue": false,
+    "reason": "E2 has three infrastructure-failed fresh_handoff trials. The fix is in place, but a recovery run would repeat those frozen conditions and needs explicit operator authorization; E3 is not started."
+  }
+}

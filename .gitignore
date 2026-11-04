@@ -6,6 +6,7 @@ Thumbs.db
 # local diagnostics, never shipped
 .acl-report/
 .ops/
+.agents/
 .wsl-out.txt
 .wsl-err.txt
 *.env

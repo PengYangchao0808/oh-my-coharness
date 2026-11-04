@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "kind": "session-strategy-trial-receipt",
+  "runnerVersion": 1,
+  "experimentId": "omc-0.8-e1-latitude-12",
+  "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+  "experimentGroup": "E1",
+  "group": "E1",
+  "arms": [
+    "single",
+    "same-model-multi-role",
+    "different-model-multi-role"
+  ],
+  "dataKind": "live",
+  "split": "development",
+  "model": "k3.1-pro",
+  "concurrency": 1,
+  "deadline": "2026-12-31T23:59:59.000Z",
+  "budgetCaps": {
+    "totalUsd": 12,
+    "perTrialUsd": 2,
+    "maxUsdFromCli": 2,
+    "effectiveTotalUsd": 2
+  },
+  "tasks": [
+    {
+      "taskId": "upstream-latitude-02-lru-cache",
+      "revision": "fixture@87ac5eec9fa76dcf",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/02-lru-cache",
+        "spec": "test/benchmarks/imported/latitude-dev/02-lru-cache/spec.json",
+        "specSha256": "87ac5eec9fa76dcf599aef896a364ba9092ec28e0c48e4fe2452ff59a570103e",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      },
+      "kind": "single-turn"
+    },
+    {
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "revision": "fixture@f62a165a9201ea3d",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/04-rate-limiter",
+        "spec": "test/benchmarks/imported/latitude-dev/04-rate-limiter/spec.json",
+        "specSha256": "f62a165a9201ea3d9b4be328f7483aa2ed98703109c9ed54a679f9041fc71815",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      },
+      "kind": "single-turn"
+    },
+    {
+      "taskId": "upstream-latitude-14-event-bus",
+      "revision": "fixture@3b58b9e18466d622",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/14-event-bus",
+        "spec": "test/benchmarks/imported/latitude-dev/14-event-bus/spec.json",
+        "specSha256": "3b58b9e18466d622d4124bb528544c1e43782f53182cfc28a9cdcdb323c2083c",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      },
+      "kind": "single-turn"
+    },
+    {
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "revision": "fixture@a96b805e722f4d63",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/16-task-scheduler",
+        "spec": "test/benchmarks/imported/latitude-dev/16-task-scheduler/spec.json",
+        "specSha256": "a96b805e722f4d634670f997af94d26bd3c78468f021eec103c99e385213bf3c",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      },
+      "kind": "single-turn"
+    }
+  ],
+  "startedAt": "2026-11-04T13:19:05.937Z",
+  "executionScope": {
+    "mode": "subset",
+    "onlyTrialIds": [
+      "6a1a1f66c85885f9fb77854a"
+    ],
+    "totalAssignments": 12,
+    "partial": true,
+    "note": "A smoke/subset run: the frozen allocation was not executed in full, so this receipt must not be promoted as a complete experiment."
+  },
+  "aborted": null,
+  "trials": [
+    {
+      "trialId": "6a1a1f66c85885f9fb77854a",
+      "taskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@3b58b9e18466d622",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": "omc/omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw252m9q",
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "executed",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:4867cc6401a439f584e88398c4a092ca16e9c58fe9e6d14ed5674061d20683ca",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8 ran one turn",
+        "session:new-packet",
+        "native child omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839 ran one turn",
+        "read-only reviewer"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "calls": 24,
+      "observedModel": null,
+      "collectionCoverage": "partial",
+      "unknownCost": true,
+      "unknownCalls": false,
+      "sessionDecision": {
+        "action": "new-packet",
+        "ruleId": "S01-independent-review",
+        "reasons": [
+          "independent review: a fresh packet is required; reusing the implementing session would make the review dependent on the work it checks"
+        ],
+        "options": [
+          "resume",
+          "restart",
+          "new-packet"
+        ],
+        "roleId": "reviewer",
+        "stepId": "role-reviewer",
+        "stepIndex": 1,
+        "actualAction": "new-packet",
+        "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839",
+        "rulesVersion": 1,
+        "features": {
+          "hasPriorWorker": true,
+          "childBusy": false,
+          "sameModule": true,
+          "constraintsMatch": true,
+          "routeMatch": false,
+          "permissionMatch": false,
+          "workspaceMatch": true,
+          "factsStale": false,
+          "failureUnclear": false,
+          "independentReview": true,
+          "contextOverLimit": false
+        },
+        "capabilities": {
+          "compactAvailable": false
+        }
+      },
+      "models": [
+        "kimi-coding/k3.1-pro",
+        "kimi-coding/kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/14-event-bus/workspace/src/once.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8",
+          "sessionAction": "new-packet",
+          "actualAction": "new-packet",
+          "provider": "kimi-coding",
+          "model": "kimi-coding/k3.1-pro",
+          "changedFiles": [
+            "tasks/14-event-bus/workspace/src/once.js"
+          ]
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839",
+          "sessionAction": "new-packet",
+          "actualAction": "new-packet",
+          "provider": "kimi-coding",
+          "model": "kimi-coding/kimi-for-coding",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "route": {
+            "provider": "kimi-coding",
+            "model": "k3.1-pro"
+          }
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "route": {
+            "provider": "kimi-coding",
+            "model": "kimi-for-coding"
+          }
+        }
+      ],
+      "sessionDecisions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8"
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839"
+        }
+      ],
+      "chainSteps": [],
+      "startedAt": "2026-11-04T13:14:57.780Z",
+      "endedAt": "2026-11-04T13:19:05.936Z",
+      "worktree": {
+        "path": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw252m9q",
+        "branch": "omc/omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw252m9q",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488"
+      }
+    }
+  ],
+  "unknownCostTrials": 1,
+  "unknownCost": true,
+  "limitations": [
+    "This receipt records what the runner passed to the executor; it does not prove the executor stayed inside the cap.",
+    "Trial outcomes here are the executor-reported ones; integration/trial-collector.js is what turns them into evaluator records from the execution store and usage ledger.",
+    "Unknown cost/calls are recorded as null, never as 0, and an unknown cost never supports a promotion conclusion.",
+    "No trial result implies strategy promotion; that decision belongs to the offline evaluator."
+  ]
+}

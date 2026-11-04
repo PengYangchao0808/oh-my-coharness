@@ -1,0 +1,416 @@
+{
+  "schemaVersion": 1,
+  "kind": "session-strategy-trial-receipt",
+  "runnerVersion": 1,
+  "experimentId": "omc-0.8-e2-session-9",
+  "experimentDigest": "e033acbc4123c258a97f9d5a09a046b6bbe73b61da457367733563a614f2ad8f",
+  "experimentGroup": "E2",
+  "group": "E2",
+  "arms": [
+    "reuse_compact",
+    "fresh_handoff",
+    "adaptive"
+  ],
+  "dataKind": "live",
+  "split": "development",
+  "model": "k3.1-pro",
+  "concurrency": 1,
+  "deadline": "2026-12-31T23:59:59.000Z",
+  "budgetCaps": {
+    "totalUsd": 12,
+    "perTrialUsd": 2,
+    "maxUsdFromCli": 2,
+    "effectiveTotalUsd": 2
+  },
+  "prerequisite": {
+    "id": "omc-session-primer",
+    "revision": "fixture@359e8b957031e1ab",
+    "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+    "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+    "harness": "native",
+    "goal": "Make summariseTasks() deterministic: reject non-arrays and missing ids, normalise ids/statuses, sort by id and join with newlines, so the same task list always produces the same brief.",
+    "prompt": "# Shared prerequisite prompt (E2 session primer)\n\nYou are starting a fresh coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The fixture lives at `test/benchmarks/prerequisites/session-primer/`.\n- Create `test/benchmarks/prerequisites/session-primer/src/` by copying\n  `test/benchmarks/prerequisites/session-primer/start/src/` once. Do not edit\n  anything under `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/prerequisites/session-primer/acceptance/check.mjs`.\n  It exits 1 and prints the failing rows.\n- Fix `test/benchmarks/prerequisites/session-primer/src/session-brief.mjs` so\n  the same task list always produces the same brief:\n  - a non-array argument throws `TypeError`;\n  - an entry without a non-empty string `id` throws `TypeError`;\n  - ids are trimmed, statuses are trimmed and lower-cased;\n  - a missing status becomes an empty status (row is `\"id: \"`);\n  - rows are sorted by id and joined with exactly one newline;\n  - an empty list yields the empty string.\n- Re-run the same command until it prints `ok 6/6`.\n\nDo not edit the grader or the spec. This is the shared warm-up turn: the session\nstrategy continues afterwards with the real E2 tasks, so leave the workspace\nclean and the passing suite in place.\n",
+    "promptMeta": {
+      "sha256": "3eb27031a35192f2111ae0f0ecd7cebfa520e27eabf3968287eb77efa91237fe",
+      "source": {
+        "kind": "omc-authored",
+        "path": "test/benchmarks/prerequisites/session-primer/prompt.md"
+      }
+    },
+    "workspace": {
+      "kind": "omc-fixture",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "startPath": "test/benchmarks/prerequisites/session-primer/start",
+      "referencePath": "test/benchmarks/prerequisites/session-primer/reference/src/session-brief.mjs",
+      "writeScope": [
+        "test/benchmarks/prerequisites/session-primer/src/"
+      ]
+    },
+    "acceptance": {
+      "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-session-primer.json",
+      "specPath": "test/benchmarks/plans/acceptance/e2-session-primer.json",
+      "specSha256": "7bd009c56208e945b8a03bb98b584ea3dd92964dbc12278419f87af278fd8e73",
+      "command": [
+        "node",
+        "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs",
+        "test/benchmarks/prerequisites/session-primer"
+      ],
+      "acceptanceFiles": [
+        "test/benchmarks/prerequisites/session-primer/acceptance/check.mjs",
+        "test/benchmarks/prerequisites/session-primer/spec.json",
+        "test/benchmarks/prerequisites/session-primer/start/src/session-brief.mjs",
+        "test/benchmarks/prerequisites/session-primer/reference/src/session-brief.mjs"
+      ],
+      "forbidChanges": [
+        "test/benchmarks/prerequisites/session-primer/acceptance/",
+        "test/benchmarks/prerequisites/session-primer/spec.json",
+        "test/benchmarks/prerequisites/session-primer/start/",
+        "test/benchmarks/prerequisites/session-primer/reference/"
+      ],
+      "gradingSha256": "e4cf015004ef69011cfb7edb758d0254ae285884674e6626aa63078fcc5201bf",
+      "fixtureSpec": "test/benchmarks/prerequisites/session-primer/spec.json"
+    },
+    "provenance": {
+      "experiment": "E2",
+      "dataset": "omc-authored",
+      "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+      "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+      "fixture": "test/benchmarks/prerequisites/session-primer",
+      "spec": "test/benchmarks/prerequisites/session-primer/spec.json",
+      "specSha256": "359e8b957031e1ab4d817690966b819685af60fc6703b032b580ae5ae3d97977",
+      "license": {
+        "spdx": "MIT",
+        "path": "LICENSE",
+        "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+      },
+      "importedAt": "2026-11-04T05:10:07Z",
+      "status": "verified",
+      "quarantined": [],
+      "origin": "omc-authored",
+      "purpose": "Shared E2 prerequisite: one warm-session primer run once per arm before that arm's first trial. It is real graded work but is not counted as a trial, so it does not change the 4/2/3 task counts.",
+      "countedAsTrial": false
+    }
+  },
+  "tasks": [
+    {
+      "taskId": "example-local-fix",
+      "revision": "fixture@d3d4b9c177614ab8",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "provenance": {
+        "experiment": "E2",
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+        "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+        "fixture": "test/benchmarks/session-strategies/example-local-fix",
+        "spec": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+        "specSha256": "d3d4b9c177614ab8d1d05f838f518f4f8ba8c86210c9fd07f7e3794bdc87f48c",
+        "license": {
+          "spdx": "MIT",
+          "path": "LICENSE",
+          "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "omc-authored"
+      },
+      "kind": "chain",
+      "chain": [
+        {
+          "id": "reproduce-inclusive-range",
+          "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/example-local-fix/`.\n- Create `test/benchmarks/session-strategies/example-local-fix/src/` by copying\n  `test/benchmarks/session-strategies/example-local-fix/start/src/` once. Do not\n  edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only reproduces the failure. Do not modify any file. Report exactly\nwhich of the 7 contract cases in the acceptance script fail and what\n`src/parse-range.mjs` currently returns for each failing input (include the\n`\"1-3\"` case). The fix is the next turn.\n",
+          "specGoal": "Run acceptance/check.mjs against start/ and record which of the 7 documented contract cases fail.",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/example-local-fix/`.\n- Create `test/benchmarks/session-strategies/example-local-fix/src/` by copying\n  `test/benchmarks/session-strategies/example-local-fix/start/src/` once. Do not\n  edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only reproduces the failure. Do not modify any file. Report exactly\nwhich of the 7 contract cases in the acceptance script fail and what\n`src/parse-range.mjs` currently returns for each failing input (include the\n`\"1-3\"` case). The fix is the next turn.\n",
+          "promptMeta": {
+            "sha256": "355c15a76aa4933a56d12bc9cb832e6a43e98d86820065b3046eb52e137950ff",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/example-local-fix/prompts/01-reproduce.md"
+            }
+          }
+        },
+        {
+          "id": "restore-inclusive-range",
+          "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/example-local-fix/` and its working sources\nare in `src/` (created from `start/src` in the previous turn).\n\nFix `test/benchmarks/session-strategies/example-local-fix/src/parse-range.mjs`\nso `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`\nprints `ok 7/7`: inclusive ascending ranges, single values, blank input -> empty\nlist, descending -> `RangeError`, non-numeric -> `TypeError`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes\nand keep the export name `parseRange`.\n",
+          "specGoal": "Change only src/parse-range.mjs so all 7 contract cases pass, keeping the suite untouched.",
+          "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/example-local-fix/` and its working sources\nare in `src/` (created from `start/src` in the previous turn).\n\nFix `test/benchmarks/session-strategies/example-local-fix/src/parse-range.mjs`\nso `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`\nprints `ok 7/7`: inclusive ascending ranges, single values, blank input -> empty\nlist, descending -> `RangeError`, non-numeric -> `TypeError`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes\nand keep the export name `parseRange`.\n",
+          "promptMeta": {
+            "sha256": "1f79bbc4537b01793d5c2321d63a42de1065534957306c963c6c0d68bfb94554",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/example-local-fix/prompts/02-restore.md"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "taskId": "should-reuse-module-fix",
+      "revision": "fixture@5b358b7f3410a514",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "provenance": {
+        "experiment": "E2",
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+        "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+        "fixture": "test/benchmarks/session-strategies/should-reuse-module-fix",
+        "spec": "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+        "specSha256": "5b358b7f3410a514c722b245ca9d4a1d759383c9164c89adae44e208838e890e",
+        "license": {
+          "spdx": "MIT",
+          "path": "LICENSE",
+          "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "omc-authored"
+      },
+      "kind": "chain",
+      "chain": [
+        {
+          "id": "audit-slugify",
+          "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-reuse-module-fix/`.\n- Create `test/benchmarks/session-strategies/should-reuse-module-fix/src/` by\n  copying `test/benchmarks/session-strategies/should-reuse-module-fix/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only audits the failure. Do not modify any file. Report which\n`truncate()` cases fail and confirm that the two `slugify()` cases currently\npass, quoting the observed values. The fix is the next turn.\n",
+          "specGoal": "Confirm the existing slugify() assertions pass on the start tree before touching truncate().",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-reuse-module-fix/`.\n- Create `test/benchmarks/session-strategies/should-reuse-module-fix/src/` by\n  copying `test/benchmarks/session-strategies/should-reuse-module-fix/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only audits the failure. Do not modify any file. Report which\n`truncate()` cases fail and confirm that the two `slugify()` cases currently\npass, quoting the observed values. The fix is the next turn.\n",
+          "promptMeta": {
+            "sha256": "b0bb5d3b4dc5dd7e0ad6c87c50ebd6d8aeaae6e82c7070d56a3e2a81632c7a7d",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-reuse-module-fix/prompts/01-audit-slugify.md"
+            }
+          }
+        },
+        {
+          "id": "fix-truncate-length",
+          "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-reuse-module-fix/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nFix only `truncate()` in\n`test/benchmarks/session-strategies/should-reuse-module-fix/src/text-utils.mjs`\nso `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`\nprints `ok 6/6`, including the ellipsis-length, short-text, `max=1` and `max=0`\ncases, while `slugify()` keeps its current behaviour.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "specGoal": "Fix only truncate() so the 6-case suite passes without regressing slugify().",
+          "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-reuse-module-fix/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nFix only `truncate()` in\n`test/benchmarks/session-strategies/should-reuse-module-fix/src/text-utils.mjs`\nso `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`\nprints `ok 6/6`, including the ellipsis-length, short-text, `max=1` and `max=0`\ncases, while `slugify()` keeps its current behaviour.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "promptMeta": {
+            "sha256": "e45eea62d237ce10fe86b55ad4ce223573f9f98218f972cedebd1ab90a212cad",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-reuse-module-fix/prompts/02-fix-truncate.md"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "taskId": "should-restart-stale-api",
+      "revision": "fixture@ad3c97518313affe",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "provenance": {
+        "experiment": "E2",
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+        "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+        "fixture": "test/benchmarks/session-strategies/should-restart-stale-api",
+        "spec": "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+        "specSha256": "ad3c97518313affe2ca082155c4f6b86407a137a8548bff41b34cc62c7a45ac2",
+        "license": {
+          "spdx": "MIT",
+          "path": "LICENSE",
+          "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "omc-authored"
+      },
+      "kind": "chain",
+      "chain": [
+        {
+          "id": "detect-removed-sync-loader",
+          "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-restart-stale-api/`.\n- Create `test/benchmarks/session-strategies/should-restart-stale-api/src/` by\n  copying `test/benchmarks/session-strategies/should-restart-stale-api/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only detects the stale context. Do not modify any file. Report the\nimport/loader error, confirm that `loadConfigSync` no longer exists anywhere in\n`src/`, and name the async replacement exported by `src/config.mjs`. The\nmigration is the next turn.\n",
+          "specGoal": "Run the suite against start/ and confirm the synchronous settings loader no longer exists.",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-restart-stale-api/`.\n- Create `test/benchmarks/session-strategies/should-restart-stale-api/src/` by\n  copying `test/benchmarks/session-strategies/should-restart-stale-api/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only detects the stale context. Do not modify any file. Report the\nimport/loader error, confirm that `loadConfigSync` no longer exists anywhere in\n`src/`, and name the async replacement exported by `src/config.mjs`. The\nmigration is the next turn.\n",
+          "promptMeta": {
+            "sha256": "b888f9543ef9840170714fa5a48f73909a3fcd9ed724da043fa7e2c16d3d1b7f",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-restart-stale-api/prompts/01-detect-removed-loader.md"
+            }
+          }
+        },
+        {
+          "id": "migrate-caller-to-async",
+          "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-restart-stale-api/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nMigrate `test/benchmarks/session-strategies/should-restart-stale-api/src/read-settings.mjs`\nto the current async contract so\n`node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`\nprints `ok 5/5`: `readSettings` is async, reads JSON from disk, applies defaults\nfor missing keys and for a missing file, and the removed synchronous name\n`loadConfigSync` does not appear anywhere in `src/`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "specGoal": "Rewrite only the caller against the current async loader; do not resurrect the removed name.",
+          "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-restart-stale-api/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nMigrate `test/benchmarks/session-strategies/should-restart-stale-api/src/read-settings.mjs`\nto the current async contract so\n`node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`\nprints `ok 5/5`: `readSettings` is async, reads JSON from disk, applies defaults\nfor missing keys and for a missing file, and the removed synchronous name\n`loadConfigSync` does not appear anywhere in `src/`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "promptMeta": {
+            "sha256": "17e41c76a027405d8f950f60c27d673e80afecaa5e1f692ac42faf02916a9dd9",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-restart-stale-api/prompts/02-migrate-caller.md"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "startedAt": "2026-11-04T16:13:49.587Z",
+  "executionScope": {
+    "mode": "subset",
+    "onlyTrialIds": [
+      "95a785752da5200053b174d0"
+    ],
+    "totalAssignments": 9,
+    "partial": true,
+    "note": "A smoke/subset run: the frozen allocation was not executed in full, so this receipt must not be promoted as a complete experiment."
+  },
+  "aborted": null,
+  "trials": [
+    {
+      "trialId": "95a785752da5200053b174d0",
+      "taskId": "should-reuse-module-fix",
+      "repeat": 0,
+      "arm": "fresh_handoff",
+      "strategy": "fresh_handoff",
+      "group": "E2",
+      "policyVersion": "session=fresh_handoff@omc-native-v1",
+      "taskRevision": "fixture@5b358b7f3410a514",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "stage": "executed",
+      "ok": false,
+      "execution": "completed",
+      "acceptance": "failed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:should-reuse-module-fix:79f47f1a04a1c793fc09ed4b29f2bdbc10463b06b89359a2eda088c25dbe6f79",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-95a785752da5200053b174d0-writer-a37ae746 ran one turn"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "calls": 8,
+      "observedModel": "kimi-coding/k3.1-pro",
+      "collectionCoverage": "partial",
+      "unknownCost": true,
+      "unknownCalls": false,
+      "sessionDecision": {
+        "action": "new-packet",
+        "ruleId": "S02-no-prior-worker",
+        "reasons": [
+          "no prior worker for this module/role/route: there is no session to continue"
+        ],
+        "options": [
+          "new-packet"
+        ],
+        "roleId": "writer",
+        "stepId": "fix-truncate-length",
+        "stepIndex": 1,
+        "actualAction": "new-packet",
+        "sessionId": "omc-trial-95a785752da5200053b174d0-writer-a37ae746",
+        "rulesVersion": 1,
+        "features": {
+          "hasPriorWorker": false,
+          "childBusy": false,
+          "sameModule": false,
+          "constraintsMatch": true,
+          "routeMatch": true,
+          "permissionMatch": true,
+          "workspaceMatch": true,
+          "factsStale": false,
+          "failureUnclear": false,
+          "independentReview": false,
+          "contextOverLimit": false
+        },
+        "capabilities": {
+          "compactAvailable": false
+        }
+      },
+      "models": [
+        "kimi-coding/k3.1-pro"
+      ],
+      "changedFiles": [
+        "test/benchmarks/session-strategies/should-reuse-module-fix/src/"
+      ],
+      "steps": [
+        {
+          "stepId": "fix-truncate-length",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "sessionId": "omc-trial-95a785752da5200053b174d0-writer-a37ae746",
+          "sessionAction": "new-packet",
+          "actualAction": "new-packet",
+          "provider": "kimi-coding",
+          "model": "kimi-coding/k3.1-pro",
+          "changedFiles": [
+            "test/benchmarks/session-strategies/should-reuse-module-fix/src/"
+          ]
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "fix-truncate-length",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-95a785752da5200053b174d0-writer-a37ae746",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "route": {
+            "provider": "kimi-coding",
+            "model": "k3.1-pro"
+          }
+        }
+      ],
+      "sessionDecisions": [
+        {
+          "stepId": "fix-truncate-length",
+          "roleId": "writer",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "sessionId": "omc-trial-95a785752da5200053b174d0-writer-a37ae746"
+        }
+      ],
+      "chainSteps": [
+        {
+          "stepId": "fix-truncate-length",
+          "status": "completed"
+        }
+      ],
+      "startedAt": "2026-11-04T16:10:28.344Z",
+      "endedAt": "2026-11-04T16:13:49.586Z",
+      "worktree": {
+        "path": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.agents\\worktrees\\omc-0.8-e2-session-9-fresh_handoff-should-reuse-module-fix-0-mw26p524",
+        "branch": null,
+        "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9"
+      }
+    }
+  ],
+  "prerequisites": [],
+  "unknownCostTrials": 1,
+  "unknownCost": true,
+  "limitations": [
+    "This receipt records what the runner passed to the executor; it does not prove the executor stayed inside the cap.",
+    "Trial outcomes here are the executor-reported ones; integration/trial-collector.js is what turns them into evaluator records from the execution store and usage ledger.",
+    "Unknown cost/calls are recorded as null, never as 0, and an unknown cost never supports a promotion conclusion.",
+    "No trial result implies strategy promotion; that decision belongs to the offline evaluator."
+  ]
+}

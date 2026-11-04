@@ -1,0 +1,625 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "omc-0.8-e2-session-9",
+  "experimentDigest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f",
+  "experimentGroup": "E2",
+  "group": "E2",
+  "arms": [
+    "reuse_compact",
+    "fresh_handoff",
+    "adaptive"
+  ],
+  "dataKind": "live",
+  "split": "development",
+  "conditions": {
+    "provider": "kimi-coding",
+    "model": "k3.1-pro",
+    "reviewerProvider": "kimi-coding",
+    "reviewerModel": "kimi-for-coding",
+    "harness": "native",
+    "toolsetDigest": "761bc27b2053a183b24d6ee170f48ad20ee6c1bc98d83301fe8f27d81fa1e011",
+    "budgetDigest": "a8cdd6a674309c23d5f87675a21d6a9f1e08a594329f043c27b6caf7e14d51c0",
+    "evaluatorVersion": "omc-acceptance-runner@1",
+    "environmentDigest": "4f2160304d644e1f97a7145bbf0cb3230015483f7bb290914c495cd4b00041ee",
+    "promptDigest": "bb9b9e13d98c80542b873de614c371924ec6303c6d969030cfc92a4054f65912",
+    "cacheRegime": "cold",
+    "executionStatus": "not-executed",
+    "modelSelected": true,
+    "harnessSelected": true,
+    "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
+  },
+  "policyVersions": {
+    "reuse_compact": "session=reuse_compact@omc-native-v1",
+    "fresh_handoff": "session=fresh_handoff@omc-native-v1",
+    "adaptive": "session=adaptive@omc-native-v1"
+  },
+  "seed": "omc-0.8-e2-pilot-2026-11-04",
+  "provenance": [
+    {
+      "taskId": "example-local-fix",
+      "revision": "fixture@d3d4b9c177614ab8",
+      "kind": "chain",
+      "chain": [
+        {
+          "id": "reproduce-inclusive-range",
+          "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/example-local-fix/`.\n- Create `test/benchmarks/session-strategies/example-local-fix/src/` by copying\n  `test/benchmarks/session-strategies/example-local-fix/start/src/` once. Do not\n  edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only reproduces the failure. Do not modify any file. Report exactly\nwhich of the 7 contract cases in the acceptance script fail and what\n`src/parse-range.mjs` currently returns for each failing input (include the\n`\"1-3\"` case). The fix is the next turn.\n",
+          "specGoal": "Run acceptance/check.mjs against start/ and record which of the 7 documented contract cases fail.",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/example-local-fix/`.\n- Create `test/benchmarks/session-strategies/example-local-fix/src/` by copying\n  `test/benchmarks/session-strategies/example-local-fix/start/src/` once. Do not\n  edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only reproduces the failure. Do not modify any file. Report exactly\nwhich of the 7 contract cases in the acceptance script fail and what\n`src/parse-range.mjs` currently returns for each failing input (include the\n`\"1-3\"` case). The fix is the next turn.\n",
+          "promptMeta": {
+            "sha256": "355c15a76aa4933a56d12bc9cb832e6a43e98d86820065b3046eb52e137950ff",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/example-local-fix/prompts/01-reproduce.md"
+            }
+          }
+        },
+        {
+          "id": "restore-inclusive-range",
+          "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/example-local-fix/` and its working sources\nare in `src/` (created from `start/src` in the previous turn).\n\nFix `test/benchmarks/session-strategies/example-local-fix/src/parse-range.mjs`\nso `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`\nprints `ok 7/7`: inclusive ascending ranges, single values, blank input -> empty\nlist, descending -> `RangeError`, non-numeric -> `TypeError`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes\nand keep the export name `parseRange`.\n",
+          "specGoal": "Change only src/parse-range.mjs so all 7 contract cases pass, keeping the suite untouched.",
+          "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/example-local-fix/` and its working sources\nare in `src/` (created from `start/src` in the previous turn).\n\nFix `test/benchmarks/session-strategies/example-local-fix/src/parse-range.mjs`\nso `node test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs`\nprints `ok 7/7`: inclusive ascending ranges, single values, blank input -> empty\nlist, descending -> `RangeError`, non-numeric -> `TypeError`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes\nand keep the export name `parseRange`.\n",
+          "promptMeta": {
+            "sha256": "1f79bbc4537b01793d5c2321d63a42de1065534957306c963c6c0d68bfb94554",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/example-local-fix/prompts/02-restore.md"
+            }
+          }
+        }
+      ],
+      "repo": ".",
+      "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "provenance": {
+        "experiment": "E2",
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "repo": ".",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+        "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+        "fixture": "test/benchmarks/session-strategies/example-local-fix",
+        "spec": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+        "specSha256": "d3d4b9c177614ab8d1d05f838f518f4f8ba8c86210c9fd07f7e3794bdc87f48c",
+        "license": {
+          "spdx": "MIT",
+          "path": "LICENSE",
+          "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "omc-authored"
+      }
+    },
+    {
+      "taskId": "should-reuse-module-fix",
+      "revision": "fixture@5b358b7f3410a514",
+      "kind": "chain",
+      "chain": [
+        {
+          "id": "audit-slugify",
+          "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-reuse-module-fix/`.\n- Create `test/benchmarks/session-strategies/should-reuse-module-fix/src/` by\n  copying `test/benchmarks/session-strategies/should-reuse-module-fix/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only audits the failure. Do not modify any file. Report which\n`truncate()` cases fail and confirm that the two `slugify()` cases currently\npass, quoting the observed values. The fix is the next turn.\n",
+          "specGoal": "Confirm the existing slugify() assertions pass on the start tree before touching truncate().",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-reuse-module-fix/`.\n- Create `test/benchmarks/session-strategies/should-reuse-module-fix/src/` by\n  copying `test/benchmarks/session-strategies/should-reuse-module-fix/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only audits the failure. Do not modify any file. Report which\n`truncate()` cases fail and confirm that the two `slugify()` cases currently\npass, quoting the observed values. The fix is the next turn.\n",
+          "promptMeta": {
+            "sha256": "b0bb5d3b4dc5dd7e0ad6c87c50ebd6d8aeaae6e82c7070d56a3e2a81632c7a7d",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-reuse-module-fix/prompts/01-audit-slugify.md"
+            }
+          }
+        },
+        {
+          "id": "fix-truncate-length",
+          "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-reuse-module-fix/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nFix only `truncate()` in\n`test/benchmarks/session-strategies/should-reuse-module-fix/src/text-utils.mjs`\nso `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`\nprints `ok 6/6`, including the ellipsis-length, short-text, `max=1` and `max=0`\ncases, while `slugify()` keeps its current behaviour.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "specGoal": "Fix only truncate() so the 6-case suite passes without regressing slugify().",
+          "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-reuse-module-fix/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nFix only `truncate()` in\n`test/benchmarks/session-strategies/should-reuse-module-fix/src/text-utils.mjs`\nso `node test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs`\nprints `ok 6/6`, including the ellipsis-length, short-text, `max=1` and `max=0`\ncases, while `slugify()` keeps its current behaviour.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "promptMeta": {
+            "sha256": "e45eea62d237ce10fe86b55ad4ce223573f9f98218f972cedebd1ab90a212cad",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-reuse-module-fix/prompts/02-fix-truncate.md"
+            }
+          }
+        }
+      ],
+      "repo": ".",
+      "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "provenance": {
+        "experiment": "E2",
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "repo": ".",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+        "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+        "fixture": "test/benchmarks/session-strategies/should-reuse-module-fix",
+        "spec": "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+        "specSha256": "5b358b7f3410a514c722b245ca9d4a1d759383c9164c89adae44e208838e890e",
+        "license": {
+          "spdx": "MIT",
+          "path": "LICENSE",
+          "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "omc-authored"
+      }
+    },
+    {
+      "taskId": "should-restart-stale-api",
+      "revision": "fixture@ad3c97518313affe",
+      "kind": "chain",
+      "chain": [
+        {
+          "id": "detect-removed-sync-loader",
+          "goal": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-restart-stale-api/`.\n- Create `test/benchmarks/session-strategies/should-restart-stale-api/src/` by\n  copying `test/benchmarks/session-strategies/should-restart-stale-api/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only detects the stale context. Do not modify any file. Report the\nimport/loader error, confirm that `loadConfigSync` no longer exists anywhere in\n`src/`, and name the async replacement exported by `src/config.mjs`. The\nmigration is the next turn.\n",
+          "specGoal": "Run the suite against start/ and confirm the synchronous settings loader no longer exists.",
+          "prompt": "You are starting a real coding session in an isolated git worktree of the OMC\nrepository. Work only inside this worktree.\n\nWorkspace contract (paths are relative to the worktree root):\n\n- The task fixture is `test/benchmarks/session-strategies/should-restart-stale-api/`.\n- Create `test/benchmarks/session-strategies/should-restart-stale-api/src/` by\n  copying `test/benchmarks/session-strategies/should-restart-stale-api/start/src/`\n  once. Do not edit `start/`, `acceptance/`, `reference/` or `spec.json`.\n- Run `node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`.\n  It exits 1.\n\nThis turn only detects the stale context. Do not modify any file. Report the\nimport/loader error, confirm that `loadConfigSync` no longer exists anywhere in\n`src/`, and name the async replacement exported by `src/config.mjs`. The\nmigration is the next turn.\n",
+          "promptMeta": {
+            "sha256": "b888f9543ef9840170714fa5a48f73909a3fcd9ed724da043fa7e2c16d3d1b7f",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-restart-stale-api/prompts/01-detect-removed-loader.md"
+            }
+          }
+        },
+        {
+          "id": "migrate-caller-to-async",
+          "goal": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-restart-stale-api/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nMigrate `test/benchmarks/session-strategies/should-restart-stale-api/src/read-settings.mjs`\nto the current async contract so\n`node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`\nprints `ok 5/5`: `readSettings` is async, reads JSON from disk, applies defaults\nfor missing keys and for a missing file, and the removed synchronous name\n`loadConfigSync` does not appear anywhere in `src/`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "specGoal": "Rewrite only the caller against the current async loader; do not resurrect the removed name.",
+          "prompt": "Continue the same session in the isolated OMC worktree. The task fixture is\n`test/benchmarks/session-strategies/should-restart-stale-api/` and its working\nsources are in `src/` (created from `start/src` in the previous turn).\n\nMigrate `test/benchmarks/session-strategies/should-restart-stale-api/src/read-settings.mjs`\nto the current async contract so\n`node test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs`\nprints `ok 5/5`: `readSettings` is async, reads JSON from disk, applies defaults\nfor missing keys and for a missing file, and the removed synchronous name\n`loadConfigSync` does not appear anywhere in `src/`.\n\nChange only files under that fixture's `src/`. Do not edit `start/`,\n`acceptance/`, `reference/` or `spec.json`. Re-run the command until it passes.\n",
+          "promptMeta": {
+            "sha256": "17e41c76a027405d8f950f60c27d673e80afecaa5e1f692ac42faf02916a9dd9",
+            "source": {
+              "kind": "omc-authored",
+              "path": "test/benchmarks/session-strategies/should-restart-stale-api/prompts/02-migrate-caller.md"
+            }
+          }
+        }
+      ],
+      "repo": ".",
+      "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+      "provenance": {
+        "experiment": "E2",
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "repo": ".",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
+        "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+        "fixture": "test/benchmarks/session-strategies/should-restart-stale-api",
+        "spec": "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+        "specSha256": "ad3c97518313affe2ca082155c4f6b86407a137a8548bff41b34cc62c7a45ac2",
+        "license": {
+          "spdx": "MIT",
+          "path": "LICENSE",
+          "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "omc-authored"
+      }
+    }
+  ],
+  "prerequisite": {
+    "taskId": "omc-session-primer",
+    "revision": "fixture@359e8b957031e1ab",
+    "expected": 3,
+    "recorded": 0,
+    "missing": 3,
+    "duplicateRecords": 0,
+    "wrongArm": [],
+    "wrongTask": [],
+    "calls": null,
+    "costUsd": null,
+    "usage": {
+      "uncachedInputTokens": null,
+      "cacheReadTokens": null,
+      "cacheWriteTokens": null,
+      "outputTokens": null
+    },
+    "arms": [
+      {
+        "arm": "reuse_compact",
+        "declared": true,
+        "carrierTrialId": "0597f45ffbbf30facbbf4fab",
+        "carrierPresent": true,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": true,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      {
+        "arm": "fresh_handoff",
+        "declared": true,
+        "carrierTrialId": "3713f89c306729c7191f3297",
+        "carrierPresent": true,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": true,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      {
+        "arm": "adaptive",
+        "declared": true,
+        "carrierTrialId": "bbf70c686a9ecdb3ed3faebc",
+        "carrierPresent": true,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": true,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      }
+    ]
+  },
+  "unknownCost": {
+    "trials": 9,
+    "optimizerArms": [],
+    "prerequisiteRuns": 0,
+    "prerequisite": true,
+    "prerequisiteUnattributed": false,
+    "any": true
+  },
+  "summaries": {
+    "reuse_compact": {
+      "arm": "reuse_compact",
+      "assignedTrials": 3,
+      "recordedTrials": 3,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 3,
+      "successRate": 1,
+      "taskReliablePasses": 3,
+      "taskCount": 3,
+      "outcomeCounts": {
+        "completed": 3,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": null,
+      "trialCalls": 42,
+      "callsKnown": true,
+      "attempts": 8,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 3,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": true,
+        "carrierTrialId": "0597f45ffbbf30facbbf4fab",
+        "carrierPresent": true,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": true,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 223446,
+        "p95Observed": 235366.5,
+        "reportedTrials": 3
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 35803,
+          "reportedTrials": 3,
+          "total": 35803
+        },
+        "cacheReadTokens": {
+          "knownSum": 826624,
+          "reportedTrials": 3,
+          "total": 826624
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 16552,
+          "reportedTrials": 3,
+          "total": 16552
+        }
+      }
+    },
+    "fresh_handoff": {
+      "arm": "fresh_handoff",
+      "assignedTrials": 3,
+      "recordedTrials": 3,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 2,
+      "successRate": 0.6666666666666666,
+      "taskReliablePasses": 2,
+      "taskCount": 3,
+      "outcomeCounts": {
+        "completed": 3,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": null,
+      "trialCalls": 31,
+      "callsKnown": true,
+      "attempts": 11,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 3,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": true,
+        "carrierTrialId": "3713f89c306729c7191f3297",
+        "carrierPresent": true,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": true,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 107901,
+        "p95Observed": 191907.9,
+        "reportedTrials": 3
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 22805,
+          "reportedTrials": 2,
+          "total": null
+        },
+        "cacheReadTokens": {
+          "knownSum": 469248,
+          "reportedTrials": 2,
+          "total": null
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 10312,
+          "reportedTrials": 2,
+          "total": null
+        }
+      }
+    },
+    "adaptive": {
+      "arm": "adaptive",
+      "assignedTrials": 3,
+      "recordedTrials": 3,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 3,
+      "successRate": 1,
+      "taskReliablePasses": 3,
+      "taskCount": 3,
+      "outcomeCounts": {
+        "completed": 3,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": null,
+      "trialCalls": 54,
+      "callsKnown": true,
+      "attempts": 9,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 3,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": true,
+        "carrierTrialId": "bbf70c686a9ecdb3ed3faebc",
+        "carrierPresent": true,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": true,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 240952,
+        "p95Observed": 246967.6,
+        "reportedTrials": 3
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 40361,
+          "reportedTrials": 3,
+          "total": 40361
+        },
+        "cacheReadTokens": {
+          "knownSum": 1075968,
+          "reportedTrials": 3,
+          "total": 1075968
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 20039,
+          "reportedTrials": 3,
+          "total": 20039
+        }
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "candidate": "fresh_handoff",
+      "reference": "reuse_compact",
+      "complete": true,
+      "costPerAcceptedReduction": {
+        "estimate": null,
+        "low": null,
+        "high": null,
+        "finiteReplicates": 0,
+        "iterations": 1000
+      },
+      "p50ElapsedReduction": {
+        "estimate": 0.5171048038452244,
+        "low": -0.04098407295713313,
+        "high": 0.544389098022316,
+        "finiteReplicates": 1000,
+        "iterations": 1000
+      },
+      "taskReliabilityDifference": {
+        "estimate": -0.3333333333333333,
+        "low": -0.8250185394127486,
+        "high": 0.5757627606902342,
+        "method": "difference of 97.5% marginal Wilson intervals; task is the unit; all repeats must pass"
+      },
+      "bootstrapUnit": "task (all paired repeats and strategies kept together)",
+      "warning": "Intervals describe this frozen task sample; not proof of production generalization or continuous-peeking validity."
+    },
+    {
+      "candidate": "adaptive",
+      "reference": "reuse_compact",
+      "complete": true,
+      "costPerAcceptedReduction": {
+        "estimate": null,
+        "low": null,
+        "high": null,
+        "finiteReplicates": 0,
+        "iterations": 1000
+      },
+      "p50ElapsedReduction": {
+        "estimate": -0.07834555105036567,
+        "low": -0.10825881868549891,
+        "high": 0.23619509722272514,
+        "finiteReplicates": 1000,
+        "iterations": 1000
+      },
+      "taskReliabilityDifference": {
+        "estimate": 0,
+        "low": -0.6261163319162286,
+        "high": 0.6261163319162286,
+        "method": "difference of 97.5% marginal Wilson intervals; task is the unit; all repeats must pass"
+      },
+      "bootstrapUnit": "task (all paired repeats and strategies kept together)",
+      "warning": "Intervals describe this frozen task sample; not proof of production generalization or continuous-peeking validity."
+    }
+  ],
+  "review": {
+    "status": "blocked",
+    "candidate": "adaptive",
+    "reference": "reuse_compact",
+    "automaticActivation": false,
+    "experimentGroup": "E2",
+    "reasons": [
+      "promotion requires an untouched holdout experiment",
+      "insufficient predeclared tasks/repeats",
+      "incomplete collection coverage",
+      "unknown trial/optimizer/prerequisite cost; no settled total may be reported",
+      "shared prerequisite is missing, duplicated, non-terminal, or attributed to the wrong arm/task",
+      "cost reduction lower bound has not reached target",
+      "quality non-inferiority not established",
+      "latency constraint not established"
+    ]
+  },
+  "limitations": [
+    "Offline evaluator only; runtime collection, dispatch, grading, candidate generation and canary/rollback are not installed by this module.",
+    "Digests check declared record consistency; they do not attest that the runtime or grader reported truthfully.",
+    "All costs include parent/children/retries/compaction/grading; optimizer and prerequisite costs are added separately and must not be omitted. Unknown cost is never rendered as $0.",
+    "Do not repeatedly inspect or optimize against holdout results and then reuse the same holdout as fresh evidence."
+  ]
+}

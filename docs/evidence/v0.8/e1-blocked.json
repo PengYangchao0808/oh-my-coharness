@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-pilot-blocked",
+  "at": "2026-11-04T13:06:00.000Z",
+  "group": "E1",
+  "authorizedScope": {
+    "trials": 12,
+    "maxUsd": 12,
+    "perTrialUsd": 2,
+    "concurrency": 1,
+    "manifest": "test/benchmarks/plans/e1.json",
+    "receipt": "docs/evidence/v0.8/e1-receipt.json"
+  },
+  "blockedBy": {
+    "classification": "infrastructure: host-run script watchdog",
+    "exactError": "OMC_TRIAL_HOST_TIMEOUT",
+    "detail": "The independent host script had a 30-minute watchdog. E1 reached the last assignment and was killed before executePlan wrote the receipt; the model run itself was still making progress.",
+    "fixApplied": "scripts/trial-host-run.mjs now uses a 4-hour watchdog for execute runs. The change is not retroactive for this attempt."
+  },
+  "progressAtTimeout": {
+    "assignments": 12,
+    "completedExecutionStates": 11,
+    "runningAtKill": 1,
+    "failedExecutionStates": 0,
+    "receiptWritten": false,
+    "acceptancePersisted": false,
+    "note": "Host Executor acceptance is returned in the receipt/outcome, not persisted in the execution store. No receipt exists, so no E1 acceptance result can be claimed or reconstructed as authoritative."
+  },
+  "usageObserved": {
+    "tasksWithUsage": 12,
+    "calls": 188,
+    "uncachedInputTokens": 216648,
+    "cacheReadTokens": 3531776,
+    "cacheWriteTokens": null,
+    "outputTokens": 60565,
+    "costUsd": null,
+    "costKnown": false,
+    "note": "Token usage is real ledger evidence. Cost remains unknown (null), never 0."
+  },
+  "otherGroups": {
+    "E2": "E2 chain smoke (one reuse_compact assignment) is GREEN; the official E2 9-trial full group was not started.",
+    "E3": "not started."
+  },
+  "e2Smoke": {
+    "receipt": "docs/evidence/v0.8/smoke-e2-chain.json",
+    "execution": "completed",
+    "acceptance": "passed",
+    "calls": 15,
+    "reuse": "step 2 resumed the same writer session",
+    "prerequisite": "one reuse_compact prerequisite completed/passed",
+    "nodes": ["trial-0597f45ffbbf30facbbf4fab-reproduce-inclusive-range", "trial-0597f45ffbbf30facbbf4fab-restore-inclusive-range"],
+    "collector": "docs/evidence/v0.8/smoke-e2-chain-records.json"
+  },
+  "actionsTaken": [
+    "Ran the derived E2 chain smoke first: GREEN, including prerequisite, two ordered chain steps, same-session resume, unique graph nodes, Runner verdict and collector consumption.",
+    "Started full E1 with the authorized desktop profile, node executable and maxUsd=12.",
+    "Stopped after the host watchdog killed the process at 30 minutes; did not start E2/E3 full.",
+    "Did not retry E1: a second full run would repeat the already-executed frozen conditions and spend beyond the single authorized group budget without a reliable receipt.",
+    "Did not widen acceptance or invent a receipt."
+  ],
+  "evidence": {
+    "stdout": "docs/evidence/v0.8/e1.stdout.log",
+    "stderr": "docs/evidence/v0.8/e1.stderr.log",
+    "pidFile": "docs/evidence/v0.8/e1.pid",
+    "e2SmokeReceipt": "docs/evidence/v0.8/smoke-e2-chain.json",
+    "e2SmokeCollector": "docs/evidence/v0.8/smoke-e2-chain-records.json"
+  },
+  "fullRunDecision": {
+    "canContinue": false,
+    "reason": "E1 has no authoritative receipt after an infrastructure timeout. Full E1/E2/E3 must not be continued until the operator authorizes a fresh run (or a defined resume/recovery policy) with the longer watchdog."
+  }
+}

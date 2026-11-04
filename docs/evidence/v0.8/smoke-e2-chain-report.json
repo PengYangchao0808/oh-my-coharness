@@ -1,0 +1,14 @@
+{
+  "complete": false,
+  "problems": [
+    "missing trial for the frozen assignment 3713f89c306729c7191f3297 (taskId example-local-fix, repeat 0, strategy fresh_handoff); absent trials stay in the denominator and block promotion",
+    "missing trial for the frozen assignment bbf70c686a9ecdb3ed3faebc (taskId example-local-fix, repeat 0, strategy adaptive); absent trials stay in the denominator and block promotion",
+    "missing trial for the frozen assignment bf24437e347675eed791bec6 (taskId should-restart-stale-api, repeat 0, strategy fresh_handoff); absent trials stay in the denominator and block promotion",
+    "missing trial for the frozen assignment febd4f847dcf2fd467f7a3dd (taskId should-restart-stale-api, repeat 0, strategy reuse_compact); absent trials stay in the denominator and block promotion",
+    "missing trial for the frozen assignment 7f452e5c7735a57bdaecae16 (taskId should-restart-stale-api, repeat 0, strategy adaptive); absent trials stay in the denominator and block promotion",
+    "missing trial for the frozen assignment 95a785752da5200053b174d0 (taskId should-reuse-module-fix, repeat 0, strategy fresh_handoff); absent trials stay in the denominator and block promotion",
+    "missing trial for the frozen assignment d88bd24ae41c5e193b94ae00 (taskId should-reuse-module-fix, repeat 0, strategy adaptive); absent trials stay in the denominator and block promotion",
+    "missing trial for the frozen assignment abe419a397c2b6be33ba816d (taskId should-reuse-module-fix, repeat 0, strategy reuse_compact); absent trials stay in the denominator and block promotion"
+  ],
+  "note": "A subset/smoke receipt cannot be evaluated as a full frozen experiment; this report is intentionally not a promotion verdict."
+}

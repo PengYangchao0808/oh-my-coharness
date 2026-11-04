@@ -4,7 +4,7 @@
   "commands": [
     {
       "name": "e2-should-restart-stale-api-contract",
-      "run": ["node", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs", "test/benchmarks/session-strategies/should-restart-stale-api"],
+      "run": ["node", "test/benchmarks/plans/acceptance/e2-check.mjs", "test/benchmarks/session-strategies/should-restart-stale-api"],
       "expect": {
         "exitCode": 0,
         "stdoutContains": ["ok 5/5"],

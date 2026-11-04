@@ -1,0 +1,483 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "omc-0.8-e1-latitude-12",
+  "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+  "experimentGroup": "E1",
+  "group": "E1",
+  "arms": [
+    "single",
+    "same-model-multi-role",
+    "different-model-multi-role"
+  ],
+  "dataKind": "live",
+  "split": "development",
+  "conditions": {
+    "provider": "kimi-coding",
+    "model": "k3.1-pro",
+    "reviewerProvider": "kimi-coding",
+    "reviewerModel": "kimi-for-coding",
+    "harness": "native",
+    "toolsetDigest": "8330d613ad7f67b1cafff1fdd643792c840f473cd9d0bf6fef2fb4c189419e6f",
+    "budgetDigest": "a8cdd6a674309c23d5f87675a21d6a9f1e08a594329f043c27b6caf7e14d51c0",
+    "evaluatorVersion": "omc-acceptance-runner@1",
+    "environmentDigest": "e40a8db0a10fc7422627e7ad52264443fa614ea7fe15878a3f9e892d331faff2",
+    "promptDigest": "73f5b1a449a70f36e5852e9128e6885656216b8e0e19ea2fa85dc36884d00db7",
+    "cacheRegime": "cold",
+    "executionStatus": "not-executed",
+    "modelSelected": true,
+    "harnessSelected": true,
+    "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
+  },
+  "policyVersions": {
+    "single": "role=single@native-kimi-k3.1-pro-v1",
+    "same-model-multi-role": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+    "different-model-multi-role": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1"
+  },
+  "seed": "omc-0.8-e1-pilot-2026-11-04",
+  "provenance": [
+    {
+      "taskId": "upstream-latitude-02-lru-cache",
+      "revision": "fixture@87ac5eec9fa76dcf",
+      "kind": "single-turn",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/02-lru-cache",
+        "spec": "test/benchmarks/imported/latitude-dev/02-lru-cache/spec.json",
+        "specSha256": "87ac5eec9fa76dcf599aef896a364ba9092ec28e0c48e4fe2452ff59a570103e",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      }
+    },
+    {
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "revision": "fixture@f62a165a9201ea3d",
+      "kind": "single-turn",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/04-rate-limiter",
+        "spec": "test/benchmarks/imported/latitude-dev/04-rate-limiter/spec.json",
+        "specSha256": "f62a165a9201ea3d9b4be328f7483aa2ed98703109c9ed54a679f9041fc71815",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      }
+    },
+    {
+      "taskId": "upstream-latitude-14-event-bus",
+      "revision": "fixture@3b58b9e18466d622",
+      "kind": "single-turn",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/14-event-bus",
+        "spec": "test/benchmarks/imported/latitude-dev/14-event-bus/spec.json",
+        "specSha256": "3b58b9e18466d622d4124bb528544c1e43782f53182cfc28a9cdcdb323c2083c",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      }
+    },
+    {
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "revision": "fixture@a96b805e722f4d63",
+      "kind": "single-turn",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": {
+        "experiment": "E1",
+        "dataset": "latitude-dev/coding-agent-benchmark",
+        "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+        "fixture": "test/benchmarks/imported/latitude-dev/16-task-scheduler",
+        "spec": "test/benchmarks/imported/latitude-dev/16-task-scheduler/spec.json",
+        "specSha256": "a96b805e722f4d634670f997af94d26bd3c78468f021eec103c99e385213bf3c",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+          "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "quarantined": [],
+        "origin": "upstream"
+      }
+    }
+  ],
+  "prerequisite": null,
+  "unknownCost": {
+    "trials": 12,
+    "optimizerArms": [],
+    "prerequisiteRuns": 0,
+    "prerequisite": false,
+    "prerequisiteUnattributed": false,
+    "any": true
+  },
+  "summaries": {
+    "single": {
+      "arm": "single",
+      "assignedTrials": 4,
+      "recordedTrials": 4,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 4,
+      "successRate": 1,
+      "taskReliablePasses": 4,
+      "taskCount": 4,
+      "outcomeCounts": {
+        "completed": 4,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": 51,
+      "trialCalls": 51,
+      "callsKnown": true,
+      "attempts": 8,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 4,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": false,
+        "carrierTrialId": "50ed3adb042d4df41fa88198",
+        "carrierPresent": false,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": false,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 221229.5,
+        "p95Observed": 233087.19999999998,
+        "reportedTrials": 4
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 40701,
+          "reportedTrials": 4,
+          "total": 40701
+        },
+        "cacheReadTokens": {
+          "knownSum": 954624,
+          "reportedTrials": 4,
+          "total": 954624
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 13531,
+          "reportedTrials": 4,
+          "total": 13531
+        }
+      }
+    },
+    "same-model-multi-role": {
+      "arm": "same-model-multi-role",
+      "assignedTrials": 4,
+      "recordedTrials": 4,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 4,
+      "successRate": 1,
+      "taskReliablePasses": 4,
+      "taskCount": 4,
+      "outcomeCounts": {
+        "completed": 4,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": 64,
+      "trialCalls": 64,
+      "callsKnown": true,
+      "attempts": 10,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 4,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": false,
+        "carrierTrialId": "3b3ef902462782501fca2829",
+        "carrierPresent": false,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": false,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 232458.5,
+        "p95Observed": 311673.94999999995,
+        "reportedTrials": 4
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 100620,
+          "reportedTrials": 4,
+          "total": 100620
+        },
+        "cacheReadTokens": {
+          "knownSum": 1206784,
+          "reportedTrials": 4,
+          "total": 1206784
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 23412,
+          "reportedTrials": 4,
+          "total": 23412
+        }
+      }
+    },
+    "different-model-multi-role": {
+      "arm": "different-model-multi-role",
+      "assignedTrials": 4,
+      "recordedTrials": 4,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 4,
+      "successRate": 1,
+      "taskReliablePasses": 4,
+      "taskCount": 4,
+      "outcomeCounts": {
+        "completed": 4,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": 96,
+      "trialCalls": 96,
+      "callsKnown": true,
+      "attempts": 15,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 4,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": false,
+        "carrierTrialId": "d3d5707fe5d145a06654ba9d",
+        "carrierPresent": false,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": false,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 254894.5,
+        "p95Observed": 281604.6,
+        "reportedTrials": 4
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 98227,
+          "reportedTrials": 4,
+          "total": 98227
+        },
+        "cacheReadTokens": {
+          "knownSum": 1828096,
+          "reportedTrials": 4,
+          "total": 1828096
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 30492,
+          "reportedTrials": 4,
+          "total": 30492
+        }
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "candidate": "same-model-multi-role",
+      "reference": "single",
+      "complete": true,
+      "costPerAcceptedReduction": {
+        "estimate": null,
+        "low": null,
+        "high": null,
+        "finiteReplicates": 0,
+        "iterations": 1000
+      },
+      "p50ElapsedReduction": {
+        "estimate": -0.050757245304084764,
+        "low": -0.4351268109397015,
+        "high": 0.15545159641129813,
+        "finiteReplicates": 1000,
+        "iterations": 1000
+      },
+      "taskReliabilityDifference": {
+        "estimate": 0,
+        "low": -0.5567319980583421,
+        "high": 0.5567319980583421,
+        "method": "difference of 97.5% marginal Wilson intervals; task is the unit; all repeats must pass"
+      },
+      "bootstrapUnit": "task (all paired repeats and strategies kept together)",
+      "warning": "Intervals describe this frozen task sample; not proof of production generalization or continuous-peeking validity."
+    },
+    {
+      "candidate": "different-model-multi-role",
+      "reference": "single",
+      "complete": true,
+      "costPerAcceptedReduction": {
+        "estimate": null,
+        "low": null,
+        "high": null,
+        "finiteReplicates": 0,
+        "iterations": 1000
+      },
+      "p50ElapsedReduction": {
+        "estimate": -0.1521722916699626,
+        "low": -0.8168832160887771,
+        "high": 0.37023983495229085,
+        "finiteReplicates": 1000,
+        "iterations": 1000
+      },
+      "taskReliabilityDifference": {
+        "estimate": 0,
+        "low": -0.5567319980583421,
+        "high": 0.5567319980583421,
+        "method": "difference of 97.5% marginal Wilson intervals; task is the unit; all repeats must pass"
+      },
+      "bootstrapUnit": "task (all paired repeats and strategies kept together)",
+      "warning": "Intervals describe this frozen task sample; not proof of production generalization or continuous-peeking validity."
+    }
+  ],
+  "review": {
+    "status": "blocked",
+    "candidate": "different-model-multi-role",
+    "reference": "single",
+    "automaticActivation": false,
+    "experimentGroup": "E1",
+    "reasons": [
+      "promotion requires an untouched holdout experiment",
+      "insufficient predeclared tasks/repeats",
+      "incomplete collection coverage",
+      "unknown trial/optimizer/prerequisite cost; no settled total may be reported",
+      "cost reduction lower bound has not reached target",
+      "quality non-inferiority not established",
+      "latency constraint not established"
+    ]
+  },
+  "limitations": [
+    "Offline evaluator only; runtime collection, dispatch, grading, candidate generation and canary/rollback are not installed by this module.",
+    "Digests check declared record consistency; they do not attest that the runtime or grader reported truthfully.",
+    "All costs include parent/children/retries/compaction/grading; optimizer and prerequisite costs are added separately and must not be omitted. Unknown cost is never rendered as $0.",
+    "Do not repeatedly inspect or optimize against holdout results and then reuse the same holdout as fresh evidence."
+  ]
+}

@@ -30,19 +30,29 @@ Fixtures, the provenance registry and the frozen experiment plans live here:
 
 ## Executable inputs frozen in the plans
 
+- **Portable paths**: plans never store machine paths. `repo` is
+  workspace-relative (`.ops/benchmark-repos/<dataset>` for E1/E3, `.` for E2),
+  `acceptance.spec` is `test/benchmarks/plans/acceptance/<task>.json`, and
+  acceptance command wrapper paths are workspace-relative too. The trial
+  service resolves them against the workspace and must refuse to start when a
+  required checkout/acceptance file is missing.
 - **Repositories**: E1 and E3 use the verified frozen checkouts under
   `.ops/benchmark-repos/` at `cd28f39…` / `3e9bca9…`; E2 uses the current OMC
-  checkout at `66de9df…`.
+  checkout at `66de9df…`. A checkout is an *input*, not a guarantee: `status:
+  "ready"` means the plan is complete, not that every machine can execute it.
+  `prepareFrozenCheckout` (host/CI step) is required before `--execute`, and CI
+  must use full history (`fetch-depth: 0`) so the frozen base object exists.
 - **Prompts**: every task carries a real prompt string plus
   `promptMeta { sha256, source }`. E1 appends only an execution-workspace
   paragraph to the verbatim upstream `tasks/<id>/prompt.md`; E3 does the same for
   the upstream `CRDT_TASK`/`ORCH_TASK` prompt literal (and pins the module
   sha256/anchor); E2 uses the OMC per-turn prompts, one per chain step, each
   naming the real acceptance command and fixture path.
-- **Acceptance**: each task points at an absolute acceptance JSON document and
-  freezes its sha256, `command`, `acceptanceFiles`, `forbidChanges` and the
-  fixture `gradingSha256`; every frozen worktree-relative file is checked to
-  exist at the base commit.
+- **Acceptance**: each task points at a workspace-relative acceptance JSON
+  document and freezes its sha256, `command`, `acceptanceFiles`,
+  `forbidChanges` and the fixture `gradingSha256`; frozen worktree-relative
+  files are checked against the base commit when the checkout is available and
+  against the vendored bytes otherwise.
 - **Roles**: `manifest.armExecution` (and the document-level
   `execution.armExecution` mirror, because the evaluator drops the field) freezes
   `writer`/`reviewer` with `surface: "native"`, `writer: false`,
@@ -104,7 +114,10 @@ and their own `localDigests`.
   `conditions.modelSelected/harnessSelected` are `true`, but
   `executionStatus` is `not-executed`: no trial has run and no receipt exists.
   A paid execute still needs a host executor (`runTrial()`), which this CLI
-  deliberately does not provide.
+  deliberately does not provide. `ready` also does not promise every machine can
+  execute: without the workspace-relative `.ops/benchmark-repos/...` checkouts
+  the execution preflight must refuse (run `prepareFrozenCheckout` first), and
+  the frozen base objects require a full-history checkout (`fetch-depth: 0`).
 
 ## Verifying
 
@@ -123,10 +136,13 @@ explicit skip when Python is unavailable; the recorded Python floor is still
 checked.
 
 `benchmark-plan.test.mjs` runs `strategy-runner.mjs --plan` against the three
-plans: 12/9/4 trials, deterministic output, one real fixture per trial with its
-`baseCommit`/license/acceptance digest, E2's shared prerequisite (one run per
-arm, not a trial) and ordered chains, and the paid-execute double gate still
-refusing. No model is ever executed.
+plans and verifies the executable inputs. Plans are portable: repositories and
+acceptance specs are workspace-relative. On a CI clone without
+`.ops/benchmark-repos/*` the E1/E3 machine-specific git-object checks are
+reported as diagnostics and skipped (`prepareFrozenCheckout` is required before
+`--execute`); the vendored bytes/git-blob digests, acceptance documents, prompts,
+roles and 25-trial/digest checks still run. E2's `git cat-file`/`git show` checks
+need full history, so CI must use `fetch-depth: 0`.
 
 `benchmark-tasks.test.mjs` covers the C group (including `example-local-fix`).
 

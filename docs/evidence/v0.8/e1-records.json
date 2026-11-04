@@ -1,0 +1,2045 @@
+{
+  "plan": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\e1.json",
+  "receipt": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\docs\\evidence\\v0.8\\e1-receipt.json",
+  "manifestDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+  "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+  "collected": [
+    {
+      "trialId": "d3d5707fe5d145a06654ba9d",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task d3d5707fe5d145a06654ba9d ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "50ed3adb042d4df41fa88198",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 50ed3adb042d4df41fa88198 ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "3b3ef902462782501fca2829",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 3b3ef902462782501fca2829 ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "fb7b862f857955a919b6c2fe",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task fb7b862f857955a919b6c2fe ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "55c09a13941ff93a5be4e0c0",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 55c09a13941ff93a5be4e0c0 ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "2cb37b381236439c4933670b",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 2cb37b381236439c4933670b ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "b791a16999b47a1da07bc9ad",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task b791a16999b47a1da07bc9ad ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "2adc71c32cb9d763557f7561",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 2adc71c32cb9d763557f7561 ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "d5500b57033088c2137c82df",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task d5500b57033088c2137c82df ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "59ee0285d6fdbcec8172ee42",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 59ee0285d6fdbcec8172ee42 ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "2490070d608a3ac860059381",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 2490070d608a3ac860059381 ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "trialId": "6a1a1f66c85885f9fb77854a",
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 6a1a1f66c85885f9fb77854a ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions session:new-packet, native child omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8 ran one turn, session:new-packet, native child omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839 ran one turn, read-only reviewer are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    }
+  ],
+  "export": {
+    "complete": true,
+    "trials": [
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "d3d5707fe5d145a06654ba9d",
+        "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:374d278cea9e9dc903e12ba54460f1eb700733d9a3693bdd85aa1939652c1a76",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 33,
+        "attempts": 5,
+        "humanInterventions": 0,
+        "elapsedMs": 261633,
+        "usage": {
+          "uncachedInputTokens": 40811,
+          "cacheReadTokens": 632320,
+          "cacheWriteTokens": null,
+          "outputTokens": 9710
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "d3d5707fe5d145a06654ba9d",
+        "benchmarkTaskId": "upstream-latitude-04-rate-limiter",
+        "repeat": 0,
+        "strategy": "different-model-multi-role",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:36:05.869Z",
+        "endedAt": "2026-11-04T12:40:27.502Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": null,
+        "models": [
+          "k3.1-pro",
+          "kimi-for-coding"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task d3d5707fe5d145a06654ba9d ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "50ed3adb042d4df41fa88198",
+        "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:b575d69ef42d6267bce3e8c10444dbf076522e7f206b33e0e8695139d7dcdc76",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 10,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 144001,
+        "usage": {
+          "uncachedInputTokens": 8150,
+          "cacheReadTokens": 174848,
+          "cacheWriteTokens": null,
+          "outputTokens": 2853
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "50ed3adb042d4df41fa88198",
+        "benchmarkTaskId": "upstream-latitude-04-rate-limiter",
+        "repeat": 0,
+        "strategy": "single",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:38:44.822Z",
+        "endedAt": "2026-11-04T12:41:08.823Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 50ed3adb042d4df41fa88198 ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "3b3ef902462782501fca2829",
+        "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:d12e6ff3e856c9c18bc691221d670951382af7549ff670b84aed71fbf905397b",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 19,
+        "attempts": 3,
+        "humanInterventions": 0,
+        "elapsedMs": 187861,
+        "usage": {
+          "uncachedInputTokens": 19582,
+          "cacheReadTokens": 337408,
+          "cacheWriteTokens": null,
+          "outputTokens": 5164
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "3b3ef902462782501fca2829",
+        "benchmarkTaskId": "upstream-latitude-04-rate-limiter",
+        "repeat": 0,
+        "strategy": "same-model-multi-role",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:40:37.778Z",
+        "endedAt": "2026-11-04T12:43:45.639Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 3b3ef902462782501fca2829 ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "fb7b862f857955a919b6c2fe",
+        "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:49f9d52798aac38efb6be168cdb506ec50b432c065f364d5e5e99e7b5921122e",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 15,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 235144,
+        "usage": {
+          "uncachedInputTokens": 14538,
+          "cacheReadTokens": 312064,
+          "cacheWriteTokens": null,
+          "outputTokens": 4726
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "fb7b862f857955a919b6c2fe",
+        "benchmarkTaskId": "upstream-latitude-16-task-scheduler",
+        "repeat": 0,
+        "strategy": "single",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:43:46.764Z",
+        "endedAt": "2026-11-04T12:47:41.908Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task fb7b862f857955a919b6c2fe ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "55c09a13941ff93a5be4e0c0",
+        "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:c961a0868b7a4b86972869902f8068f9a2f7977b860aeb68479165875a3da751",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 24,
+        "attempts": 4,
+        "humanInterventions": 0,
+        "elapsedMs": 285129,
+        "usage": {
+          "uncachedInputTokens": 22188,
+          "cacheReadTokens": 468224,
+          "cacheWriteTokens": null,
+          "outputTokens": 8509
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "55c09a13941ff93a5be4e0c0",
+        "benchmarkTaskId": "upstream-latitude-16-task-scheduler",
+        "repeat": 0,
+        "strategy": "different-model-multi-role",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:45:05.615Z",
+        "endedAt": "2026-11-04T12:49:50.744Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": null,
+        "models": [
+          "k3.1-pro",
+          "kimi-for-coding"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 55c09a13941ff93a5be4e0c0 ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "2cb37b381236439c4933670b",
+        "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:81be6e3c6c10eb1e46cfed492d7e7b19e9b87946c7786ba58145afec86220d09",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 12,
+        "attempts": 3,
+        "humanInterventions": 0,
+        "elapsedMs": 277056,
+        "usage": {
+          "uncachedInputTokens": 22657,
+          "cacheReadTokens": 223232,
+          "cacheWriteTokens": null,
+          "outputTokens": 6098
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "2cb37b381236439c4933670b",
+        "benchmarkTaskId": "upstream-latitude-16-task-scheduler",
+        "repeat": 0,
+        "strategy": "same-model-multi-role",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:49:51.954Z",
+        "endedAt": "2026-11-04T12:54:29.010Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 2cb37b381236439c4933670b ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "b791a16999b47a1da07bc9ad",
+        "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:411a1e25dada073549f998d3814d66ddf8d3c2eaca7a87b7e2c2ae22b9913a15",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 15,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 221027,
+        "usage": {
+          "uncachedInputTokens": 10915,
+          "cacheReadTokens": 274176,
+          "cacheWriteTokens": null,
+          "outputTokens": 3609
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "b791a16999b47a1da07bc9ad",
+        "benchmarkTaskId": "upstream-latitude-02-lru-cache",
+        "repeat": 0,
+        "strategy": "single",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:52:41.587Z",
+        "endedAt": "2026-11-04T12:56:22.614Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task b791a16999b47a1da07bc9ad ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "2adc71c32cb9d763557f7561",
+        "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:8938d312261d2041ddde86f982c0a102bfd59fab87feb5c9c7b8d6ae883d1605",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 13,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 186668,
+        "usage": {
+          "uncachedInputTokens": 16752,
+          "cacheReadTokens": 221696,
+          "cacheWriteTokens": null,
+          "outputTokens": 4822
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "2adc71c32cb9d763557f7561",
+        "benchmarkTaskId": "upstream-latitude-02-lru-cache",
+        "repeat": 0,
+        "strategy": "same-model-multi-role",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:54:24.049Z",
+        "endedAt": "2026-11-04T12:57:30.717Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 2adc71c32cb9d763557f7561 ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "d5500b57033088c2137c82df",
+        "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:391e425ff2df937987c83765f66c20169882d169914ed3f383a2bc8f74834d3c",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 15,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 139194,
+        "usage": {
+          "uncachedInputTokens": 11892,
+          "cacheReadTokens": 254976,
+          "cacheWriteTokens": null,
+          "outputTokens": 4990
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "d5500b57033088c2137c82df",
+        "benchmarkTaskId": "upstream-latitude-02-lru-cache",
+        "repeat": 0,
+        "strategy": "different-model-multi-role",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:57:31.767Z",
+        "endedAt": "2026-11-04T12:59:50.961Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": null,
+        "models": [
+          "k3.1-pro",
+          "kimi-for-coding"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task d5500b57033088c2137c82df ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "59ee0285d6fdbcec8172ee42",
+        "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:32633bd8f452a32154c5b3448beaf1c829a11cfe11722191ad4b338bfa5fb9d0",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 11,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 221432,
+        "usage": {
+          "uncachedInputTokens": 7098,
+          "cacheReadTokens": 193536,
+          "cacheWriteTokens": null,
+          "outputTokens": 2343
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "59ee0285d6fdbcec8172ee42",
+        "benchmarkTaskId": "upstream-latitude-14-event-bus",
+        "repeat": 0,
+        "strategy": "single",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T12:59:52.057Z",
+        "endedAt": "2026-11-04T13:03:33.489Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 59ee0285d6fdbcec8172ee42 ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "2490070d608a3ac860059381",
+        "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:759defc4ff4ac6f2ba0fef01bc66a3af13c1f56f4a4d694b78d56e241defb9b0",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 20,
+        "attempts": 2,
+        "humanInterventions": 0,
+        "elapsedMs": 317783,
+        "usage": {
+          "uncachedInputTokens": 41629,
+          "cacheReadTokens": 424448,
+          "cacheWriteTokens": null,
+          "outputTokens": 7328
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "2490070d608a3ac860059381",
+        "benchmarkTaskId": "upstream-latitude-14-event-bus",
+        "repeat": 0,
+        "strategy": "same-model-multi-role",
+        "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+        "startedAt": "2026-11-04T13:00:29.167Z",
+        "endedAt": "2026-11-04T13:05:46.950Z",
+        "interventions": [],
+        "actualActions": [
+          "recovery:post-hoc-acceptance"
+        ],
+        "strategyMismatch": false,
+        "model": "k3.1-pro",
+        "models": [
+          "k3.1-pro"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 2490070d608a3ac860059381 ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      },
+      {
+        "schemaVersion": 1,
+        "collectorVersion": 1,
+        "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+        "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+        "dataKind": "live",
+        "trialId": "6a1a1f66c85885f9fb77854a",
+        "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+        "strategyApplied": true,
+        "execution": "completed",
+        "acceptance": "passed",
+        "evidenceKind": "external-tests",
+        "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:4867cc6401a439f584e88398c4a092ca16e9c58fe9e6d14ed5674061d20683ca",
+        "criticalRegression": false,
+        "falseCompletion": false,
+        "collectionCoverage": "partial",
+        "calls": 24,
+        "attempts": 4,
+        "humanInterventions": 0,
+        "elapsedMs": 248156,
+        "usage": {
+          "uncachedInputTokens": 23336,
+          "cacheReadTokens": 472576,
+          "cacheWriteTokens": null,
+          "outputTokens": 7283
+        },
+        "costUsd": null,
+        "costBasis": "unknown",
+        "costVersion": null,
+        "status": "completed",
+        "observedAcceptance": "passed",
+        "taskId": "6a1a1f66c85885f9fb77854a",
+        "benchmarkTaskId": "upstream-latitude-14-event-bus",
+        "repeat": 0,
+        "strategy": "different-model-multi-role",
+        "parentId": "omc-trial-c7e780be-2edd-4e10-97e7-f767072ee04e",
+        "startedAt": "2026-11-04T13:14:57.780Z",
+        "endedAt": "2026-11-04T13:19:05.936Z",
+        "interventions": [],
+        "actualActions": [
+          "session:new-packet",
+          "native child omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8 ran one turn",
+          "session:new-packet",
+          "native child omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839 ran one turn",
+          "read-only reviewer"
+        ],
+        "strategyMismatch": false,
+        "model": null,
+        "models": [
+          "k3.1-pro",
+          "kimi-for-coding"
+        ],
+        "taskReceipt": null,
+        "incomplete": [
+          "usage.cacheWriteTokens",
+          "costUsd"
+        ],
+        "notes": [
+          "runtime task 6a1a1f66c85885f9fb77854a ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+          "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+          "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+          "actions session:new-packet, native child omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8 ran one turn, session:new-packet, native child omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839 ran one turn, read-only reviewer are outside the known action vocabulary; they are recorded verbatim and not judged"
+        ]
+      }
+    ],
+    "problems": [],
+    "manifest": {
+      "schemaVersion": 1,
+      "experimentId": "omc-0.8-e1-latitude-12",
+      "experimentGroup": "E1",
+      "dataKind": "live",
+      "split": "development",
+      "allocation": "blocked-task-repeat/fisher-yates-xorshift32@1",
+      "seed": "omc-0.8-e1-pilot-2026-11-04",
+      "repeats": 1,
+      "arms": [
+        "single",
+        "same-model-multi-role",
+        "different-model-multi-role"
+      ],
+      "armExecution": {
+        "single": {
+          "roles": [
+            {
+              "id": "writer",
+              "writer": true,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "k3.1-pro"
+            }
+          ]
+        },
+        "same-model-multi-role": {
+          "roles": [
+            {
+              "id": "writer",
+              "writer": true,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "k3.1-pro"
+            },
+            {
+              "id": "reviewer",
+              "writer": false,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "k3.1-pro",
+              "prompt": "You are the read-only reviewer role \"reviewer\". Do not modify any file and do not run write commands.\nInspect the writer's delivered change in the current worktree against the task and the frozen acceptance command.\nReport correctness risks, regressions and missing cases. Your text is not acceptance evidence; the independent Runner decides acceptance."
+            }
+          ]
+        },
+        "different-model-multi-role": {
+          "roles": [
+            {
+              "id": "writer",
+              "writer": true,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "k3.1-pro"
+            },
+            {
+              "id": "reviewer",
+              "writer": false,
+              "surface": "native",
+              "provider": "kimi-coding",
+              "model": "kimi-for-coding",
+              "prompt": "You are the read-only reviewer role \"reviewer\". Do not modify any file and do not run write commands.\nInspect the writer's delivered change in the current worktree against the task and the frozen acceptance command.\nReport correctness risks, regressions and missing cases. Your text is not acceptance evidence; the independent Runner decides acceptance."
+            }
+          ]
+        }
+      },
+      "tasks": [
+        {
+          "id": "upstream-latitude-02-lru-cache",
+          "revision": "fixture@87ac5eec9fa76dcf",
+          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+          "harness": "native",
+          "goal": "Fix the LRU cache in src/lru.js so that reading a key refreshes its recency (upstream prompt: set a,b; get a; set c must evict b, and get a still returns 1) and the frozen upstream suite passes.",
+          "prompt": "# Bug report: LruCache evicts a key that was just read\n\nWe use `LruCache` to cache rendered templates. With a capacity of 2, running\n`set('a', 1)`, `set('b', 2)`, `get('a')`, `set('c', 3)` evicts `a` even though it was\nthe most recently used entry, so `get('a')` afterwards returns `undefined`. The expected\nbehavior is that `b` gets evicted and `get('a')` still returns `1`.\n\nThe test suite in this workspace reproduces the problem. Find the bug in the source and\nfix it so the whole suite passes.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Fix only `tasks/02-lru-cache/workspace/src/`.\n- The frozen test is `tasks/02-lru-cache/workspace/lru.test.js`; run it with:\n  node --test --test-reporter=tap tasks/02-lru-cache/workspace/lru.test.js\n- Do not edit the test file or `package.json`, and do not weaken the tests.\n- Report what you changed and the test result.\n",
+          "promptMeta": {
+            "sha256": "fba077c60b1e00882475437e59ae69c132dd7f53b3f024f9b7e9ebcbaa3422c5",
+            "source": {
+              "kind": "upstream-prompt-md",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/prompt.md",
+              "upstreamSha256": "6cae09b34415e6da232a5672f34fecd90c718310cb3b8a240bebf21da6737a72"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "startPath": "tasks/02-lru-cache/workspace",
+            "referencePath": "tasks/02-lru-cache/solution/src/lru.js",
+            "writeScope": [
+              "tasks/02-lru-cache/workspace/src/"
+            ]
+          },
+          "acceptance": {
+            "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-02-lru-cache.json",
+            "specPath": "test/benchmarks/plans/acceptance/e1-02-lru-cache.json",
+            "specSha256": "b5597fa743ab1176d2edb8d4f856c84a7f83ce40bd5dfa6deaa6b3009955e8de",
+            "command": [
+              "node",
+              "--test",
+              "--test-reporter=tap",
+              "tasks/02-lru-cache/workspace/lru.test.js"
+            ],
+            "acceptanceFiles": [
+              "tasks/02-lru-cache/workspace/lru.test.js",
+              "tasks/02-lru-cache/workspace/package.json"
+            ],
+            "forbidChanges": [
+              "tasks/02-lru-cache/workspace/lru.test.js",
+              "tasks/02-lru-cache/workspace/package.json"
+            ],
+            "gradingSha256": "8913a62c6af642116cce4a0439db24cbc878eb8fa11842eefa2611421c4944b1",
+            "fixtureSpec": "test/benchmarks/imported/latitude-dev/02-lru-cache/spec.json"
+          },
+          "provenance": {
+            "experiment": "E1",
+            "dataset": "latitude-dev/coding-agent-benchmark",
+            "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "fixture": "test/benchmarks/imported/latitude-dev/02-lru-cache",
+            "spec": "test/benchmarks/imported/latitude-dev/02-lru-cache/spec.json",
+            "specSha256": "87ac5eec9fa76dcf599aef896a364ba9092ec28e0c48e4fe2452ff59a570103e",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+              "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified",
+            "quarantined": [],
+            "origin": "upstream"
+          }
+        },
+        {
+          "id": "upstream-latitude-04-rate-limiter",
+          "revision": "fixture@f62a165a9201ea3d",
+          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+          "harness": "native",
+          "goal": "Fix the sliding-window rate limiter in src/rate-limiter.js so that a request at exactly timestampMs - windowMs no longer occupies a slot and the frozen upstream suite passes.",
+          "prompt": "# Bug report: rate limiter rejects a request at the exact window edge\n\nOur API throttling uses `SlidingWindowRateLimiter` with timestamps supplied by the\ncaller. With `{ limit: 2, windowMs: 1000 }`, calling `allow(0)`, `allow(100)`, then\n`allow(1000)` returns `false` for the last call, even though the request at `0` is a\nfull window old by then and should no longer count. The expected result is `true`:\nonly timestamps strictly newer than `timestampMs - windowMs` should occupy a slot.\n\nThe test suite in this workspace reproduces the problem. Find the bug in the source and\nfix it so the whole suite passes.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Fix only `tasks/04-rate-limiter/workspace/src/`.\n- The frozen test is `tasks/04-rate-limiter/workspace/rate-limiter.test.js`; run it with:\n  node --test --test-reporter=tap tasks/04-rate-limiter/workspace/rate-limiter.test.js\n- Do not edit the test file or `package.json`, and do not weaken the tests.\n- Report what you changed and the test result.\n",
+          "promptMeta": {
+            "sha256": "1b9487a9980887bfbd7798e11bc18a42c07c3562f8ffc9f529132f7edae76134",
+            "source": {
+              "kind": "upstream-prompt-md",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/prompt.md",
+              "upstreamSha256": "8ef0627f922d066023cbe5fc564389037bcc74f4023b1b35e69de1b7dd179ef4"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "startPath": "tasks/04-rate-limiter/workspace",
+            "referencePath": "tasks/04-rate-limiter/solution/src/rate-limiter.js",
+            "writeScope": [
+              "tasks/04-rate-limiter/workspace/src/"
+            ]
+          },
+          "acceptance": {
+            "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-04-rate-limiter.json",
+            "specPath": "test/benchmarks/plans/acceptance/e1-04-rate-limiter.json",
+            "specSha256": "79fb1c5d12156a3409b5544d0b84d10948e067ba9e9f2bd13def7bf5aa6bbad7",
+            "command": [
+              "node",
+              "--test",
+              "--test-reporter=tap",
+              "tasks/04-rate-limiter/workspace/rate-limiter.test.js"
+            ],
+            "acceptanceFiles": [
+              "tasks/04-rate-limiter/workspace/rate-limiter.test.js",
+              "tasks/04-rate-limiter/workspace/package.json"
+            ],
+            "forbidChanges": [
+              "tasks/04-rate-limiter/workspace/rate-limiter.test.js",
+              "tasks/04-rate-limiter/workspace/package.json"
+            ],
+            "gradingSha256": "05bdb43861fbcb28869beed9d039318173e7fa0ec288cf80d3a3138f560c0c5d",
+            "fixtureSpec": "test/benchmarks/imported/latitude-dev/04-rate-limiter/spec.json"
+          },
+          "provenance": {
+            "experiment": "E1",
+            "dataset": "latitude-dev/coding-agent-benchmark",
+            "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "fixture": "test/benchmarks/imported/latitude-dev/04-rate-limiter",
+            "spec": "test/benchmarks/imported/latitude-dev/04-rate-limiter/spec.json",
+            "specSha256": "f62a165a9201ea3d9b4be328f7483aa2ed98703109c9ed54a679f9041fc71815",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+              "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified",
+            "quarantined": [],
+            "origin": "upstream"
+          }
+        },
+        {
+          "id": "upstream-latitude-14-event-bus",
+          "revision": "fixture@3b58b9e18466d622",
+          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+          "harness": "native",
+          "goal": "Fix once()/replay behaviour in src/once.js so a once handler runs exactly once even when a handler re-emits the event, and the frozen upstream suite passes.",
+          "prompt": "# Bug report: a once() handler ran twice during a re-entrant emit\n\nWe use the bus to coordinate state sync. A high-priority handler on `sync` re-broadcasts\nthe event exactly one time when it first sees it (it emits `sync` again from inside its\nown handler). A listener registered with `once(bus, 'sync', handler)` was invoked twice:\nfirst with the re-broadcast payload, then again with the original one. Expected `once`\nto invoke its handler exactly one time no matter how the emits nest. Plain back-to-back\nemits behave correctly, so this only shows up when an emit happens inside a handler.\n\nThe test suite in this workspace reproduces the problem. Find the bug in the source and\nfix it so the whole suite passes.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Fix only `tasks/14-event-bus/workspace/src/`.\n- The frozen test is `tasks/14-event-bus/workspace/event-bus.test.js`; run it with:\n  node --test --test-reporter=tap tasks/14-event-bus/workspace/event-bus.test.js\n- Do not edit the test file or `package.json`, and do not weaken the tests.\n- Report what you changed and the test result.\n",
+          "promptMeta": {
+            "sha256": "1e8254fdb4632dfd0c95191892d4fc32cec806162f1c2e68a9be9f991d69e6a7",
+            "source": {
+              "kind": "upstream-prompt-md",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/prompt.md",
+              "upstreamSha256": "a1690dbdbe337621eecfae9f8d4949cc6928ccd8d9f034bca1f8160dacffe83a"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "startPath": "tasks/14-event-bus/workspace",
+            "referencePath": "tasks/14-event-bus/solution/src/once.js",
+            "writeScope": [
+              "tasks/14-event-bus/workspace/src/"
+            ]
+          },
+          "acceptance": {
+            "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-14-event-bus.json",
+            "specPath": "test/benchmarks/plans/acceptance/e1-14-event-bus.json",
+            "specSha256": "51343c9c4fb2330622bbaf3d10ca1b48479f7a63b7e5760e4217d78cd8f03f91",
+            "command": [
+              "node",
+              "--test",
+              "--test-reporter=tap",
+              "tasks/14-event-bus/workspace/event-bus.test.js"
+            ],
+            "acceptanceFiles": [
+              "tasks/14-event-bus/workspace/event-bus.test.js",
+              "tasks/14-event-bus/workspace/package.json"
+            ],
+            "forbidChanges": [
+              "tasks/14-event-bus/workspace/event-bus.test.js",
+              "tasks/14-event-bus/workspace/package.json"
+            ],
+            "gradingSha256": "85f7847b4692b2390ee0cb455ae5ffdf2c5e0621e25dc701cb43fd51d8c67458",
+            "fixtureSpec": "test/benchmarks/imported/latitude-dev/14-event-bus/spec.json"
+          },
+          "provenance": {
+            "experiment": "E1",
+            "dataset": "latitude-dev/coding-agent-benchmark",
+            "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "fixture": "test/benchmarks/imported/latitude-dev/14-event-bus",
+            "spec": "test/benchmarks/imported/latitude-dev/14-event-bus/spec.json",
+            "specSha256": "3b58b9e18466d622d4124bb528544c1e43782f53182cfc28a9cdcdb323c2083c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+              "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified",
+            "quarantined": [],
+            "origin": "upstream"
+          }
+        },
+        {
+          "id": "upstream-latitude-16-task-scheduler",
+          "revision": "fixture@a96b805e722f4d63",
+          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+          "harness": "native",
+          "goal": "Fix the scheduler ordering in src/order.js so a newly ready high-priority task runs as soon as its dependency finishes, and the frozen upstream suite passes.",
+          "prompt": "# Bug report: high-priority tasks run last once their dependency finishes\n\nWe use this scheduler to run build pipelines. Tasks declare `dependsOn` and a numeric\n`priority`, and the scheduler promises that whenever several tasks are ready to run at\nthe same moment, the one with the highest priority goes first (ties break alphabetically\nby name).\n\nThat promise is broken. With these tasks:\n\n- `fetch` (priority 5)\n- `transform` (priority 4, depends on `fetch`)\n- `archive` (priority 2)\n- `cleanup` (priority 1)\n\nthe run order should be `fetch, transform, archive, cleanup`, because the moment `fetch`\nfinishes, `transform` is ready and outranks everything else. Instead we observe\n`fetch, archive, cleanup, transform`, so our most urgent follow-up work waits behind\nlow-priority housekeeping. The recorded run log after a failed task shows the same\nmisordering, which breaks our reporting.\n\nThe test suite in this workspace reproduces the problem. Find the bug in the source and\nfix it so the whole suite passes.\n\n---\nExecution workspace (this is an isolated checkout of the upstream benchmark):\n- Fix only `tasks/16-task-scheduler/workspace/src/`.\n- The frozen test is `tasks/16-task-scheduler/workspace/scheduler.test.js`; run it with:\n  node --test --test-reporter=tap tasks/16-task-scheduler/workspace/scheduler.test.js\n- Do not edit the test file or `package.json`, and do not weaken the tests.\n- Report what you changed and the test result.\n",
+          "promptMeta": {
+            "sha256": "e71443fe505def12a1038e8d8bae9bed6c96764ad778610f91d26b4c2907f159",
+            "source": {
+              "kind": "upstream-prompt-md",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/prompt.md",
+              "upstreamSha256": "c79fa0b073ed2343cdae784143592198d0317bef6e4f4dfe4993ba3ef4d8cbea"
+            }
+          },
+          "workspace": {
+            "kind": "upstream-checkout",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "startPath": "tasks/16-task-scheduler/workspace",
+            "referencePath": "tasks/16-task-scheduler/solution/src/order.js",
+            "writeScope": [
+              "tasks/16-task-scheduler/workspace/src/"
+            ]
+          },
+          "acceptance": {
+            "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-16-task-scheduler.json",
+            "specPath": "test/benchmarks/plans/acceptance/e1-16-task-scheduler.json",
+            "specSha256": "73bdff01dce1f13ca2e1782d5f33351e8730c821357a9fb9bc1a1529c4052185",
+            "command": [
+              "node",
+              "--test",
+              "--test-reporter=tap",
+              "tasks/16-task-scheduler/workspace/scheduler.test.js"
+            ],
+            "acceptanceFiles": [
+              "tasks/16-task-scheduler/workspace/scheduler.test.js",
+              "tasks/16-task-scheduler/workspace/package.json"
+            ],
+            "forbidChanges": [
+              "tasks/16-task-scheduler/workspace/scheduler.test.js",
+              "tasks/16-task-scheduler/workspace/package.json"
+            ],
+            "gradingSha256": "ed98b935153a5d0278835b977dab97e17b4afbad8e18c8235c4cacadbd956ca5",
+            "fixtureSpec": "test/benchmarks/imported/latitude-dev/16-task-scheduler/spec.json"
+          },
+          "provenance": {
+            "experiment": "E1",
+            "dataset": "latitude-dev/coding-agent-benchmark",
+            "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+            "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+            "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+            "fixture": "test/benchmarks/imported/latitude-dev/16-task-scheduler",
+            "spec": "test/benchmarks/imported/latitude-dev/16-task-scheduler/spec.json",
+            "specSha256": "a96b805e722f4d634670f997af94d26bd3c78468f021eec103c99e385213bf3c",
+            "license": {
+              "spdx": "MIT",
+              "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+              "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+            },
+            "importedAt": "2026-11-04T05:10:07Z",
+            "status": "verified",
+            "quarantined": [],
+            "origin": "upstream"
+          }
+        }
+      ],
+      "conditions": {
+        "provider": "kimi-coding",
+        "model": "k3.1-pro",
+        "reviewerProvider": "kimi-coding",
+        "reviewerModel": "kimi-for-coding",
+        "harness": "native",
+        "toolsetDigest": "8330d613ad7f67b1cafff1fdd643792c840f473cd9d0bf6fef2fb4c189419e6f",
+        "budgetDigest": "a8cdd6a674309c23d5f87675a21d6a9f1e08a594329f043c27b6caf7e14d51c0",
+        "evaluatorVersion": "omc-acceptance-runner@1",
+        "environmentDigest": "e40a8db0a10fc7422627e7ad52264443fa614ea7fe15878a3f9e892d331faff2",
+        "promptDigest": "73f5b1a449a70f36e5852e9128e6885656216b8e0e19ea2fa85dc36884d00db7",
+        "cacheRegime": "cold",
+        "executionStatus": "not-executed",
+        "modelSelected": true,
+        "harnessSelected": true,
+        "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
+      },
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "policyVersions": {
+        "single": "role=single@native-kimi-k3.1-pro-v1",
+        "same-model-multi-role": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+        "different-model-multi-role": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1"
+      },
+      "optimizerCostUsd": {
+        "single": 0,
+        "same-model-multi-role": 0,
+        "different-model-multi-role": 0
+      },
+      "promotion": {
+        "candidate": "different-model-multi-role",
+        "reference": "single",
+        "minTasks": 30,
+        "minRepeats": 2,
+        "minCostReduction": 0.1,
+        "maxQualityLoss": 0,
+        "maxLatencyIncrease": 0.05
+      },
+      "assignments": [
+        {
+          "trialId": "d3d5707fe5d145a06654ba9d",
+          "taskId": "upstream-latitude-04-rate-limiter",
+          "repeat": 0,
+          "strategy": "different-model-multi-role",
+          "arm": "different-model-multi-role"
+        },
+        {
+          "trialId": "50ed3adb042d4df41fa88198",
+          "taskId": "upstream-latitude-04-rate-limiter",
+          "repeat": 0,
+          "strategy": "single",
+          "arm": "single"
+        },
+        {
+          "trialId": "3b3ef902462782501fca2829",
+          "taskId": "upstream-latitude-04-rate-limiter",
+          "repeat": 0,
+          "strategy": "same-model-multi-role",
+          "arm": "same-model-multi-role"
+        },
+        {
+          "trialId": "fb7b862f857955a919b6c2fe",
+          "taskId": "upstream-latitude-16-task-scheduler",
+          "repeat": 0,
+          "strategy": "single",
+          "arm": "single"
+        },
+        {
+          "trialId": "55c09a13941ff93a5be4e0c0",
+          "taskId": "upstream-latitude-16-task-scheduler",
+          "repeat": 0,
+          "strategy": "different-model-multi-role",
+          "arm": "different-model-multi-role"
+        },
+        {
+          "trialId": "2cb37b381236439c4933670b",
+          "taskId": "upstream-latitude-16-task-scheduler",
+          "repeat": 0,
+          "strategy": "same-model-multi-role",
+          "arm": "same-model-multi-role"
+        },
+        {
+          "trialId": "b791a16999b47a1da07bc9ad",
+          "taskId": "upstream-latitude-02-lru-cache",
+          "repeat": 0,
+          "strategy": "single",
+          "arm": "single"
+        },
+        {
+          "trialId": "2adc71c32cb9d763557f7561",
+          "taskId": "upstream-latitude-02-lru-cache",
+          "repeat": 0,
+          "strategy": "same-model-multi-role",
+          "arm": "same-model-multi-role"
+        },
+        {
+          "trialId": "d5500b57033088c2137c82df",
+          "taskId": "upstream-latitude-02-lru-cache",
+          "repeat": 0,
+          "strategy": "different-model-multi-role",
+          "arm": "different-model-multi-role"
+        },
+        {
+          "trialId": "59ee0285d6fdbcec8172ee42",
+          "taskId": "upstream-latitude-14-event-bus",
+          "repeat": 0,
+          "strategy": "single",
+          "arm": "single"
+        },
+        {
+          "trialId": "2490070d608a3ac860059381",
+          "taskId": "upstream-latitude-14-event-bus",
+          "repeat": 0,
+          "strategy": "same-model-multi-role",
+          "arm": "same-model-multi-role"
+        },
+        {
+          "trialId": "6a1a1f66c85885f9fb77854a",
+          "taskId": "upstream-latitude-14-event-bus",
+          "repeat": 0,
+          "strategy": "different-model-multi-role",
+          "arm": "different-model-multi-role"
+        }
+      ],
+      "digest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7"
+    },
+    "observational": false
+  },
+  "records": [
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "d3d5707fe5d145a06654ba9d",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:374d278cea9e9dc903e12ba54460f1eb700733d9a3693bdd85aa1939652c1a76",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 33,
+      "attempts": 5,
+      "humanInterventions": 0,
+      "elapsedMs": 261633,
+      "usage": {
+        "uncachedInputTokens": 40811,
+        "cacheReadTokens": 632320,
+        "cacheWriteTokens": null,
+        "outputTokens": 9710
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "d3d5707fe5d145a06654ba9d",
+      "benchmarkTaskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "strategy": "different-model-multi-role",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:36:05.869Z",
+      "endedAt": "2026-11-04T12:40:27.502Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": null,
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task d3d5707fe5d145a06654ba9d ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "50ed3adb042d4df41fa88198",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:b575d69ef42d6267bce3e8c10444dbf076522e7f206b33e0e8695139d7dcdc76",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 10,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 144001,
+      "usage": {
+        "uncachedInputTokens": 8150,
+        "cacheReadTokens": 174848,
+        "cacheWriteTokens": null,
+        "outputTokens": 2853
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "50ed3adb042d4df41fa88198",
+      "benchmarkTaskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "strategy": "single",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:38:44.822Z",
+      "endedAt": "2026-11-04T12:41:08.823Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 50ed3adb042d4df41fa88198 ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "3b3ef902462782501fca2829",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:d12e6ff3e856c9c18bc691221d670951382af7549ff670b84aed71fbf905397b",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 19,
+      "attempts": 3,
+      "humanInterventions": 0,
+      "elapsedMs": 187861,
+      "usage": {
+        "uncachedInputTokens": 19582,
+        "cacheReadTokens": 337408,
+        "cacheWriteTokens": null,
+        "outputTokens": 5164
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "3b3ef902462782501fca2829",
+      "benchmarkTaskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "strategy": "same-model-multi-role",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:40:37.778Z",
+      "endedAt": "2026-11-04T12:43:45.639Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 3b3ef902462782501fca2829 ran frozen benchmark task upstream-latitude-04-rate-limiter; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "fb7b862f857955a919b6c2fe",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:49f9d52798aac38efb6be168cdb506ec50b432c065f364d5e5e99e7b5921122e",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 15,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 235144,
+      "usage": {
+        "uncachedInputTokens": 14538,
+        "cacheReadTokens": 312064,
+        "cacheWriteTokens": null,
+        "outputTokens": 4726
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "fb7b862f857955a919b6c2fe",
+      "benchmarkTaskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "strategy": "single",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:43:46.764Z",
+      "endedAt": "2026-11-04T12:47:41.908Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task fb7b862f857955a919b6c2fe ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "55c09a13941ff93a5be4e0c0",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:c961a0868b7a4b86972869902f8068f9a2f7977b860aeb68479165875a3da751",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 24,
+      "attempts": 4,
+      "humanInterventions": 0,
+      "elapsedMs": 285129,
+      "usage": {
+        "uncachedInputTokens": 22188,
+        "cacheReadTokens": 468224,
+        "cacheWriteTokens": null,
+        "outputTokens": 8509
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "55c09a13941ff93a5be4e0c0",
+      "benchmarkTaskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "strategy": "different-model-multi-role",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:45:05.615Z",
+      "endedAt": "2026-11-04T12:49:50.744Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": null,
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 55c09a13941ff93a5be4e0c0 ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "2cb37b381236439c4933670b",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:81be6e3c6c10eb1e46cfed492d7e7b19e9b87946c7786ba58145afec86220d09",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 12,
+      "attempts": 3,
+      "humanInterventions": 0,
+      "elapsedMs": 277056,
+      "usage": {
+        "uncachedInputTokens": 22657,
+        "cacheReadTokens": 223232,
+        "cacheWriteTokens": null,
+        "outputTokens": 6098
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "2cb37b381236439c4933670b",
+      "benchmarkTaskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "strategy": "same-model-multi-role",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:49:51.954Z",
+      "endedAt": "2026-11-04T12:54:29.010Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 2cb37b381236439c4933670b ran frozen benchmark task upstream-latitude-16-task-scheduler; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "b791a16999b47a1da07bc9ad",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:411a1e25dada073549f998d3814d66ddf8d3c2eaca7a87b7e2c2ae22b9913a15",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 15,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 221027,
+      "usage": {
+        "uncachedInputTokens": 10915,
+        "cacheReadTokens": 274176,
+        "cacheWriteTokens": null,
+        "outputTokens": 3609
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "b791a16999b47a1da07bc9ad",
+      "benchmarkTaskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "strategy": "single",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:52:41.587Z",
+      "endedAt": "2026-11-04T12:56:22.614Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task b791a16999b47a1da07bc9ad ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "2adc71c32cb9d763557f7561",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:8938d312261d2041ddde86f982c0a102bfd59fab87feb5c9c7b8d6ae883d1605",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 13,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 186668,
+      "usage": {
+        "uncachedInputTokens": 16752,
+        "cacheReadTokens": 221696,
+        "cacheWriteTokens": null,
+        "outputTokens": 4822
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "2adc71c32cb9d763557f7561",
+      "benchmarkTaskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "strategy": "same-model-multi-role",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:54:24.049Z",
+      "endedAt": "2026-11-04T12:57:30.717Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 2adc71c32cb9d763557f7561 ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "d5500b57033088c2137c82df",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:391e425ff2df937987c83765f66c20169882d169914ed3f383a2bc8f74834d3c",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 15,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 139194,
+      "usage": {
+        "uncachedInputTokens": 11892,
+        "cacheReadTokens": 254976,
+        "cacheWriteTokens": null,
+        "outputTokens": 4990
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "d5500b57033088c2137c82df",
+      "benchmarkTaskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "strategy": "different-model-multi-role",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:57:31.767Z",
+      "endedAt": "2026-11-04T12:59:50.961Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": null,
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task d5500b57033088c2137c82df ran frozen benchmark task upstream-latitude-02-lru-cache; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "59ee0285d6fdbcec8172ee42",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:32633bd8f452a32154c5b3448beaf1c829a11cfe11722191ad4b338bfa5fb9d0",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 11,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 221432,
+      "usage": {
+        "uncachedInputTokens": 7098,
+        "cacheReadTokens": 193536,
+        "cacheWriteTokens": null,
+        "outputTokens": 2343
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "59ee0285d6fdbcec8172ee42",
+      "benchmarkTaskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "strategy": "single",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T12:59:52.057Z",
+      "endedAt": "2026-11-04T13:03:33.489Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 59ee0285d6fdbcec8172ee42 ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "2490070d608a3ac860059381",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:759defc4ff4ac6f2ba0fef01bc66a3af13c1f56f4a4d694b78d56e241defb9b0",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 20,
+      "attempts": 2,
+      "humanInterventions": 0,
+      "elapsedMs": 317783,
+      "usage": {
+        "uncachedInputTokens": 41629,
+        "cacheReadTokens": 424448,
+        "cacheWriteTokens": null,
+        "outputTokens": 7328
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "2490070d608a3ac860059381",
+      "benchmarkTaskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "strategy": "same-model-multi-role",
+      "parentId": "omc-trial-72ec1ef9-4d93-4ca4-9182-8d55cabde680",
+      "startedAt": "2026-11-04T13:00:29.167Z",
+      "endedAt": "2026-11-04T13:05:46.950Z",
+      "interventions": [],
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "strategyMismatch": false,
+      "model": "k3.1-pro",
+      "models": [
+        "k3.1-pro"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 2490070d608a3ac860059381 ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "actions recovery:post-hoc-acceptance are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "collectorVersion": 1,
+      "experimentDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+      "conditionsDigest": "506db7a65efde9b6d9f6fe0e1304fde1171a802d6f3bf4c364ae898c5057a4c3",
+      "dataKind": "live",
+      "trialId": "6a1a1f66c85885f9fb77854a",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "strategyApplied": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:4867cc6401a439f584e88398c4a092ca16e9c58fe9e6d14ed5674061d20683ca",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "collectionCoverage": "partial",
+      "calls": 24,
+      "attempts": 4,
+      "humanInterventions": 0,
+      "elapsedMs": 248156,
+      "usage": {
+        "uncachedInputTokens": 23336,
+        "cacheReadTokens": 472576,
+        "cacheWriteTokens": null,
+        "outputTokens": 7283
+      },
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "status": "completed",
+      "observedAcceptance": "passed",
+      "taskId": "6a1a1f66c85885f9fb77854a",
+      "benchmarkTaskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "strategy": "different-model-multi-role",
+      "parentId": "omc-trial-c7e780be-2edd-4e10-97e7-f767072ee04e",
+      "startedAt": "2026-11-04T13:14:57.780Z",
+      "endedAt": "2026-11-04T13:19:05.936Z",
+      "interventions": [],
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8 ran one turn",
+        "session:new-packet",
+        "native child omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839 ran one turn",
+        "read-only reviewer"
+      ],
+      "strategyMismatch": false,
+      "model": null,
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "taskReceipt": null,
+      "incomplete": [
+        "usage.cacheWriteTokens",
+        "costUsd"
+      ],
+      "notes": [
+        "runtime task 6a1a1f66c85885f9fb77854a ran frozen benchmark task upstream-latitude-14-event-bus; both ids are recorded",
+        "cost is unknown: at least one booking has no settled price, so no total is invented and no amount is assumed",
+        "the trial used the 2 models declared by its explicit arm roles (k3.1-pro, kimi-for-coding); this is a same-model or different-model multi-role arm, not an off-condition run",
+        "actions session:new-packet, native child omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8 ran one turn, session:new-packet, native child omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839 ran one turn, read-only reviewer are outside the known action vocabulary; they are recorded verbatim and not judged"
+      ]
+    }
+  ]
+}

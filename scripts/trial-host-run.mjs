@@ -78,7 +78,7 @@ const requireHost = createRequire(anchor)
 const hostImport = (name) => import(pathToFileURL(requireHost.resolve(name)).href)
 const hostBase = pathToFileURL(anchor).href
 
-const watchdog = setTimeout(() => { console.error('OMC_TRIAL_HOST_TIMEOUT'); process.exit(1) }, planOnly ? 60_000 : 30 * 60_000)
+const watchdog = setTimeout(() => { console.error('OMC_TRIAL_HOST_TIMEOUT'); process.exit(1) }, planOnly ? 60_000 : 4 * 60 * 60_000)
 let ctx
 const runLog = {
   schemaVersion: 1,
@@ -198,6 +198,7 @@ async function main() {
     ok: result.ok,
     trialsOk,
     code: result.code,
+    problems: result.problems ?? [],
     receiptPath: result.receiptPath,
     spentUsd: result.spentUsd,
     budget: result.budget,

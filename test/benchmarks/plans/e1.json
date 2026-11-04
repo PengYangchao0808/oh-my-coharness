@@ -75,7 +75,7 @@
       {
         "id": "upstream-latitude-02-lru-cache",
         "revision": "fixture@87ac5eec9fa76dcf",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
         "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
         "harness": "native",
         "goal": "Fix the LRU cache in src/lru.js so that reading a key refreshes its recency (upstream prompt: set a,b; get a; set c must evict b, and get a still returns 1) and the frozen upstream suite passes.",
@@ -90,7 +90,7 @@
         },
         "workspace": {
           "kind": "upstream-checkout",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "startPath": "tasks/02-lru-cache/workspace",
           "referencePath": "tasks/02-lru-cache/solution/src/lru.js",
           "writeScope": [
@@ -98,7 +98,7 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-02-lru-cache.json",
+          "spec": "test/benchmarks/plans/acceptance/e1-02-lru-cache.json",
           "specPath": "test/benchmarks/plans/acceptance/e1-02-lru-cache.json",
           "specSha256": "b5597fa743ab1176d2edb8d4f856c84a7f83ce40bd5dfa6deaa6b3009955e8de",
           "command": [
@@ -122,7 +122,7 @@
           "experiment": "E1",
           "dataset": "latitude-dev/coding-agent-benchmark",
           "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
@@ -143,7 +143,7 @@
       {
         "id": "upstream-latitude-04-rate-limiter",
         "revision": "fixture@f62a165a9201ea3d",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
         "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
         "harness": "native",
         "goal": "Fix the sliding-window rate limiter in src/rate-limiter.js so that a request at exactly timestampMs - windowMs no longer occupies a slot and the frozen upstream suite passes.",
@@ -158,7 +158,7 @@
         },
         "workspace": {
           "kind": "upstream-checkout",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "startPath": "tasks/04-rate-limiter/workspace",
           "referencePath": "tasks/04-rate-limiter/solution/src/rate-limiter.js",
           "writeScope": [
@@ -166,7 +166,7 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-04-rate-limiter.json",
+          "spec": "test/benchmarks/plans/acceptance/e1-04-rate-limiter.json",
           "specPath": "test/benchmarks/plans/acceptance/e1-04-rate-limiter.json",
           "specSha256": "79fb1c5d12156a3409b5544d0b84d10948e067ba9e9f2bd13def7bf5aa6bbad7",
           "command": [
@@ -190,7 +190,7 @@
           "experiment": "E1",
           "dataset": "latitude-dev/coding-agent-benchmark",
           "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
@@ -211,7 +211,7 @@
       {
         "id": "upstream-latitude-14-event-bus",
         "revision": "fixture@3b58b9e18466d622",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
         "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
         "harness": "native",
         "goal": "Fix once()/replay behaviour in src/once.js so a once handler runs exactly once even when a handler re-emits the event, and the frozen upstream suite passes.",
@@ -226,7 +226,7 @@
         },
         "workspace": {
           "kind": "upstream-checkout",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "startPath": "tasks/14-event-bus/workspace",
           "referencePath": "tasks/14-event-bus/solution/src/once.js",
           "writeScope": [
@@ -234,7 +234,7 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-14-event-bus.json",
+          "spec": "test/benchmarks/plans/acceptance/e1-14-event-bus.json",
           "specPath": "test/benchmarks/plans/acceptance/e1-14-event-bus.json",
           "specSha256": "51343c9c4fb2330622bbaf3d10ca1b48479f7a63b7e5760e4217d78cd8f03f91",
           "command": [
@@ -258,7 +258,7 @@
           "experiment": "E1",
           "dataset": "latitude-dev/coding-agent-benchmark",
           "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
@@ -279,7 +279,7 @@
       {
         "id": "upstream-latitude-16-task-scheduler",
         "revision": "fixture@a96b805e722f4d63",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+        "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
         "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
         "harness": "native",
         "goal": "Fix the scheduler ordering in src/order.js so a newly ready high-priority task runs as soon as its dependency finishes, and the frozen upstream suite passes.",
@@ -294,7 +294,7 @@
         },
         "workspace": {
           "kind": "upstream-checkout",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "startPath": "tasks/16-task-scheduler/workspace",
           "referencePath": "tasks/16-task-scheduler/solution/src/order.js",
           "writeScope": [
@@ -302,7 +302,7 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e1-16-task-scheduler.json",
+          "spec": "test/benchmarks/plans/acceptance/e1-16-task-scheduler.json",
           "specPath": "test/benchmarks/plans/acceptance/e1-16-task-scheduler.json",
           "specSha256": "73bdff01dce1f13ca2e1782d5f33351e8730c821357a9fb9bc1a1529c4052185",
           "command": [
@@ -326,7 +326,7 @@
           "experiment": "E1",
           "dataset": "latitude-dev/coding-agent-benchmark",
           "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
           "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "executionBaseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
           "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
@@ -468,7 +468,7 @@
         "arm": "different-model-multi-role"
       }
     ],
-    "digest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7"
+    "digest": "c38b543617b21ea3a8c050da60644c3f1f3c5e8b1ac766889f6b1ca48d02f6f8"
   },
   "execution": {
     "armExecution": {
@@ -541,16 +541,15 @@
       "latitude-dev/coding-agent-benchmark": {
         "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
         "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
-        "localPath": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark"
+        "localPath": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark"
       }
     },
     "worktreeCheck": {
       "checked": true,
-      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "repo": ".ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
       "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
       "checkedAt": "2026-11-04T05:10:07Z",
       "method": "git -C <frozen upstream checkout> cat-file -e <baseCommit>:<path> for every workspace and frozen acceptance path",
-      "headMatchesBase": true,
       "missing": [],
       "verifiedPaths": [
         {

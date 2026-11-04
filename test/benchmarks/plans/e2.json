@@ -59,7 +59,7 @@
       {
         "id": "example-local-fix",
         "revision": "fixture@d3d4b9c177614ab8",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "repo": ".",
         "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
         "harness": "native",
         "goal": "Make src/parse-range.mjs honour the documented range contract: inclusive ascending ranges, single values, blank input means an empty list, descending and non-numeric input throw.",
@@ -73,7 +73,7 @@
         },
         "workspace": {
           "kind": "omc-fixture",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+          "repo": ".",
           "startPath": "test/benchmarks/session-strategies/example-local-fix/start",
           "referencePath": "test/benchmarks/session-strategies/example-local-fix/reference/src/parse-range.mjs",
           "writeScope": [
@@ -81,12 +81,12 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-example-local-fix.json",
+          "spec": "test/benchmarks/plans/acceptance/e2-example-local-fix.json",
           "specPath": "test/benchmarks/plans/acceptance/e2-example-local-fix.json",
-          "specSha256": "7602683622f8f4f94828e4cf871937d6aa549af05f773af3c4d7a185300a0bb8",
+          "specSha256": "63401c017ae6863a3df044f472fa7f2ecead6700f558a6934baf9ce70ab61ce5",
           "command": [
             "node",
-            "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs",
+            "test/benchmarks/plans/acceptance/e2-check.mjs",
             "test/benchmarks/session-strategies/example-local-fix"
           ],
           "acceptanceFiles": [
@@ -137,7 +137,7 @@
           "experiment": "E2",
           "dataset": "omc-authored",
           "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+          "repo": ".",
           "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
           "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
           "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
@@ -158,7 +158,7 @@
       {
         "id": "should-reuse-module-fix",
         "revision": "fixture@5b358b7f3410a514",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "repo": ".",
         "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
         "harness": "native",
         "goal": "Fix the truncate() length bug in a module whose slugify() already works, without regressing slugify.",
@@ -172,7 +172,7 @@
         },
         "workspace": {
           "kind": "omc-fixture",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+          "repo": ".",
           "startPath": "test/benchmarks/session-strategies/should-reuse-module-fix/start",
           "referencePath": "test/benchmarks/session-strategies/should-reuse-module-fix/reference/src/text-utils.mjs",
           "writeScope": [
@@ -180,12 +180,12 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-should-reuse-module-fix.json",
+          "spec": "test/benchmarks/plans/acceptance/e2-should-reuse-module-fix.json",
           "specPath": "test/benchmarks/plans/acceptance/e2-should-reuse-module-fix.json",
-          "specSha256": "fca3e089f97ea11a89e1edf2a7c314b49a1fa79fa74bf70b0bc75597f088c364",
+          "specSha256": "109346234dfdc32dd201ba4debb194045f1d9f410b88eab86e76603bea27b507",
           "command": [
             "node",
-            "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs",
+            "test/benchmarks/plans/acceptance/e2-check.mjs",
             "test/benchmarks/session-strategies/should-reuse-module-fix"
           ],
           "acceptanceFiles": [
@@ -236,7 +236,7 @@
           "experiment": "E2",
           "dataset": "omc-authored",
           "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+          "repo": ".",
           "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
           "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
           "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
@@ -257,7 +257,7 @@
       {
         "id": "should-restart-stale-api",
         "revision": "fixture@ad3c97518313affe",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "repo": ".",
         "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
         "harness": "native",
         "goal": "Migrate a caller that still uses the removed synchronous settings loader to the current async contract, without resurrecting the old API.",
@@ -271,7 +271,7 @@
         },
         "workspace": {
           "kind": "omc-fixture",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+          "repo": ".",
           "startPath": "test/benchmarks/session-strategies/should-restart-stale-api/start",
           "referencePath": "test/benchmarks/session-strategies/should-restart-stale-api/reference/src/read-settings.mjs",
           "writeScope": [
@@ -279,12 +279,12 @@
           ]
         },
         "acceptance": {
-          "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-should-restart-stale-api.json",
+          "spec": "test/benchmarks/plans/acceptance/e2-should-restart-stale-api.json",
           "specPath": "test/benchmarks/plans/acceptance/e2-should-restart-stale-api.json",
-          "specSha256": "8893503363abc94f602452316703c7e9db937fa0ce50aa785930722329cd579b",
+          "specSha256": "282fb96c0970b2b05a7bd16f2fb1ca911f2ff6ff3dcc34a6b5db5e20018895e4",
           "command": [
             "node",
-            "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs",
+            "test/benchmarks/plans/acceptance/e2-check.mjs",
             "test/benchmarks/session-strategies/should-restart-stale-api"
           ],
           "acceptanceFiles": [
@@ -336,7 +336,7 @@
           "experiment": "E2",
           "dataset": "omc-authored",
           "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
-          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+          "repo": ".",
           "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
           "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
           "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
@@ -358,7 +358,7 @@
     "prerequisite": {
       "id": "omc-session-primer",
       "revision": "fixture@359e8b957031e1ab",
-      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "repo": ".",
       "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
       "harness": "native",
       "goal": "Make summariseTasks() deterministic: reject non-arrays and missing ids, normalise ids/statuses, sort by id and join with newlines, so the same task list always produces the same brief.",
@@ -372,7 +372,7 @@
       },
       "workspace": {
         "kind": "omc-fixture",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "repo": ".",
         "startPath": "test/benchmarks/prerequisites/session-primer/start",
         "referencePath": "test/benchmarks/prerequisites/session-primer/reference/src/session-brief.mjs",
         "writeScope": [
@@ -380,12 +380,12 @@
         ]
       },
       "acceptance": {
-        "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-session-primer.json",
+        "spec": "test/benchmarks/plans/acceptance/e2-session-primer.json",
         "specPath": "test/benchmarks/plans/acceptance/e2-session-primer.json",
-        "specSha256": "7bd009c56208e945b8a03bb98b584ea3dd92964dbc12278419f87af278fd8e73",
+        "specSha256": "8b37653fe4db3a05dc0fc6445286836e8f4ff4704601d0a6957775e668e3cd64",
         "command": [
           "node",
-          "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs",
+          "test/benchmarks/plans/acceptance/e2-check.mjs",
           "test/benchmarks/prerequisites/session-primer"
         ],
         "acceptanceFiles": [
@@ -407,7 +407,7 @@
         "experiment": "E2",
         "dataset": "omc-authored",
         "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
-        "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+        "repo": ".",
         "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
         "executionBaseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
         "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
@@ -433,7 +433,7 @@
       "reviewerProvider": "kimi-coding",
       "reviewerModel": "kimi-for-coding",
       "harness": "native",
-      "toolsetDigest": "dd7ecb2ab1e77ac128c0b8b4ba7069ec3fdd601b3f52fc37c8af67e33fb032b5",
+      "toolsetDigest": "761bc27b2053a183b24d6ee170f48ad20ee6c1bc98d83301fe8f27d81fa1e011",
       "budgetDigest": "a8cdd6a674309c23d5f87675a21d6a9f1e08a594329f043c27b6caf7e14d51c0",
       "evaluatorVersion": "omc-acceptance-runner@1",
       "environmentDigest": "4f2160304d644e1f97a7145bbf0cb3230015483f7bb290914c495cd4b00041ee",
@@ -444,7 +444,7 @@
       "harnessSelected": true,
       "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
     },
-    "conditionsDigest": "6f6a645d9aa7eb4135b4f750a87fa05f740d1398ee0914a4dc9b737fbedbd454",
+    "conditionsDigest": "1972f7d5622b185dcf53061d5e21ee9e26f8622e375b59d773e6a4877d16da2b",
     "policyVersions": {
       "reuse_compact": "session=reuse_compact@omc-native-v1",
       "fresh_handoff": "session=fresh_handoff@omc-native-v1",
@@ -558,7 +558,7 @@
         "countedAsTrial": false
       }
     ],
-    "digest": "e033acbc4123c258a97f9d5a09a046b6bbe73b61da457367733563a614f2ad8f"
+    "digest": "606133f66ca379de4d336153f935d82687b6bb32aee84d60d1ced72cb86f477f"
   },
   "execution": {
     "armExecution": {
@@ -613,12 +613,12 @@
       "omc-authored": {
         "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
         "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
-        "localPath": "E:/Calculations/Plugins/Oh-My-CoHarness"
+        "localPath": "."
       }
     },
     "worktreeCheck": {
       "checked": true,
-      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness",
+      "repo": ".",
       "baseCommit": "66de9dfa466d2a4f33d80fdc7051d87e6ded4ab9",
       "checkedAt": "2026-11-04T05:10:07Z",
       "method": "git -C <repo> cat-file/show at the execution base commit for every start/reference/acceptance/spec path plus the frozen spec/grading sha256",

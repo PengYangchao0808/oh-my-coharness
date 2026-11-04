@@ -87,6 +87,7 @@ import {
   SESSION_STRATEGIES,
   STRATEGY_EVAL_VERSION,
   createStrategyExperiment,
+  experimentArms,
 } from './strategy-eval.js'
 
 export const TRIAL_COLLECTOR_VERSION = 1
@@ -121,6 +122,26 @@ function parseInstant(value) {
   if (typeof value !== 'string' || value.trim() === '') return null
   const ms = Date.parse(value)
   return Number.isFinite(ms) ? ms : null
+}
+
+/** A qualified `provider/model` observation still names the same frozen model. */
+function modelId(value) {
+  if (typeof value !== 'string' || value.trim() === '') return null
+  const text = value.trim()
+  const slash = text.lastIndexOf('/')
+  return slash >= 0 ? text.slice(slash + 1) : text
+}
+
+/** The models an arm is allowed to use, including explicit multi-role roles. */
+function expectedModels(manifest, assignment) {
+  const arm = assignment?.arm ?? assignment?.strategy ?? null
+  const roles = arm === null ? null : manifest?.armExecution?.[arm]?.roles
+  if (Array.isArray(roles) && roles.length) {
+    return unique(roles.map((role) => role?.model).filter((value) => typeof value === 'string' && value !== ''))
+  }
+  return typeof manifest?.conditions?.model === 'string' && manifest.conditions.model !== ''
+    ? [manifest.conditions.model]
+    : []
 }
 
 function unique(values) {
@@ -345,7 +366,7 @@ function resolvePrerequisite({ manifest, assignedStrategy, assignmentTrialId, pr
   }
   const observedModel = typeof row.observedModel === 'string' ? row.observedModel : null
   const frozenModel = typeof manifest?.conditions?.model === 'string' ? manifest.conditions.model : null
-  if (observedModel && frozenModel && observedModel !== frozenModel) {
+  if (observedModel && frozenModel && modelId(observedModel) !== modelId(frozenModel)) {
     problems.push(`the prerequisite run observed model ${observedModel}, but the frozen condition is ${frozenModel}; a mixed-condition prerequisite cannot be priced into the arm`)
   }
   if (!TERMINAL.includes(row.execution)) {
@@ -435,12 +456,12 @@ export function collectTrial({
   }
   if (resolved.note) notes.push(resolved.note)
   const frozen = resolved.assignment
-  const assignedStrategy = frozen?.strategy && SESSION_STRATEGIES.includes(frozen.strategy)
+  const assignedStrategy = typeof frozen?.strategy === 'string' && frozen.strategy !== ''
     ? frozen.strategy
-    : (SESSION_STRATEGIES.includes(strategy) ? strategy : null)
+    : (typeof strategy === 'string' && strategy !== '' ? strategy : null)
   if (!assignedStrategy) {
     incomplete.push('strategy')
-    notes.push('no assigned strategy is known; the trial cannot be attributed to one of the three frozen arms')
+    notes.push('no assigned strategy is known; the trial cannot be attributed to a frozen arm')
   } else if (strategy && frozen?.strategy && strategy !== frozen.strategy) {
     notes.push(`the caller passed strategy "${strategy}" but the frozen assignment is "${frozen.strategy}"; the frozen assignment wins`)
   }
@@ -628,13 +649,22 @@ export function collectTrial({
   const models = unique(entries
     .map((row) => row?.route?.model)
     .filter((value) => typeof value === 'string' && value.trim() !== ''))
+  const allowedModels = expectedModels(manifest, frozen)
+  const offModels = allowedModels.length
+    ? models.filter((value) => !allowedModels.some((allowed) => modelId(value) === modelId(allowed)))
+    : []
   const model = models.length === 1 ? models[0] : null
   if (models.length === 0) {
     incomplete.push('model')
     notes.push('no observed route model was booked for this trial; which model produced it cannot be verified')
-  } else if (models.length > 1) {
+  } else if (offModels.length) {
+    incomplete.push('model')
+    notes.push(`the trial observed ${offModels.length} model(s) outside the frozen arm roles (${offModels.join(', ')}); the trial is not comparable`)
+  } else if (models.length > 1 && allowedModels.length <= 1) {
     incomplete.push('model')
     notes.push(`the trial observed ${models.length} models (${models.join(', ')}); a mixed-model trial is not comparable under one frozen condition`)
+  } else if (models.length > 1) {
+    notes.push(`the trial used the ${models.length} models declared by its explicit arm roles (${models.join(', ')}); this is a same-model or different-model multi-role arm, not an off-condition run`)
   }
 
   // --- acceptance: separate from execution, and only believed with evidence.
@@ -838,18 +868,19 @@ export function assertNotObservational({ manifest = null } = {}) {
   if (!Array.isArray(manifest.assignments) || !manifest.assignments.length) {
     reasons.push('no frozen assignment rows exist, so no trial was allocated before running')
   } else if (Array.isArray(manifest.tasks) && Number.isSafeInteger(manifest.repeats) && manifest.repeats >= 1) {
+    const arms = experimentArms(manifest)
     let balanced = true
     for (const task of manifest.tasks) {
       for (let repeat = 0; repeat < manifest.repeats; repeat += 1) {
         const strategies = manifest.assignments
           .filter((row) => row?.taskId === task?.id && row?.repeat === repeat)
           .map((row) => row?.strategy)
-        const complete = strategies.length === SESSION_STRATEGIES.length
-          && SESSION_STRATEGIES.every((strategy) => strategies.includes(strategy))
+        const complete = strategies.length === arms.length
+          && arms.every((strategy) => strategies.includes(strategy))
         if (!complete) balanced = false
       }
     }
-    if (!balanced) reasons.push('the allocation is not a balanced task x repeat block: at least one block lacks exactly one trial per strategy')
+    if (!balanced) reasons.push('the allocation is not a balanced task x repeat block: at least one block lacks exactly one trial per arm')
   }
   try {
     const regenerated = createStrategyExperiment(manifest)
@@ -1085,11 +1116,14 @@ export function exportTrials({ manifest = null, collected = [] } = {}) {
     if (!models.length) {
       problems.push(`trial ${trialId} has no observed model; the frozen model condition cannot be confirmed`)
     }
-    const offModel = models.filter((value) => value !== frozen.conditions.model)
+    const allowedModels = expectedModels(frozen, assignment)
+    const offModel = allowedModels.length
+      ? models.filter((value) => !allowedModels.some((allowed) => modelId(value) === modelId(allowed)))
+      : []
     if (offModel.length) {
-      problems.push(`trial ${trialId} ran on model ${offModel.join(', ')}, the frozen condition is ${frozen.conditions.model}; the trial is not comparable`)
+      problems.push(`trial ${trialId} ran on model ${offModel.join(', ')}, the frozen arm allows ${allowedModels.join(', ') || 'one frozen model'}; the trial is not comparable`)
     }
-    if (models.length > 1) {
+    if (models.length > 1 && allowedModels.length <= 1) {
       problems.push(`trial ${trialId} mixed ${models.length} models (${models.join(', ')}); one trial must run under one frozen model`)
     }
 

@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "omc-0.8-e3-sipratt-4",
+  "experimentDigest": "eb10bf9d21f2bb7ef03cc5efbe499208e6c715321e0ef98180f23582cd86f03b",
+  "experimentGroup": "E3",
+  "group": "E3",
+  "arms": [
+    "single",
+    "multi-role"
+  ],
+  "dataKind": "live",
+  "split": "development",
+  "conditions": {
+    "provider": "kimi-coding",
+    "model": "k3.1-pro",
+    "reviewerProvider": "kimi-coding",
+    "reviewerModel": "kimi-for-coding",
+    "harness": "native",
+    "toolsetDigest": "2849cfd9063a68fb686748e11cb5fd683a7fc2f62527ada4a29947b56d68b19b",
+    "budgetDigest": "41c345b2981f81b2d92b02249da149260da28fd58fcca059f2b3cbee88433c9c",
+    "evaluatorVersion": "omc-acceptance-runner@1",
+    "environmentDigest": "a7a6a0fa6cbaab97397487f1cf84a805320cd545d9d07ea3fbb73494461d48fd",
+    "promptDigest": "9f19c95b89c62454ed5e55c070e5510964fa30c6c2ea7fa5b2ce7e1ee2fbcdc0",
+    "cacheRegime": "cold",
+    "executionStatus": "not-executed",
+    "modelSelected": true,
+    "harnessSelected": true,
+    "note": "Inputs are complete and frozen: real native provider/model roles, real repositories, real prompts and acceptance specs. The experiment has NOT been executed; a paid run still needs explicit --max-usd/--confirm-paid-experiment and a host executor."
+  },
+  "policyVersions": {
+    "single": "role=single@native-kimi-k3.1-pro-v1",
+    "multi-role": "role=multi@native-kimi-k3.1-pro+kimi-for-coding-v1"
+  },
+  "seed": "omc-0.8-e3-pilot-2026-11-04",
+  "provenance": [
+    {
+      "taskId": "upstream-sipratt-07-crdt",
+      "revision": "fixture@b689da7353fa757e",
+      "kind": "single-turn",
+      "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "provenance": {
+        "experiment": "E3",
+        "dataset": "sipratt-p/coding-agent-bench",
+        "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+        "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+        "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+        "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+        "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+          "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified-functional",
+        "quarantined": [
+          "code_quality",
+          "official_score"
+        ],
+        "origin": "upstream"
+      }
+    },
+    {
+      "taskId": "upstream-sipratt-08-orchestrator",
+      "revision": "fixture@f187aa3d1158157d",
+      "kind": "single-turn",
+      "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "provenance": {
+        "experiment": "E3",
+        "dataset": "sipratt-p/coding-agent-bench",
+        "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+        "repo": ".ops/benchmark-repos/sipratt-p--coding-agent-bench",
+        "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "executionBaseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+        "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+        "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+        "license": {
+          "spdx": "MIT",
+          "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+          "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified-functional",
+        "quarantined": [
+          "code_quality",
+          "official_score"
+        ],
+        "origin": "upstream"
+      }
+    }
+  ],
+  "prerequisite": null,
+  "unknownCost": {
+    "trials": 4,
+    "optimizerArms": [],
+    "prerequisiteRuns": 0,
+    "prerequisite": false,
+    "prerequisiteUnattributed": false,
+    "any": true
+  },
+  "summaries": {
+    "single": {
+      "arm": "single",
+      "assignedTrials": 2,
+      "recordedTrials": 2,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 2,
+      "successRate": 1,
+      "taskReliablePasses": 2,
+      "taskCount": 2,
+      "outcomeCounts": {
+        "completed": 2,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": 10,
+      "trialCalls": 10,
+      "callsKnown": true,
+      "attempts": 3,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 2,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": false,
+        "carrierTrialId": "07277b6e8ccad37234e343db",
+        "carrierPresent": false,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": false,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 273696,
+        "p95Observed": 276135,
+        "reportedTrials": 2
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 15802,
+          "reportedTrials": 2,
+          "total": 15802
+        },
+        "cacheReadTokens": {
+          "knownSum": 176640,
+          "reportedTrials": 2,
+          "total": 176640
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 11109,
+          "reportedTrials": 2,
+          "total": 11109
+        }
+      }
+    },
+    "multi-role": {
+      "arm": "multi-role",
+      "assignedTrials": 2,
+      "recordedTrials": 2,
+      "missingTrials": 0,
+      "pendingTrials": 0,
+      "passedTrials": 2,
+      "successRate": 1,
+      "taskReliablePasses": 2,
+      "taskCount": 2,
+      "outcomeCounts": {
+        "completed": 2,
+        "failed": 0,
+        "timeout": 0,
+        "cancelled": 0,
+        "pending": 0
+      },
+      "calls": 41,
+      "trialCalls": 41,
+      "callsKnown": true,
+      "attempts": 5,
+      "humanInterventions": 0,
+      "criticalRegressions": 0,
+      "falseCompletions": 0,
+      "knownOperatingCostUsd": 0,
+      "costComplete": false,
+      "optimizerCostUsd": 0,
+      "totalCostUsd": null,
+      "costPerAcceptedTaskUsd": null,
+      "costReportingTrials": 0,
+      "unknownCostTrials": 2,
+      "unknownCost": true,
+      "prerequisite": {
+        "declared": false,
+        "carrierTrialId": "54003f375cfcecf10a29ed09",
+        "carrierPresent": false,
+        "recorded": 0,
+        "duplicateRecords": 0,
+        "unexpected": false,
+        "wrongArm": false,
+        "wrongTask": false,
+        "countedAsTrial": false,
+        "terminal": false,
+        "valid": false,
+        "calls": null,
+        "costUsd": null,
+        "usage": {
+          "uncachedInputTokens": null,
+          "cacheReadTokens": null,
+          "cacheWriteTokens": null,
+          "outputTokens": null
+        }
+      },
+      "elapsedMs": {
+        "p50Observed": 470131.5,
+        "p95Observed": 476072.85,
+        "reportedTrials": 2
+      },
+      "usage": {
+        "uncachedInputTokens": {
+          "knownSum": 100056,
+          "reportedTrials": 2,
+          "total": 100056
+        },
+        "cacheReadTokens": {
+          "knownSum": 1168128,
+          "reportedTrials": 2,
+          "total": 1168128
+        },
+        "cacheWriteTokens": {
+          "knownSum": 0,
+          "reportedTrials": 0,
+          "total": null
+        },
+        "outputTokens": {
+          "knownSum": 35861,
+          "reportedTrials": 2,
+          "total": 35861
+        }
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "candidate": "multi-role",
+      "reference": "single",
+      "complete": true,
+      "costPerAcceptedReduction": {
+        "estimate": null,
+        "low": null,
+        "high": null,
+        "finiteReplicates": 0,
+        "iterations": 1000
+      },
+      "p50ElapsedReduction": {
+        "estimate": -0.7177141792353561,
+        "low": -0.7247563366931253,
+        "high": -0.7105311713520255,
+        "finiteReplicates": 1000,
+        "iterations": 1000
+      },
+      "taskReliabilityDifference": {
+        "estimate": 0,
+        "low": -0.7152573451984472,
+        "high": 0.7152573451984472,
+        "method": "difference of 97.5% marginal Wilson intervals; task is the unit; all repeats must pass"
+      },
+      "bootstrapUnit": "task (all paired repeats and strategies kept together)",
+      "warning": "Intervals describe this frozen task sample; not proof of production generalization or continuous-peeking validity."
+    }
+  ],
+  "review": {
+    "status": "blocked",
+    "candidate": "multi-role",
+    "reference": "single",
+    "automaticActivation": false,
+    "experimentGroup": "E3",
+    "reasons": [
+      "promotion requires an untouched holdout experiment",
+      "insufficient predeclared tasks/repeats",
+      "incomplete collection coverage",
+      "unknown trial/optimizer/prerequisite cost; no settled total may be reported",
+      "cost reduction lower bound has not reached target",
+      "quality non-inferiority not established",
+      "latency constraint not established"
+    ]
+  },
+  "limitations": [
+    "Offline evaluator only; runtime collection, dispatch, grading, candidate generation and canary/rollback are not installed by this module.",
+    "Digests check declared record consistency; they do not attest that the runtime or grader reported truthfully.",
+    "All costs include parent/children/retries/compaction/grading; optimizer and prerequisite costs are added separately and must not be omitted. Unknown cost is never rendered as $0.",
+    "Do not repeatedly inspect or optimize against holdout results and then reuse the same holdout as fresh evidence."
+  ]
+}

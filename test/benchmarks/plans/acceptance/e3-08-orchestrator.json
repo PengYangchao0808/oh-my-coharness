@@ -4,7 +4,7 @@
   "commands": [
     {
       "name": "upstream-orchestrator-hidden-tests",
-      "run": ["python", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e3-check.py", "08-orchestrator"],
+      "run": ["python", "test/benchmarks/plans/acceptance/e3-check.py", "08-orchestrator"],
       "expect": {
         "exitCode": 0,
         "stdoutContains": ["ok 5/5"],

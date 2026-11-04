@@ -1,0 +1,1885 @@
+{
+  "plan": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\e1.json",
+  "manifestDigest": "908fb6142e168fb0827b325d9f46a855a970f93148c9f8fc2d04d4799d0dd2d7",
+  "preparedAt": "2026-11-04T13:21:09.529Z",
+  "completed": [
+    {
+      "trialId": "d3d5707fe5d145a06654ba9d",
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@f62a165a9201ea3d",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:374d278cea9e9dc903e12ba54460f1eb700733d9a3693bdd85aa1939652c1a76",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 33,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-d3d5707fe5d145a06654ba9d-writer-8987cc81",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-d3d5707fe5d145a06654ba9d-reviewer-af08a693",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:36:05.869Z",
+      "endedAt": "2026-11-04T12:40:27.502Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw23ombc"
+    },
+    {
+      "trialId": "50ed3adb042d4df41fa88198",
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@f62a165a9201ea3d",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:b575d69ef42d6267bce3e8c10444dbf076522e7f206b33e0e8695139d7dcdc76",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 10,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-50ed3adb042d4df41fa88198-writer-f02c3eba",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:38:44.822Z",
+      "endedAt": "2026-11-04T12:41:08.823Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-04-rate-limi-mw23s1er"
+    },
+    {
+      "trialId": "3b3ef902462782501fca2829",
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@f62a165a9201ea3d",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:d12e6ff3e856c9c18bc691221d670951382af7549ff670b84aed71fbf905397b",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 19,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-3b3ef902462782501fca2829-writer-1fb8e97f",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-3b3ef902462782501fca2829-reviewer-983d78c7",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:40:37.778Z",
+      "endedAt": "2026-11-04T12:43:45.639Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw23ugjb"
+    },
+    {
+      "trialId": "fb7b862f857955a919b6c2fe",
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@a96b805e722f4d63",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:49f9d52798aac38efb6be168cdb506ec50b432c065f364d5e5e99e7b5921122e",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 15,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/16-task-scheduler/workspace/src/order.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-fb7b862f857955a919b6c2fe-writer-6ada4334",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:43:46.764Z",
+      "endedAt": "2026-11-04T12:47:41.908Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-16-task-sche-mw23yica"
+    },
+    {
+      "trialId": "55c09a13941ff93a5be4e0c0",
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@a96b805e722f4d63",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:c961a0868b7a4b86972869902f8068f9a2f7977b860aeb68479165875a3da751",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 24,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/16-task-scheduler/workspace/src/order.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-55c09a13941ff93a5be4e0c0-writer-dfe8fd20",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-55c09a13941ff93a5be4e0c0-reviewer-be6dd188",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:45:05.615Z",
+      "endedAt": "2026-11-04T12:49:50.744Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw240789"
+    },
+    {
+      "trialId": "2cb37b381236439c4933670b",
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@a96b805e722f4d63",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:81be6e3c6c10eb1e46cfed492d7e7b19e9b87946c7786ba58145afec86220d09",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 12,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/16-task-scheduler/workspace/src/order.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-2cb37b381236439c4933670b-writer-9a9e29d0",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-2cb37b381236439c4933670b-reviewer-f41d8488",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:49:51.954Z",
+      "endedAt": "2026-11-04T12:54:29.010Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw246c20"
+    },
+    {
+      "trialId": "b791a16999b47a1da07bc9ad",
+      "taskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@87ac5eec9fa76dcf",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:411a1e25dada073549f998d3814d66ddf8d3c2eaca7a87b7e2c2ae22b9913a15",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 15,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/02-lru-cache/workspace/src/lru.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-b791a16999b47a1da07bc9ad-writer-a99479de",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:52:41.587Z",
+      "endedAt": "2026-11-04T12:56:22.614Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-02-lru-cache-mw249yyz"
+    },
+    {
+      "trialId": "2adc71c32cb9d763557f7561",
+      "taskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@87ac5eec9fa76dcf",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:8938d312261d2041ddde86f982c0a102bfd59fab87feb5c9c7b8d6ae883d1605",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 13,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/02-lru-cache/workspace/src/lru.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-2adc71c32cb9d763557f7561-writer-95dfbdab",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-2adc71c32cb9d763557f7561-reviewer-86ea0044",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:54:24.049Z",
+      "endedAt": "2026-11-04T12:57:30.717Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw24c61t"
+    },
+    {
+      "trialId": "d5500b57033088c2137c82df",
+      "taskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@87ac5eec9fa76dcf",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:391e425ff2df937987c83765f66c20169882d169914ed3f383a2bc8f74834d3c",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 15,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/02-lru-cache/workspace/src/lru.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-d5500b57033088c2137c82df-writer-16a3fabe",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-d5500b57033088c2137c82df-reviewer-974d2c32",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:57:31.767Z",
+      "endedAt": "2026-11-04T12:59:50.961Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw24g6xh"
+    },
+    {
+      "trialId": "59ee0285d6fdbcec8172ee42",
+      "taskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@3b58b9e18466d622",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:32633bd8f452a32154c5b3448beaf1c829a11cfe11722191ad4b338bfa5fb9d0",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 11,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/14-event-bus/workspace/src/once.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-59ee0285d6fdbcec8172ee42-writer-e05e71fd",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:59:52.057Z",
+      "endedAt": "2026-11-04T13:03:33.489Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-14-event-bus-mw24j75q"
+    },
+    {
+      "trialId": "2490070d608a3ac860059381",
+      "taskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@3b58b9e18466d622",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:759defc4ff4ac6f2ba0fef01bc66a3af13c1f56f4a4d694b78d56e241defb9b0",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 20,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/14-event-bus/workspace/src/once.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-2490070d608a3ac860059381-writer-09537532",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-2490070d608a3ac860059381-reviewer-2a7b7ce1",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T13:00:29.167Z",
+      "endedAt": "2026-11-04T13:05:46.950Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw24jzun"
+    },
+    {
+      "trialId": "6a1a1f66c85885f9fb77854a",
+      "taskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@3b58b9e18466d622",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": false,
+      "execution": "completed",
+      "acceptance": "failed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:efc551c14d077a91c64a479c09b7b9eb60f61734bc76f4acb0e90a530f306494",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 25,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "failed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "unknown",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-writer-6d854777",
+          "route": null
+        },
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T13:05:48.204Z",
+      "endedAt": "2026-11-04T13:19:05.598Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw24qtwu"
+    }
+  ],
+  "unknown": [],
+  "recoveryManifest": null,
+  "records": [
+    {
+      "trialId": "d3d5707fe5d145a06654ba9d",
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@f62a165a9201ea3d",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:374d278cea9e9dc903e12ba54460f1eb700733d9a3693bdd85aa1939652c1a76",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 33,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-d3d5707fe5d145a06654ba9d-writer-8987cc81",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-d3d5707fe5d145a06654ba9d-reviewer-af08a693",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:36:05.869Z",
+      "endedAt": "2026-11-04T12:40:27.502Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw23ombc"
+    },
+    {
+      "trialId": "50ed3adb042d4df41fa88198",
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@f62a165a9201ea3d",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:b575d69ef42d6267bce3e8c10444dbf076522e7f206b33e0e8695139d7dcdc76",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 10,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-50ed3adb042d4df41fa88198-writer-f02c3eba",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:38:44.822Z",
+      "endedAt": "2026-11-04T12:41:08.823Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-04-rate-limi-mw23s1er"
+    },
+    {
+      "trialId": "3b3ef902462782501fca2829",
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@f62a165a9201ea3d",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-04-rate-limiter:d12e6ff3e856c9c18bc691221d670951382af7549ff670b84aed71fbf905397b",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 19,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-3b3ef902462782501fca2829-writer-1fb8e97f",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-3b3ef902462782501fca2829-reviewer-983d78c7",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:40:37.778Z",
+      "endedAt": "2026-11-04T12:43:45.639Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw23ugjb"
+    },
+    {
+      "trialId": "fb7b862f857955a919b6c2fe",
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@a96b805e722f4d63",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:49f9d52798aac38efb6be168cdb506ec50b432c065f364d5e5e99e7b5921122e",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 15,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/16-task-scheduler/workspace/src/order.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-fb7b862f857955a919b6c2fe-writer-6ada4334",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:43:46.764Z",
+      "endedAt": "2026-11-04T12:47:41.908Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-16-task-sche-mw23yica"
+    },
+    {
+      "trialId": "55c09a13941ff93a5be4e0c0",
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@a96b805e722f4d63",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:c961a0868b7a4b86972869902f8068f9a2f7977b860aeb68479165875a3da751",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 24,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/16-task-scheduler/workspace/src/order.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-55c09a13941ff93a5be4e0c0-writer-dfe8fd20",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-55c09a13941ff93a5be4e0c0-reviewer-be6dd188",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:45:05.615Z",
+      "endedAt": "2026-11-04T12:49:50.744Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw240789"
+    },
+    {
+      "trialId": "2cb37b381236439c4933670b",
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@a96b805e722f4d63",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-16-task-scheduler:81be6e3c6c10eb1e46cfed492d7e7b19e9b87946c7786ba58145afec86220d09",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 12,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/16-task-scheduler/workspace/src/order.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-2cb37b381236439c4933670b-writer-9a9e29d0",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-2cb37b381236439c4933670b-reviewer-f41d8488",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:49:51.954Z",
+      "endedAt": "2026-11-04T12:54:29.010Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw246c20"
+    },
+    {
+      "trialId": "b791a16999b47a1da07bc9ad",
+      "taskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@87ac5eec9fa76dcf",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:411a1e25dada073549f998d3814d66ddf8d3c2eaca7a87b7e2c2ae22b9913a15",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 15,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/02-lru-cache/workspace/src/lru.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-b791a16999b47a1da07bc9ad-writer-a99479de",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:52:41.587Z",
+      "endedAt": "2026-11-04T12:56:22.614Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-02-lru-cache-mw249yyz"
+    },
+    {
+      "trialId": "2adc71c32cb9d763557f7561",
+      "taskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@87ac5eec9fa76dcf",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:8938d312261d2041ddde86f982c0a102bfd59fab87feb5c9c7b8d6ae883d1605",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 13,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/02-lru-cache/workspace/src/lru.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-2adc71c32cb9d763557f7561-writer-95dfbdab",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-2adc71c32cb9d763557f7561-reviewer-86ea0044",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:54:24.049Z",
+      "endedAt": "2026-11-04T12:57:30.717Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw24c61t"
+    },
+    {
+      "trialId": "d5500b57033088c2137c82df",
+      "taskId": "upstream-latitude-02-lru-cache",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@87ac5eec9fa76dcf",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-02-lru-cache:391e425ff2df937987c83765f66c20169882d169914ed3f383a2bc8f74834d3c",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 15,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/02-lru-cache/workspace/src/lru.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-d5500b57033088c2137c82df-writer-16a3fabe",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-d5500b57033088c2137c82df-reviewer-974d2c32",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:57:31.767Z",
+      "endedAt": "2026-11-04T12:59:50.961Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw24g6xh"
+    },
+    {
+      "trialId": "59ee0285d6fdbcec8172ee42",
+      "taskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "role=single@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@3b58b9e18466d622",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:32633bd8f452a32154c5b3448beaf1c829a11cfe11722191ad4b338bfa5fb9d0",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 11,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/14-event-bus/workspace/src/once.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-59ee0285d6fdbcec8172ee42-writer-e05e71fd",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T12:59:52.057Z",
+      "endedAt": "2026-11-04T13:03:33.489Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-single-upstream-latitude-14-event-bus-mw24j75q"
+    },
+    {
+      "trialId": "2490070d608a3ac860059381",
+      "taskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "arm": "same-model-multi-role",
+      "strategy": "same-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-same-model@native-kimi-k3.1-pro-v1",
+      "taskRevision": "fixture@3b58b9e18466d622",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:759defc4ff4ac6f2ba0fef01bc66a3af13c1f56f4a4d694b78d56e241defb9b0",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 20,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro"
+      ],
+      "changedFiles": [
+        "tasks/14-event-bus/workspace/src/once.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-2490070d608a3ac860059381-writer-09537532",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-2490070d608a3ac860059381-reviewer-2a7b7ce1",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T13:00:29.167Z",
+      "endedAt": "2026-11-04T13:05:46.950Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-same-model-multi-role-upstream-latitu-mw24jzun"
+    },
+    {
+      "trialId": "6a1a1f66c85885f9fb77854a",
+      "taskId": "upstream-latitude-14-event-bus",
+      "repeat": 0,
+      "arm": "different-model-multi-role",
+      "strategy": "different-model-multi-role",
+      "group": "E1",
+      "policyVersion": "role=multi-cross-model@native-kimi-k3.1-pro+kimi-for-coding-v1",
+      "taskRevision": "fixture@3b58b9e18466d622",
+      "model": null,
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": null,
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "recovered-acceptance",
+      "ok": false,
+      "execution": "completed",
+      "acceptance": "failed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:upstream-latitude-14-event-bus:efc551c14d077a91c64a479c09b7b9eb60f61734bc76f4acb0e90a530f306494",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "recovered": true,
+      "recoveryKind": "post-hoc-acceptance",
+      "baselineSource": "reconstructed-from-frozen-base",
+      "actualActions": [
+        "recovery:post-hoc-acceptance"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "calls": 25,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "usage": {
+        "uncachedInputTokens": null,
+        "cacheReadTokens": null,
+        "cacheWriteTokens": null,
+        "outputTokens": null
+      },
+      "models": [
+        "k3.1-pro",
+        "kimi-for-coding"
+      ],
+      "changedFiles": [],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "failed",
+          "changedFiles": []
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "unknown",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-writer-6d854777",
+          "route": null
+        },
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-writer-6afb29d8",
+          "route": null
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-6a1a1f66c85885f9fb77854a-reviewer-4b231839",
+          "route": null
+        }
+      ],
+      "startedAt": "2026-11-04T13:05:48.204Z",
+      "endedAt": "2026-11-04T13:19:05.598Z",
+      "worktree": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\omc-0.8-e1-latitude-12-different-model-multi-role-upstream-l-mw24qtwu"
+    }
+  ]
+}

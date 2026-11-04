@@ -552,6 +552,18 @@ function callingShard(rt, exec) {
  * host-executor factory, dispatch and acceptance runner. Production uses the
  * real modules; no second Agent Runtime is introduced.
  */
+/**
+ * The native trial session identity rule: a legal resume keeps the prior id;
+ * every other action gets a genuinely new id. This is exported so the
+ * fresh_handoff duplicate-session regression can be tested without a model.
+ */
+export function nativeTrialSessionId({ taskId, roleId, reuse = false, priorSessionId = null } = {}) {
+  if (reuse === true && typeof priorSessionId === 'string' && priorSessionId !== '') return priorSessionId
+  const task = String(taskId ?? '').replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 48)
+  const role = String(roleId ?? 'writer').replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 24)
+  return `omc-trial-${task}-${role}-${randomUUID().slice(0, 8)}`
+}
+
 export function createTrialService(rt, overrides = {}) {
   async function loadRunner() {
     return import('../scripts/strategy-runner.mjs')
@@ -620,10 +632,14 @@ export function createTrialService(rt, overrides = {}) {
    * machine checkouts outside the workspace remain allowed.
    */
   function repositoryBoundary(raw, root, rootReal) {
-    if (typeof raw !== 'string' || raw.trim() === '' || !isAbsolute(raw)) {
-      return { problem: `repo must be an absolute checkout: ${String(raw)}` }
+    if (typeof raw !== 'string' || raw.trim() === '') {
+      return { problem: `repo must be an absolute checkout or a workspace-relative path: ${String(raw)}` }
     }
-    const abs = resolve(raw)
+    const relativeInput = !isAbsolute(raw)
+    const abs = relativeInput ? resolve(root, raw) : resolve(raw)
+    if (relativeInput && !lexicalInside(root, abs)) {
+      return { problem: `repo ${raw} escapes the workspace (${abs})` }
+    }
     if (!existsSync(abs)) return { problem: `repo checkout does not exist: ${abs}` }
     const real = canonicalPath(abs)
     if (!real) return { problem: `repo checkout cannot be resolved: ${abs}` }
@@ -632,8 +648,8 @@ export function createTrialService(rt, overrides = {}) {
     } catch (error) {
       return { problem: `repo checkout cannot be inspected: ${String(error?.message ?? error)}` }
     }
-    if (lexicalInside(root, abs) && rootReal && !lexicalInside(rootReal, real)) {
-      return { problem: `repo ${abs} is lexically inside the workspace but resolves outside (${real}); symlink escape is refused` }
+    if ((relativeInput || lexicalInside(root, abs)) && rootReal && !lexicalInside(rootReal, real)) {
+      return { problem: `repo ${abs} is inside the workspace but resolves outside (${real}); symlink escape is refused` }
     }
     return { abs, real }
   }
@@ -679,7 +695,7 @@ export function createTrialService(rt, overrides = {}) {
     return problems
   }
 
-  function readAcceptanceSpec(task, repoRef) {
+  function readAcceptanceSpec(task, repoRef, workspaceRoot) {
     const rel = task?.acceptance?.spec
     if (typeof rel !== 'string' || rel.trim() === '') {
       return { problem: { code: 'OMC/TRIAL-ACCEPTANCE', detail: `task ${task?.id}: no acceptance.spec is frozen` } }
@@ -688,7 +704,7 @@ export function createTrialService(rt, overrides = {}) {
     if (typeof repo !== 'string' || !isAbsolute(repo) || !existsSync(repo)) {
       return { problem: { code: 'OMC/TRIAL-CHECKOUT', detail: `task ${task.id}: repo checkout is missing or not absolute: ${String(repo)}` } }
     }
-    const specPath = resolve(repo, rel)
+    const specPath = isAbsolute(rel) ? resolve(rel) : resolve(workspaceRoot, rel)
     if (!existsSync(specPath)) {
       return { problem: { code: 'OMC/TRIAL-CHECKOUT', detail: `task ${task.id}: acceptance spec is missing at ${specPath}` } }
     }
@@ -702,6 +718,20 @@ export function createTrialService(rt, overrides = {}) {
       validateAcceptanceSpec(spec)
     } catch (error) {
       return { problem: { code: 'OMC/TRIAL-ACCEPTANCE', detail: `task ${task.id}: ${error?.message ?? error}` } }
+    }
+    // A plan may freeze harness-side acceptance paths relative to the calling
+    // workspace (E3's checker lives in the OMC checkout, not in the upstream
+    // worktree). Resolve only relative *existing workspace* paths; absolute
+    // paths, flags, executables, and worktree-local checks are unchanged.
+    for (const command of spec.commands ?? []) {
+      if (!Array.isArray(command.run)) continue
+      command.run = command.run.map((arg) => {
+        if (typeof arg !== 'string' || isAbsolute(arg)) return arg
+        const workspaceCandidate = resolve(workspaceRoot, arg)
+        if (!existsSync(workspaceCandidate)) return arg
+        if (existsSync(resolve(repo, arg))) return arg
+        return workspaceCandidate
+      })
     }
     return { spec, path: specPath }
   }
@@ -754,7 +784,7 @@ export function createTrialService(rt, overrides = {}) {
     }
   }
 
-  async function planTrialNodes({ parentId, shard, manifest, trialRows }) {
+  async function planTrialNodes({ parentId, shard, manifest, trialRows, stepIds = null }) {
     const graph = rt.graph
     if (!graph) return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: 'the host graph store is unavailable' }] }
     const nodeIds = new Map()
@@ -780,6 +810,8 @@ export function createTrialService(rt, overrides = {}) {
           trial: { trialId: row.trialId, taskId: row.taskId, arm: row.arm, role: row.role, repeat: row.repeat },
           task,
         })
+        if (Array.isArray(stepIds)) steps = steps.filter((step) => stepIds.includes(step.id))
+        if (!steps.length) return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: `recovery selected no execution step for ${row.trialId}` }] }
       } catch (error) {
         return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: `trial ${row.trialId}: ${String(error?.message ?? error)}` }] }
       }
@@ -873,7 +905,12 @@ export function createTrialService(rt, overrides = {}) {
         reason: 'native trial',
         intent: { backend: 'native', nodeId, cwd: workspace, roleId, writer },
       })
-      let sessionId = sessionState?.sessionId ?? `omc-trial-${String(taskId).replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 48)}-${String(roleId).replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 24)}-${randomUUID().slice(0, 8)}`
+      let sessionId = nativeTrialSessionId({
+        taskId,
+        roleId,
+        reuse: reused,
+        priorSessionId: sessionState?.sessionId ?? null,
+      })
       if (!reused) {
         sessionState = { sessionId, handle: null, provider, model, writer, permission: writer ? 'workspace-write' : 'read-only' }
         sessions.set(sessionKey, sessionState)
@@ -1186,7 +1223,7 @@ export function createTrialService(rt, overrides = {}) {
     }
 
     const rootReal = canonicalPath(workspace)
-    const repoCandidate = args.trial_repo ? resolve(args.trial_repo) : workspace
+    const repoCandidate = args.trial_repo || workspace
     const repoInfo = repositoryBoundary(repoCandidate, workspace, rootReal)
     if (repoInfo.problem) {
       problems.push({ code: 'OMC/TRIAL-CHECKOUT', detail: `trial_repo: ${repoInfo.problem}` })
@@ -1200,7 +1237,7 @@ export function createTrialService(rt, overrides = {}) {
         if (taskRepo.problem) {
           problems.push({ code: 'OMC/TRIAL-CHECKOUT', detail: `task ${task.id}: ${taskRepo.problem}` })
         } else {
-          const acceptance = readAcceptanceSpec(task, taskRepo.real)
+          const acceptance = readAcceptanceSpec(task, taskRepo.real, workspace)
           if (acceptance.problem) problems.push(acceptance.problem)
           else specByTask.set(task.id, acceptance.spec)
         }
@@ -1230,6 +1267,14 @@ export function createTrialService(rt, overrides = {}) {
 
     // A smoke manifest may name the exact frozen assignment(s) it is allowed to
     // execute. This is a subset of the frozen allocation, never a new plan.
+    const recoveryStepIds = Array.isArray(document.recoveryStepIds) && document.recoveryStepIds.length
+      ? document.recoveryStepIds.filter((id) => typeof id === 'string' && id !== '')
+      : null
+    const recoveryWorktree = document.recoveryWorktree && typeof document.recoveryWorktree === 'object'
+      ? document.recoveryWorktree
+      : null
+    const recoverySkipPrerequisites = document.recoverySkipPrerequisites === true
+    const recoveryHandoff = document.recoveryHandoff ?? null
     let onlyTrialIds = null
     if (Array.isArray(document.smokeTrialIds)) {
       const wanted = [...new Set(document.smokeTrialIds.filter((id) => typeof id === 'string' && id !== ''))]
@@ -1250,17 +1295,19 @@ export function createTrialService(rt, overrides = {}) {
       const selectedArms = new Set(assignments.filter((row) => wanted.includes(row.trialId)).map((row) => row.strategy))
       onlyTrialIds = [
         ...wanted,
-        ...((manifest?.prerequisiteTrials ?? [])
-          .filter((row) => selectedArms.has(row.strategy))
-          .map((row) => row.trialId)
-          .filter((id) => typeof id === 'string' && id !== '')),
+        ...(!recoverySkipPrerequisites
+          ? (manifest?.prerequisiteTrials ?? [])
+            .filter((row) => selectedArms.has(row.strategy))
+            .map((row) => row.trialId)
+            .filter((id) => typeof id === 'string' && id !== '')
+          : []),
       ]
     }
     const allTrialRows = planNode(manifest)
     const trialRows = onlyTrialIds
       ? allTrialRows.filter((row) => onlyTrialIds.includes(row.trialId))
       : allTrialRows
-    const planned = await planTrialNodes({ parentId: shard.parentId, shard, manifest, trialRows })
+    const planned = await planTrialNodes({ parentId: shard.parentId, shard, manifest, trialRows, stepIds: recoveryStepIds })
     if (planned.problems.length) {
       return { ok: false, code: planned.problems[0].code, problems: planned.problems.map((row) => `${row.code}: ${row.detail}`), executesAnything: false, plan }
     }
@@ -1322,8 +1369,13 @@ export function createTrialService(rt, overrides = {}) {
         maxUsd: effectiveMaxUsd,
         receiptPath,
         repo: repoInfo.real,
+        workspaceRoot: workspace,
         runTrial: executor.runTrial,
         ...(onlyTrialIds ? { onlyTrialIds } : {}),
+        ...(recoveryWorktree ? { worktreeOverride: recoveryWorktree } : {}),
+        ...(recoveryStepIds ? { onlyStepIds: recoveryStepIds } : {}),
+        ...(recoveryHandoff ? { handoff: recoveryHandoff } : {}),
+        ...(recoverySkipPrerequisites ? { skipPrerequisites: true } : {}),
         now,
       })
     } catch (error) {
@@ -1344,6 +1396,7 @@ export function createTrialService(rt, overrides = {}) {
       manifestPath: loaded.path,
       receiptPath: result?.receipt ?? receiptPath,
       code: result?.code ?? null,
+      problems: result?.problems ?? null,
       aborted: result?.aborted ?? null,
       spentUsd: result?.spentUsd ?? null,
       budget: { requestedMaxUsd: maxUsd, effectiveMaxUsd, operatorCapUsd: limits.maxUsd },
