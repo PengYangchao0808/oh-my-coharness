@@ -1,0 +1,28 @@
+{
+  "taskId": "upstream-latitude-16-task-scheduler",
+  "split": "development",
+  "commands": [
+    {
+      "name": "upstream-scheduler-contract",
+      "run": ["node", "--test", "--test-reporter=tap", "tasks/16-task-scheduler/workspace/scheduler.test.js"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["# pass 11", "# fail 0"],
+        "stdoutNotContains": ["not ok"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "tasks/16-task-scheduler/workspace/scheduler.test.js",
+    "tasks/16-task-scheduler/workspace/package.json"
+  ],
+  "forbidChanges": [
+    "tasks/16-task-scheduler/workspace/scheduler.test.js",
+    "tasks/16-task-scheduler/workspace/package.json"
+  ],
+  "rubric": [
+    "The frozen upstream scheduler suite passes unmodified: 11 tests, 0 failures.",
+    "Only source files change; the grading test and package.json stay byte-identical.",
+    "A newly ready high-priority task runs as soon as its dependency finishes."
+  ]
+}

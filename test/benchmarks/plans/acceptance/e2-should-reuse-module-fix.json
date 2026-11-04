@@ -1,0 +1,32 @@
+{
+  "taskId": "should-reuse-module-fix",
+  "split": "development",
+  "commands": [
+    {
+      "name": "e2-should-reuse-module-fix-contract",
+      "run": ["node", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs", "test/benchmarks/session-strategies/should-reuse-module-fix"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["ok 6/6"],
+        "stdoutNotContains": ["fail"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/check.mjs",
+    "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+    "test/benchmarks/session-strategies/should-reuse-module-fix/start/src/text-utils.mjs",
+    "test/benchmarks/session-strategies/should-reuse-module-fix/reference/src/text-utils.mjs"
+  ],
+  "forbidChanges": [
+    "test/benchmarks/session-strategies/should-reuse-module-fix/acceptance/",
+    "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+    "test/benchmarks/session-strategies/should-reuse-module-fix/start/",
+    "test/benchmarks/session-strategies/should-reuse-module-fix/reference/"
+  ],
+  "rubric": [
+    "The frozen fixture acceptance script prints ok 6/6 from the worker's src/ directory.",
+    "The worker only changes files under the fixture's src/; start/reference/acceptance/spec.json stay byte-identical.",
+    "truncate() is fixed without regressing slugify()."
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "taskId": "should-restart-stale-api",
+  "split": "development",
+  "commands": [
+    {
+      "name": "e2-should-restart-stale-api-contract",
+      "run": ["node", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs", "test/benchmarks/session-strategies/should-restart-stale-api"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["ok 5/5"],
+        "stdoutNotContains": ["fail"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "test/benchmarks/session-strategies/should-restart-stale-api/acceptance/check.mjs",
+    "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+    "test/benchmarks/session-strategies/should-restart-stale-api/start/src/config.mjs",
+    "test/benchmarks/session-strategies/should-restart-stale-api/start/src/read-settings.mjs",
+    "test/benchmarks/session-strategies/should-restart-stale-api/reference/src/read-settings.mjs"
+  ],
+  "forbidChanges": [
+    "test/benchmarks/session-strategies/should-restart-stale-api/acceptance/",
+    "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+    "test/benchmarks/session-strategies/should-restart-stale-api/start/",
+    "test/benchmarks/session-strategies/should-restart-stale-api/reference/"
+  ],
+  "rubric": [
+    "The frozen fixture acceptance script prints ok 5/5 from the worker's src/ directory.",
+    "The worker only changes files under the fixture's src/; start/reference/acceptance/spec.json stay byte-identical.",
+    "The caller is migrated to the async loader and the removed name does not survive."
+  ]
+}

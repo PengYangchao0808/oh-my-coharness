@@ -1,0 +1,32 @@
+{
+  "taskId": "omc-session-primer",
+  "split": "development",
+  "commands": [
+    {
+      "name": "e2-session-primer-contract",
+      "run": ["node", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs", "test/benchmarks/prerequisites/session-primer"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["ok 6/6"],
+        "stdoutNotContains": ["fail"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "test/benchmarks/prerequisites/session-primer/acceptance/check.mjs",
+    "test/benchmarks/prerequisites/session-primer/spec.json",
+    "test/benchmarks/prerequisites/session-primer/start/src/session-brief.mjs",
+    "test/benchmarks/prerequisites/session-primer/reference/src/session-brief.mjs"
+  ],
+  "forbidChanges": [
+    "test/benchmarks/prerequisites/session-primer/acceptance/",
+    "test/benchmarks/prerequisites/session-primer/spec.json",
+    "test/benchmarks/prerequisites/session-primer/start/",
+    "test/benchmarks/prerequisites/session-primer/reference/"
+  ],
+  "rubric": [
+    "The frozen fixture acceptance script prints ok 6/6 from the worker's src/ directory.",
+    "The worker only changes files under the fixture's src/; start/reference/acceptance/spec.json stay byte-identical.",
+    "This run is the arm's shared warm-up; it is not counted as an independent trial."
+  ]
+}

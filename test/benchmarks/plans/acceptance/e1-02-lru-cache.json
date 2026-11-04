@@ -1,0 +1,28 @@
+{
+  "taskId": "upstream-latitude-02-lru-cache",
+  "split": "development",
+  "commands": [
+    {
+      "name": "upstream-lru-contract",
+      "run": ["node", "--test", "--test-reporter=tap", "tasks/02-lru-cache/workspace/lru.test.js"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["# pass 7", "# fail 0"],
+        "stdoutNotContains": ["not ok"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "tasks/02-lru-cache/workspace/lru.test.js",
+    "tasks/02-lru-cache/workspace/package.json"
+  ],
+  "forbidChanges": [
+    "tasks/02-lru-cache/workspace/lru.test.js",
+    "tasks/02-lru-cache/workspace/package.json"
+  ],
+  "rubric": [
+    "The frozen upstream LRU suite passes unmodified: 7 tests, 0 failures.",
+    "Only source files change; the grading test and package.json stay byte-identical.",
+    "The fix restores recency refresh on get/set instead of weakening the tests."
+  ]
+}

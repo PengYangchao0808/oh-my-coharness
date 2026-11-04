@@ -1,0 +1,28 @@
+{
+  "taskId": "upstream-latitude-04-rate-limiter",
+  "split": "development",
+  "commands": [
+    {
+      "name": "upstream-rate-limiter-contract",
+      "run": ["node", "--test", "--test-reporter=tap", "tasks/04-rate-limiter/workspace/rate-limiter.test.js"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["# pass 7", "# fail 0"],
+        "stdoutNotContains": ["not ok"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "tasks/04-rate-limiter/workspace/rate-limiter.test.js",
+    "tasks/04-rate-limiter/workspace/package.json"
+  ],
+  "forbidChanges": [
+    "tasks/04-rate-limiter/workspace/rate-limiter.test.js",
+    "tasks/04-rate-limiter/workspace/package.json"
+  ],
+  "rubric": [
+    "The frozen upstream rate-limiter suite passes unmodified: 7 tests, 0 failures.",
+    "Only source files change; the grading test and package.json stay byte-identical.",
+    "The window-edge timestamp is excluded from the occupied window."
+  ]
+}

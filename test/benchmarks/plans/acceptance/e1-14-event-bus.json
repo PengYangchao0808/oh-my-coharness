@@ -1,0 +1,28 @@
+{
+  "taskId": "upstream-latitude-14-event-bus",
+  "split": "development",
+  "commands": [
+    {
+      "name": "upstream-event-bus-contract",
+      "run": ["node", "--test", "--test-reporter=tap", "tasks/14-event-bus/workspace/event-bus.test.js"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["# pass 14", "# fail 0"],
+        "stdoutNotContains": ["not ok"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "tasks/14-event-bus/workspace/event-bus.test.js",
+    "tasks/14-event-bus/workspace/package.json"
+  ],
+  "forbidChanges": [
+    "tasks/14-event-bus/workspace/event-bus.test.js",
+    "tasks/14-event-bus/workspace/package.json"
+  ],
+  "rubric": [
+    "The frozen upstream event-bus suite passes unmodified: 14 tests, 0 failures.",
+    "Only source files change; the grading test and package.json stay byte-identical.",
+    "A once() handler runs exactly once even during a re-entrant emit."
+  ]
+}

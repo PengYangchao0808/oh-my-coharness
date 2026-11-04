@@ -1,0 +1,32 @@
+{
+  "taskId": "example-local-fix",
+  "split": "development",
+  "commands": [
+    {
+      "name": "e2-example-local-fix-contract",
+      "run": ["node", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e2-check.mjs", "test/benchmarks/session-strategies/example-local-fix"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["ok 7/7"],
+        "stdoutNotContains": ["fail"]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "test/benchmarks/session-strategies/example-local-fix/acceptance/check.mjs",
+    "test/benchmarks/session-strategies/example-local-fix/spec.json",
+    "test/benchmarks/session-strategies/example-local-fix/start/src/parse-range.mjs",
+    "test/benchmarks/session-strategies/example-local-fix/reference/src/parse-range.mjs"
+  ],
+  "forbidChanges": [
+    "test/benchmarks/session-strategies/example-local-fix/acceptance/",
+    "test/benchmarks/session-strategies/example-local-fix/spec.json",
+    "test/benchmarks/session-strategies/example-local-fix/start/",
+    "test/benchmarks/session-strategies/example-local-fix/reference/"
+  ],
+  "rubric": [
+    "The frozen fixture acceptance script prints ok 7/7 from the worker's src/ directory.",
+    "The worker only changes files under the fixture's src/; start/reference/acceptance/spec.json stay byte-identical.",
+    "The fix restores the documented range contract instead of weakening the grader."
+  ]
+}

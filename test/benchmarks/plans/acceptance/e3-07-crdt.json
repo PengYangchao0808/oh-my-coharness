@@ -1,0 +1,28 @@
+{
+  "taskId": "upstream-sipratt-07-crdt",
+  "split": "development",
+  "commands": [
+    {
+      "name": "upstream-crdt-hidden-tests",
+      "run": ["python", "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/acceptance/e3-check.py", "07-crdt"],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": ["ok 5/5"],
+        "stdoutNotContains": ["fail "]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "bench/coding_benchmark_v3.py",
+    "bench/coding_benchmark_v4.py"
+  ],
+  "forbidChanges": [
+    "bench/"
+  ],
+  "rubric": [
+    "The frozen upstream hidden test prints ALL_TESTS_PASSED and every functional group is ok.",
+    "The upstream benchmark modules under bench/ stay byte-identical.",
+    "solution.py uses only the Python standard library, as the upstream prompt requires.",
+    "The official 0-100 score is not claimed: code_quality and partial credit are quarantined."
+  ]
+}
