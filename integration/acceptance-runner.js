@@ -37,9 +37,9 @@
 
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { closeSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, relative, resolve, sep } from 'node:path'
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 import { treeFingerprint } from './work-packet.js'
 
@@ -274,6 +274,49 @@ function probe(handle, name) {
   }
 }
 
+function isNodeName(value) {
+  const name = String(value).toLowerCase()
+  return name === 'node' || name === 'node.exe'
+}
+
+/**
+ * Resolve a bare `node` acceptance command without weakening argv/shell rules.
+ *
+ * The host process may be Electron (process.execPath is not node) and may not
+ * carry a node directory on PATH. `OMC_NODE_EXECUTABLE` is the explicit host
+ * opt-in; it must be an absolute existing file named node/node.exe. An explicit
+ * absolute argv[0], and every non-node command, is left untouched. A set but
+ * invalid override fails closed instead of silently falling back to PATH.
+ */
+function nodeExecutableFor(argv0, { allowProcessExecPath = false } = {}) {
+  if (!isNodeName(argv0)) return null
+  const configured = process.env.OMC_NODE_EXECUTABLE
+  const candidate = configured !== undefined && configured !== ''
+    ? configured
+    : (allowProcessExecPath && isNodeName(basename(process.execPath)) ? process.execPath : null)
+  if (candidate === null) return null
+  if (typeof candidate !== 'string' || !isAbsolute(candidate) || !existsSync(candidate)) {
+    throw new Error(`OMC/ACCEPTANCE-NODE: OMC_NODE_EXECUTABLE must be an existing absolute node executable; got ${String(candidate)}`)
+  }
+  try {
+    if (!statSync(candidate).isFile() || !isNodeName(basename(candidate))) {
+      throw new Error('not a node executable file')
+    }
+  } catch (error) {
+    throw new Error(`OMC/ACCEPTANCE-NODE: OMC_NODE_EXECUTABLE is invalid: ${String(error?.message ?? error)}`)
+  }
+  return candidate
+}
+
+function effectiveArgv(command, { allowProcessExecPath = false } = {}) {
+  try {
+    const node = nodeExecutableFor(command.argv[0], { allowProcessExecPath })
+    return node === null ? { argv: command.argv } : { argv: [node, ...command.argv.slice(1)] }
+  } catch (error) {
+    return { argv: command.argv, error: String(error?.message ?? error) }
+  }
+}
+
 /**
  * Run one command through the Host subprocess service (bound read-only
  * execution surface). Falls back to the literal argv[0] when the service
@@ -289,9 +332,13 @@ async function runViaService(subprocess, { command, cwd, timeoutMs, env }) {
       timedOut: false,
     }
   }
-  let executable = command.argv[0]
+  const effective = effectiveArgv(command)
+  if (effective.error) {
+    return { started: false, exitCode: null, stdout: '', stderr: effective.error, timedOut: false }
+  }
+  let executable = effective.argv[0]
   try {
-    executable = await subprocess.resolveExecutable(command.argv[0])
+    executable = await subprocess.resolveExecutable(effective.argv[0])
   } catch {
     // Keep the literal name: the service may still resolve it, and a missing
     // executable must surface as a failed check rather than an exception.
@@ -304,7 +351,7 @@ async function runViaService(subprocess, { command, cwd, timeoutMs, env }) {
   let handle
   try {
     handle = subprocess.spawn({
-      argv: [executable, ...command.argv.slice(1)],
+      argv: [executable, ...effective.argv.slice(1)],
       cwd,
       env: { ...process.env, ...env },
       stdio: {
@@ -344,12 +391,17 @@ async function runLocal({ command, cwd, timeoutMs, env }) {
   const scratch = mkdtempSync(join(tmpdir(), 'omc-acceptance-'))
   const stdoutFile = join(scratch, 'stdout.txt')
   const stderrFile = join(scratch, 'stderr.txt')
+  const effective = effectiveArgv(command, { allowProcessExecPath: true })
+  if (effective.error) {
+    try { rmSync(scratch, { recursive: true, force: true }) } catch { /* best effort */ }
+    return { started: false, exitCode: null, stdout: '', stderr: effective.error, timedOut: false }
+  }
   try {
     let child
     const outFd = openSync(stdoutFile, 'w')
     const errFd = openSync(stderrFile, 'w')
     try {
-      child = spawn(command.argv[0], command.argv.slice(1), {
+      child = spawn(effective.argv[0], effective.argv.slice(1), {
         cwd,
         env: { ...process.env, ...env },
         shell: command.shell,

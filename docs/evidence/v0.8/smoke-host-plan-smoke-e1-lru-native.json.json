@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-trial-host-run",
+  "at": "2026-11-04T09:31:05.127Z",
+  "argv": [
+    "--manifest",
+    "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\smoke-e1-lru-native.json",
+    "--max-usd",
+    "2",
+    "--plan-only"
+  ],
+  "manifestPath": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\smoke-e1-lru-native.json",
+  "receiptPath": null,
+  "maxUsd": 2,
+  "planOnly": true,
+  "confirmPaidExperiment": false,
+  "host": {
+    "version": "0.2.1-rc.5",
+    "profile": "omc-test",
+    "preset": "oh-my-coharness"
+  },
+  "modelCalls": null,
+  "plan": {
+    "ok": true,
+    "mode": "plan",
+    "executesAnything": false,
+    "manifestPath": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\test\\benchmarks\\plans\\smoke-e1-lru-native.json",
+    "plan": {
+      "mode": "plan",
+      "runnerVersion": 1,
+      "executesAnything": false,
+      "manifest": {
+        "experimentId": "smoke-e1-lru-native",
+        "digest": "118f482e42c7a38a60fa033101ca70c1d98ee5ecba6c333cffdac6e748145988",
+        "experimentGroup": "E1",
+        "arms": [
+          "single",
+          "multi-role"
+        ],
+        "dataKind": "live",
+        "split": "development",
+        "seed": "smoke-e1-lru",
+        "repeats": 1,
+        "conditions": {
+          "provider": "kimi-coding",
+          "model": "k3.1-pro",
+          "harness": "native",
+          "toolsetDigest": "omc-smoke-native-toolset",
+          "budgetDigest": "omc-smoke-budget-2usd",
+          "evaluatorVersion": "omc-acceptance-runner@1",
+          "environmentDigest": "omc-smoke-isolated-profile",
+          "promptDigest": "omc-smoke-lru-prompt-v1",
+          "cacheRegime": "cold",
+          "executionStatus": "ready",
+          "modelSelected": true,
+          "harnessSelected": true,
+          "note": "Single authorized real smoke trial; E1/E2/E3 full plans are not executed by this manifest."
+        },
+        "policyVersions": {
+          "single": "smoke-policy-v1",
+          "multi-role": "smoke-policy-v1"
+        }
+      },
+      "model": "k3.1-pro",
+      "provider": "kimi-coding",
+      "experimentGroup": "E1",
+      "arms": [
+        "single",
+        "multi-role"
+      ],
+      "prerequisite": null,
+      "concurrency": 1,
+      "deadline": "2026-12-31T23:59:59.000Z",
+      "budgetCaps": {
+        "totalUsd": 2,
+        "perTrialUsd": 2,
+        "maxUsdFromCli": 2,
+        "effectiveTotalUsd": 2
+      },
+      "assignmentCount": 2,
+      "taskCount": 1,
+      "tasks": [
+        {
+          "id": "smoke-e1-lru-cache",
+          "revision": "upstream-latitude-02-lru-cache@smoke",
+          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+          "harness": "native",
+          "prompt": "You are a native coding fixer working in an isolated git worktree of the Latitude coding-agent benchmark. Fix the bug in tasks/02-lru-cache/workspace/src/lru.js. Bug report: LruCache evicts a key that was just read. With capacity 2, set('a',1), set('b',2), get('a'), set('c',3) evicts 'a' even though it was the most recently used entry; the expected behavior is that 'b' is evicted and get('a') still returns 1. The test suite at tasks/02-lru-cache/workspace/lru.test.js reproduces the problem. Run it with: node --test tasks/02-lru-cache/workspace/lru.test.js. Change only source code; do not edit the test file or package.json, and do not weaken the tests. Report what you changed and the test result.",
+          "acceptance": {
+            "spec": "E:/Calculations/Plugins/Oh-My-CoHarness/test/benchmarks/plans/smoke-e1-lru-acceptance.json"
+          }
+        }
+      ],
+      "trials": [
+        {
+          "trialId": "d0c0a0b9b4866efe1d903ed1",
+          "taskId": "smoke-e1-lru-cache",
+          "repeat": 0,
+          "arm": "single",
+          "strategy": "single",
+          "group": "E1",
+          "policyVersion": "smoke-policy-v1",
+          "taskRevision": "upstream-latitude-02-lru-cache@smoke",
+          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+          "provenance": null,
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 2
+          }
+        },
+        {
+          "trialId": "978fb827a8451f72fe0033aa",
+          "taskId": "smoke-e1-lru-cache",
+          "repeat": 0,
+          "arm": "multi-role",
+          "strategy": "multi-role",
+          "group": "E1",
+          "policyVersion": "smoke-policy-v1",
+          "taskRevision": "upstream-latitude-02-lru-cache@smoke",
+          "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+          "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+          "provenance": null,
+          "harness": "native",
+          "model": "k3.1-pro",
+          "budgetCaps": {
+            "perTrialUsd": 2,
+            "remainingUsdIfFirst": 2
+          }
+        }
+      ],
+      "problems": [],
+      "warnings": []
+    }
+  },
+  "execute": null,
+  "exitCode": 0
+}

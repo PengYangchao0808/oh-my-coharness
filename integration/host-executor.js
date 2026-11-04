@@ -37,6 +37,7 @@ import { existsSync } from 'node:fs'
 
 import { createManagedExecution } from './managed-execution.js'
 import { decideSessionAction, STRATEGY_RULES_VERSION } from './session-strategy.js'
+import { resolveTrialSteps } from './strategy-eval.js'
 import { createAcceptanceRunner } from './acceptance-runner.js'
 import { createBudgetTracker } from './budget.js'
 import { USAGE_BUCKETS } from './usage-ledger.js'
@@ -213,6 +214,7 @@ export function createHostExecutor(deps = {}) {
     resolveAcceptance = null,
     resolveFeatures = null,
     resolveCapabilities = null,
+    resolveSteps = null,
     buildPrompt = null,
     buildRequest = null,
     features = null,
@@ -254,6 +256,34 @@ export function createHostExecutor(deps = {}) {
     if (text(task?.goal)) return task.goal
     if (text(plan?.prompt)) return plan.prompt
     throw hostError(HOST_EXECUTOR_INPUT, `no prompt source for ${task?.id ?? trial?.taskId}; pass buildPrompt or a task prompt`)
+  }
+
+  function defaultStepFeatures({ prior, role } = {}) {
+    const hasPrior = Boolean(prior?.sessionId)
+    return {
+      hasPriorWorker: hasPrior,
+      childBusy: false,
+      sameModule: hasPrior,
+      constraintsMatch: prior?.constraintsMatch !== false,
+      routeMatch: !hasPrior || (
+        prior?.route?.provider === role?.provider && prior?.route?.model === role?.model
+      ),
+      permissionMatch: !hasPrior || prior?.permission === (role?.writer === true ? 'workspace-write' : 'read-only'),
+      workspaceMatch: prior?.workspaceMatch !== false,
+      factsStale: false,
+      failureUnclear: hasPrior && prior?.status !== 'completed',
+      independentReview: role?.writer === false,
+      contextOverLimit: prior?.contextOverLimit === true,
+    }
+  }
+
+  function stepRoute(result, role) {
+    const provider = text(result?.provider) ? result.provider : (role?.provider ?? null)
+    let model = text(result?.model) ? result.model : (role?.model ?? null)
+    if (typeof model === 'string' && typeof provider === 'string' && model === `${provider}/${role?.model}`) {
+      model = role.model
+    }
+    return { provider, model }
   }
 
   async function runTrial(ctxArg, input = {}) {
@@ -365,70 +395,141 @@ export function createHostExecutor(deps = {}) {
         }
       }
 
-      // 2. Explainable session choice. It is recorded, not used to rewrite the
-      //    frozen arm: a contradicted strategy stays visible in actualActions.
-      const decisionInput = { trial, task, manifest, plan, worktree, ctx: host }
-      const featureSet = typeof resolveFeatures === 'function' ? resolveFeatures(decisionInput) : (features ?? {})
-      const capabilitySet = typeof resolveCapabilities === 'function' ? resolveCapabilities(decisionInput) : (capabilities ?? {})
-      const sessionDecision = decideSessionAction({ features: featureSet, capabilities: capabilitySet })
-
-      // 3. Dispatch. A chain task runs its steps strictly in the frozen order.
+      // 2. Explainable session choice per step. The rule table is driven by the
+      //    REAL prior step/session, never by the arm name alone.
       const chain = Array.isArray(task.chain) && task.chain.length > 1 ? task.chain : null
-      const steps = chain
-        ? chain.map((step, index) => ({ index, id: stepId(step), step }))
-        : [{ index: 0, id: null, step: null }]
+      const steps = typeof resolveSteps === 'function'
+        ? resolveSteps({ trial, task, manifest, plan, worktree })
+        : resolveTrialSteps({ manifest, trial, task })
       const stepResults = []
+      const sessions = []
+      let prior = null
       let error = null
+      let featureSet = {}
+      let capabilitySet = {}
+      let sessionDecision = null
       for (const step of steps) {
+        const decisionInput = {
+          trial, task, manifest, plan, worktree,
+          step: step.step, stepId: step.id, stepIndex: step.index, role: step.role,
+          prior, ctx: host,
+        }
+        featureSet = typeof resolveFeatures === 'function'
+          ? resolveFeatures(decisionInput)
+          : defaultStepFeatures(decisionInput)
+        capabilitySet = typeof resolveCapabilities === 'function' ? resolveCapabilities(decisionInput) : (capabilities ?? {})
+        let decision = decideSessionAction({ features: featureSet, capabilities: capabilitySet })
+        if (trial.arm === 'fresh_handoff' && prior) {
+          decision = {
+            action: 'new-packet',
+            ruleId: 'ARM-FRESH-HANDOFF',
+            reasons: ['fresh_handoff always starts a new session and passes an explicit handoff packet'],
+            options: ['new-packet'],
+          }
+        }
+        sessionDecision = {
+          ...decision,
+          roleId: step.roleId ?? null,
+          stepId: step.id,
+          stepIndex: step.index,
+        }
         const prompt = typeof buildPrompt === 'function'
-          ? buildPrompt({ trial, task, manifest, plan, step: step.step, stepId: step.id, stepIndex: step.index, sessionDecision })
+          ? buildPrompt({
+            trial, task, manifest, plan, step: step.step, stepId: step.id, stepIndex: step.index,
+            role: step.role, roleId: step.roleId, prior, sessionDecision,
+          })
           : defaultPromptFor({ trial, task, plan, step: step.step })
         nonEmpty(prompt, `prompt for ${trial.trialId}${step.id ? `/${step.id}` : ''}`)
+        const handoff = prior ? {
+          sessionId: prior.sessionId,
+          stepId: prior.stepId,
+          status: prior.status,
+          output: prior.output ?? null,
+          route: prior.route ?? null,
+        } : null
         let request = {
-          harness: configuredHarness ?? task.harness ?? manifest.conditions?.harness ?? undefined,
-          model: configuredModel ?? manifest.conditions?.model ?? undefined,
+          harness: step.role?.surface ?? configuredHarness ?? task.harness ?? manifest.conditions?.harness ?? undefined,
+          model: step.role?.model ?? configuredModel ?? manifest.conditions?.model ?? undefined,
+          provider: step.role?.provider ?? manifest.conditions?.provider ?? undefined,
+          role: step.role?.id ?? null,
+          writer: step.writer === true,
+          readOnly: step.writer !== true,
           prompt,
           cwd: worktree.path,
-          mode,
+          mode: step.writer === true ? mode : 'read-only',
           delivery: 'await',
           timeoutMs,
-          // Extra context for managed dispatchers; ordinary dispatch ignores it.
           sessionAction: sessionDecision.action,
+          sessionStrategy: trial.arm ?? trial.strategy ?? null,
+          ...(handoff ? { handoff } : {}),
         }
         if (typeof buildRequest === 'function') {
-          const overrides = await buildRequest({ trial, task, manifest, plan, worktree, step: step.step, stepId: step.id, stepIndex: step.index, sessionDecision, request, ctx: host })
+          const overrides = await buildRequest({
+            trial, task, manifest, plan, worktree, step: step.step, stepId: step.id, stepIndex: step.index,
+            role: step.role, roleId: step.roleId, prior, handoff, sessionDecision, request, ctx: host,
+          })
           if (overrides && typeof overrides === 'object') request = { ...request, ...overrides }
         }
         try {
           const payload = await dispatchFn(request, execute, {
-            ctx: host, trial, task, worktree, manifest, plan, step, sessionDecision,
+            ctx: host, trial, task, worktree, manifest, plan, step, role: step.role, roleId: step.roleId,
+            sessionDecision, prior, handoff,
           })
           const result = firstResult(payload)
           if (!result) {
-            stepResults.push({ stepId: step.id, status: 'failed', error: 'the dispatcher returned no result' })
+            stepResults.push({ stepId: step.id, roleId: step.roleId ?? null, writer: step.writer === true, status: 'failed', error: 'the dispatcher returned no result' })
             error = 'the dispatcher returned no result'
             break
           }
           const status = executionFromStatus(result.status)
           stepResults.push({
             stepId: step.id,
+            roleId: step.roleId ?? null,
+            writer: step.writer === true,
+            sessionId: result.sessionId ?? null,
+            sessionAction: sessionDecision.action,
+            actualAction: result.actualAction ?? null,
+            output: text(result.output) ? result.output : null,
             status,
             dispatchStatus: result.status ?? null,
             harnessId: result.harnessId ?? null,
             managed: result.managed ?? null,
             code: result.code ?? null,
+            error: text(result.error) ? result.error : null,
             actualActions: Array.isArray(result.actualActions) ? result.actualActions : [],
             interventions: Array.isArray(result.interventions) ? result.interventions : [],
             attempts: Array.isArray(result.attempts) ? result.attempts.length : 1,
             model: text(result.model) ? result.model : null,
+            provider: text(result.provider) ? result.provider : null,
+            changedFiles: step.writer === true && Array.isArray(result.changedFiles) ? result.changedFiles : [],
           })
+          sessions.push({
+            stepId: step.id,
+            roleId: step.roleId ?? null,
+            writer: step.writer === true,
+            sessionId: result.sessionId ?? null,
+            decision: sessionDecision.action,
+            actualAction: result.actualAction ?? null,
+            route: stepRoute(result, step.role),
+          })
+          prior = {
+            sessionId: result.sessionId ?? null,
+            stepId: step.id,
+            status,
+            output: text(result.output) ? result.output : null,
+            route: stepRoute(result, step.role),
+            permission: step.writer === true ? 'workspace-write' : 'read-only',
+            workspace: worktree.path,
+          }
           if (status !== 'completed') {
-            error = `dispatch step ${step.id ?? step.index} ended ${status}`
+            error = text(result.error)
+              ? `dispatch step ${step.id ?? step.index} ended ${status}: ${result.error}`
+              : `dispatch step ${step.id ?? step.index} ended ${status}`
             break
           }
         } catch (caught) {
           const status = caught?.code === 'OMC/CLI-CANCELLED' ? 'cancelled' : 'failed'
-          stepResults.push({ stepId: step.id, status, dispatchStatus: status, error: caught?.message ?? String(caught), attempts: 1 })
+          stepResults.push({ stepId: step.id, roleId: step.roleId ?? null, writer: step.writer === true, status, dispatchStatus: status, error: caught?.message ?? String(caught), attempts: 1 })
           error = caught?.message ?? String(caught)
           break
         }
@@ -519,12 +620,35 @@ export function createHostExecutor(deps = {}) {
         trialId: trial.trialId,
         policyVersion: trial.policyVersion ?? manifest.policyVersions?.[arm] ?? null,
         actualActions,
+        changedFiles: [...new Set(stepResults.flatMap((row) => row.writer === true ? (row.changedFiles ?? []) : []))].sort(),
         interventions,
         humanInterventions: interventions.length,
         attempts,
         chainSteps: chain ? stepResults.map((row) => ({ stepId: row.stepId, status: row.status })) : [],
+        steps: stepResults.map((row) => ({
+          stepId: row.stepId,
+          roleId: row.roleId ?? null,
+          writer: row.writer === true,
+          status: row.status,
+          sessionId: row.sessionId ?? null,
+          sessionAction: row.sessionAction ?? null,
+          actualAction: row.actualAction ?? null,
+          provider: row.provider ?? null,
+          model: row.model ?? null,
+          changedFiles: row.writer === true ? (row.changedFiles ?? []) : [],
+        })),
+        sessions,
+        sessionDecisions: sessions.map((row) => ({
+          stepId: row.stepId,
+          roleId: row.roleId,
+          decision: row.decision,
+          actualAction: row.actualAction,
+          sessionId: row.sessionId,
+        })),
         sessionDecision: {
           ...sessionDecision,
+          actualAction: sessions.at(-1)?.actualAction ?? sessionDecision?.action ?? null,
+          sessionId: sessions.at(-1)?.sessionId ?? null,
           rulesVersion: STRATEGY_RULES_VERSION,
           features: featureSet,
           capabilities: capabilitySet,

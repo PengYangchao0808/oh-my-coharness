@@ -339,8 +339,11 @@ test('PR-07: a legitimate synthetic execute enters executePlan/createHostExecuto
   assert.equal(receipt.unknownCost, true)
   assert.equal(fixture.counts().executePlanCalls, 1, 'the real executePlan was entered')
   assert.equal(fixture.counts().executorFactoryCalls, 1, 'the real createHostExecutor was entered')
-  assert.equal(fixture.dispatches.length, trialIds.length)
-  assert.equal(fixture.dispatches.length, result.trials.length)
+  // single = one writer step; multi-role = writer + read-only reviewer.
+  assert.equal(fixture.dispatches.length, 3)
+  assert.equal(fixture.dispatches.length, result.trials.length + 1)
+  assert.equal(fixture.dispatches.filter((call) => call.request.writer === true).length, 2)
+  assert.equal(fixture.dispatches.filter((call) => call.request.writer === false).length, 1)
 
   const first = fixture.dispatches[0]
   assert.equal(first.exec.agent.id, 'parent-1', 'the verified calling agent reaches the executor')
@@ -359,6 +362,15 @@ test('PR-07: a legitimate synthetic execute enters executePlan/createHostExecuto
 
   const plannedNode = fixture.rt.graph.status('parent-1').nodes.find((row) => row.id === first.request.nodeId)
   assert.ok(plannedNode, 'the planned trial node exists under the calling parent')
+  const plannedNodes = fixture.rt.graph.status('parent-1').nodes
+  const nodeIds = fixture.dispatches.map((call) => call.request.nodeId)
+  assert.equal(new Set(nodeIds).size, nodeIds.length, 'every execution step has a unique graph node')
+  assert.equal(nodeIds.length, 3)
+  const writerNodes = fixture.dispatches.filter((call) => call.request.writer === true)
+    .map((call) => plannedNodes.find((node) => node.id === call.request.nodeId))
+  const reviewerNode = plannedNodes.find((node) => node.id === fixture.dispatches.find((call) => call.request.writer === false).request.nodeId)
+  assert.ok(writerNodes.every((node) => node.write === true), 'writer nodes own the write scope')
+  assert.equal(reviewerNode.write, false, 'reviewer nodes are read-only graph nodes')
   assert.equal(fixture.seenExecutorDeps[0].parentId, 'parent-1')
   assert.equal(fixture.seenExecutorDeps[0].callerAgent.id, 'parent-1')
 
@@ -389,6 +401,11 @@ test('PR-07: E2 prerequisite and ordered chain keep their existing semantics', a
   // Two prerequisite dispatches + two chain trials x two steps = six dispatches.
   assert.equal(fixture.dispatches.length, 6)
   assert.equal(fixture.judge.seen.filter((row) => row.phase === 'run').length, 4)
+  const chainNodeIds = fixture.dispatches.map((call) => call.request.nodeId)
+  assert.equal(new Set(chainNodeIds).size, chainNodeIds.length, 'chain steps own distinct graph nodes')
+  const chainNodes = fixture.rt.graph.status('parent-1').nodes
+  assert.equal(chainNodes.length, 6)
+  assert.ok(chainNodes.filter((node) => node.write === true).every((node) => Array.isArray(node.deps) && node.deps.length <= 1))
   for (const call of fixture.dispatches) {
     assert.match(String(call.request.prompt ?? ''), /Inspect the failing case|Apply the minimal fix|Warm up/,
       'chain steps and the prerequisite keep their frozen prompt source')
@@ -593,4 +610,28 @@ test('PR-07: receipt and repo symlink/junction escapes are rejected by realpath'
   assert.match((repoEscape.problems ?? []).join(' '), /symlink|outside/i)
   assert.equal(fixture.dispatches.length, 0)
   assert.equal(existsSync(doc.receiptPath), false)
+})
+
+test('PR-07: smokeTrialIds executes exactly one frozen assignment, never the whole allocation', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'omc-pr07-subset-'))
+  const doc = documentFor(workspace, { receipt: 'receipts/subset.json' })
+  const spec = JSON.parse(readFileSync(doc.manifestPath, 'utf8')).spec
+  const single = createStrategyExperiment(spec).assignments.find((row) => row.strategy === 'single')
+  assert.ok(single, 'the fixture freezes a single arm assignment')
+  const parsed = JSON.parse(readFileSync(doc.manifestPath, 'utf8'))
+  parsed.smokeTrialIds = [single.trialId]
+  writeFileSync(doc.manifestPath, JSON.stringify(parsed), 'utf8')
+  const fixture = serviceFixture(workspace, doc.repo)
+  const result = await fixture.service({
+    trial_action: 'execute', trial_manifest: doc.manifestPath, confirm_paid_experiment: true,
+    max_usd: 1, trial_receipt: doc.receiptPath, trial_repo: doc.repo,
+  }, execFor(workspace))
+  assert.equal(result.ok, true, JSON.stringify(result.problems ?? []))
+  assert.equal(result.partial, true)
+  assert.deepEqual(result.onlyTrialIds, [single.trialId])
+  assert.equal(result.trials.length, 1)
+  assert.equal(fixture.dispatches.length, 1, 'the second arm is not dispatched')
+  const receipt = JSON.parse(readFileSync(doc.receiptPath, 'utf8'))
+  assert.equal(receipt.trials.length, 1)
+  assert.equal(receipt.trials[0].trialId, single.trialId)
 })

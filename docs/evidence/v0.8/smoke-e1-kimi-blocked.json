@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-real-trial-smoke-route-unavailable",
+  "at": "2026-11-04T09:31:33.566Z",
+  "authorizedScope": {
+    "trials": 1,
+    "maxUsd": 2,
+    "concurrency": 1,
+    "confirmPaidExperiment": true,
+    "manifest": "test/benchmarks/plans/smoke-e1-lru-native.json",
+    "receipt": "docs/evidence/v0.8/smoke-e1-kimi.json"
+  },
+  "plan": {
+    "ok": true,
+    "mode": "plan",
+    "assignmentCount": 2,
+    "executedSubset": ["d0c0a0b9b4866efe1d903ed1"],
+    "provider": "kimi-coding",
+    "model": "k3.1-pro"
+  },
+  "exactFailure": {
+    "provider": "kimi-coding",
+    "model": "k3.1-pro",
+    "error": "dispatch step 0 ended failed: no adapter registered for provider \"kimi-coding\"",
+    "callSite": "DSH LLM runtime adapter registry before provider I/O",
+    "execution": "failed",
+    "acceptance": "failed",
+    "acceptanceRan": false,
+    "calls": 1,
+    "costUsd": null,
+    "unknownCost": true,
+    "usage": null,
+    "observedModel": "kimi-coding/k3.1-pro",
+    "elapsedMs": 1050,
+    "worktree": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark/.agents/worktrees/smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw1x3aod",
+    "branch": "omc/smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw1x3aod",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488"
+  },
+  "interpretation": {
+    "classification": "route unavailable in this isolated host",
+    "notAuthentication": "The failure is NO_ADAPTER at the LLM runtime: no kimi-coding adapter is registered in this DSH host/profile. It is not an expired credential and not an execution/acceptance problem.",
+    "availableAdapters": ["deepseek-official", "deepseek-account"],
+    "note": "The previous deepseek-account attempt reached a real model attempt and failed with stopReason=error; this kimi-coding attempt failed earlier with a precise NO_ADAPTER code. The two are different failure classes."
+  },
+  "actionsTaken": [
+    "Ran the real trial plan first (PASS).",
+    "Ran exactly one authorized real trial execute with a new receipt; did not overwrite docs/evidence/v0.8/smoke-e1.json.",
+    "Stopped after the route-unavailable result.",
+    "Did not try a third model and did not start E1/E2/E3 full plans.",
+    "Did not read or copy credentials and did not use external writer or fake dispatch."
+  ],
+  "evidence": {
+    "receipt": "docs/evidence/v0.8/smoke-e1-kimi.json",
+    "hostLog": "docs/evidence/v0.8/smoke-e1-kimi.json.host.json",
+    "stdout": "docs/evidence/v0.8/smoke-e1-kimi.stdout.log",
+    "stderr": "docs/evidence/v0.8/smoke-e1-kimi.stderr.log",
+    "planStdout": "docs/evidence/v0.8/smoke-e1-kimi-plan.stdout.log",
+    "planHostLog": "docs/evidence/v0.8/smoke-host-plan-smoke-e1-lru-native.json.json"
+  },
+  "fullRunDecision": {
+    "canContinue": false,
+    "reason": "No Native route is currently usable in the isolated host for a writing trial: kimi-coding has no registered adapter, and deepseek-account reaches a failed model attempt. Full E1/E2/E3 must not start until the Native route is fixed or a routable external writer path is designed without bypassing read-only boundaries."
+  }
+}

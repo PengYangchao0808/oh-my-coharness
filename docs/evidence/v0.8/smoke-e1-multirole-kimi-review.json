@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "kind": "session-strategy-trial-receipt",
+  "runnerVersion": 1,
+  "experimentId": "smoke-e1-lru-multirole-kimi-review",
+  "experimentDigest": "280207da867a56f29d70bb04519a2c72b60d338a1fc04ca161135515d52f5def",
+  "experimentGroup": "E1",
+  "group": "E1",
+  "arms": [
+    "single",
+    "multi-role"
+  ],
+  "dataKind": "live",
+  "split": "development",
+  "model": "k3.1-pro",
+  "concurrency": 1,
+  "deadline": "2026-12-31T23:59:59.000Z",
+  "budgetCaps": {
+    "totalUsd": 2,
+    "perTrialUsd": 2,
+    "maxUsdFromCli": 2,
+    "effectiveTotalUsd": 2
+  },
+  "tasks": [
+    {
+      "taskId": "smoke-e1-lru-multirole",
+      "revision": "upstream-latitude-02-lru-cache@multirole-smoke",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": null,
+      "kind": "single-turn"
+    }
+  ],
+  "startedAt": "2026-11-04T12:02:12.908Z",
+  "executionScope": {
+    "mode": "subset",
+    "onlyTrialIds": [
+      "2ff95d4320d9e4a9a25da1f8"
+    ],
+    "totalAssignments": 2,
+    "partial": true,
+    "note": "A smoke/subset run: the frozen allocation was not executed in full, so this receipt must not be promoted as a complete experiment."
+  },
+  "aborted": null,
+  "trials": [
+    {
+      "trialId": "2ff95d4320d9e4a9a25da1f8",
+      "taskId": "smoke-e1-lru-multirole",
+      "repeat": 0,
+      "arm": "multi-role",
+      "strategy": "multi-role",
+      "group": "E1",
+      "policyVersion": "smoke-policy-v1",
+      "taskRevision": "upstream-latitude-02-lru-cache@multirole-smoke",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": "omc/smoke-e1-lru-multirole-kimi-review-multi-role-smoke-e1-lru-m-mw22cmog",
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "executed",
+      "ok": true,
+      "execution": "completed",
+      "acceptance": "passed",
+      "evidenceKind": "external-tests",
+      "evidenceRef": "acceptance-runner:smoke-e1-lru-native:0c4b729c758d8ef28071e2fc410935bec055101a68ac56a838fb36aacf435cbb",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "actualActions": [
+        "session:new-packet",
+        "native child omc-trial-2ff95d4320d9e4a9a25da1f8-writer-762a469d ran one turn",
+        "session:new-packet",
+        "native child omc-trial-2ff95d4320d9e4a9a25da1f8-reviewer-f7eb92b0 ran one turn",
+        "read-only reviewer"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "calls": 13,
+      "observedModel": null,
+      "collectionCoverage": "partial",
+      "unknownCost": true,
+      "unknownCalls": false,
+      "sessionDecision": {
+        "action": "new-packet",
+        "ruleId": "S01-independent-review",
+        "reasons": [
+          "independent review: a fresh packet is required; reusing the implementing session would make the review dependent on the work it checks"
+        ],
+        "options": [
+          "resume",
+          "restart",
+          "new-packet"
+        ],
+        "roleId": "reviewer",
+        "stepId": "role-reviewer",
+        "stepIndex": 1,
+        "actualAction": "new-packet",
+        "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-reviewer-f7eb92b0",
+        "rulesVersion": 1,
+        "features": {
+          "hasPriorWorker": true,
+          "childBusy": false,
+          "sameModule": true,
+          "constraintsMatch": true,
+          "routeMatch": false,
+          "permissionMatch": false,
+          "workspaceMatch": true,
+          "factsStale": false,
+          "failureUnclear": false,
+          "independentReview": true,
+          "contextOverLimit": false
+        },
+        "capabilities": {
+          "compactAvailable": false
+        }
+      },
+      "models": [
+        "kimi-coding/k3.1-pro",
+        "kimi-coding/kimi-for-coding"
+      ],
+      "changedFiles": [
+        "tasks/02-lru-cache/workspace/src/lru.js"
+      ],
+      "steps": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "status": "completed",
+          "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-writer-762a469d",
+          "sessionAction": "new-packet",
+          "actualAction": "new-packet",
+          "provider": "kimi-coding",
+          "model": "kimi-coding/k3.1-pro",
+          "changedFiles": [
+            "tasks/02-lru-cache/workspace/src/lru.js"
+          ]
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "status": "completed",
+          "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-reviewer-f7eb92b0",
+          "sessionAction": "new-packet",
+          "actualAction": "new-packet",
+          "provider": "kimi-coding",
+          "model": "kimi-coding/kimi-for-coding",
+          "changedFiles": []
+        }
+      ],
+      "sessions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "writer": true,
+          "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-writer-762a469d",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "route": {
+            "provider": "kimi-coding",
+            "model": "k3.1-pro"
+          }
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "writer": false,
+          "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-reviewer-f7eb92b0",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "route": {
+            "provider": "kimi-coding",
+            "model": "kimi-for-coding"
+          }
+        }
+      ],
+      "sessionDecisions": [
+        {
+          "stepId": "role-writer",
+          "roleId": "writer",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-writer-762a469d"
+        },
+        {
+          "stepId": "role-reviewer",
+          "roleId": "reviewer",
+          "decision": "new-packet",
+          "actualAction": "new-packet",
+          "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-reviewer-f7eb92b0"
+        }
+      ],
+      "chainSteps": [],
+      "startedAt": "2026-11-04T11:58:46.008Z",
+      "endedAt": "2026-11-04T12:02:12.907Z",
+      "worktree": {
+        "path": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\smoke-e1-lru-multirole-kimi-review-multi-role-smoke-e1-lru-m-mw22cmog",
+        "branch": "omc/smoke-e1-lru-multirole-kimi-review-multi-role-smoke-e1-lru-m-mw22cmog",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488"
+      }
+    }
+  ],
+  "unknownCostTrials": 1,
+  "unknownCost": true,
+  "limitations": [
+    "This receipt records what the runner passed to the executor; it does not prove the executor stayed inside the cap.",
+    "Trial outcomes here are the executor-reported ones; integration/trial-collector.js is what turns them into evaluator records from the execution store and usage ledger.",
+    "Unknown cost/calls are recorded as null, never as 0, and an unknown cost never supports a promotion conclusion.",
+    "No trial result implies strategy promotion; that decision belongs to the offline evaluator."
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "kind": "session-strategy-trial-receipt",
+  "runnerVersion": 1,
+  "experimentId": "smoke-e1-lru-native",
+  "experimentDigest": "118f482e42c7a38a60fa033101ca70c1d98ee5ecba6c333cffdac6e748145988",
+  "experimentGroup": "E1",
+  "group": "E1",
+  "arms": [
+    "single",
+    "multi-role"
+  ],
+  "dataKind": "live",
+  "split": "development",
+  "model": "k3.1-pro",
+  "concurrency": 1,
+  "deadline": "2026-12-31T23:59:59.000Z",
+  "budgetCaps": {
+    "totalUsd": 2,
+    "perTrialUsd": 2,
+    "maxUsdFromCli": 2,
+    "effectiveTotalUsd": 2
+  },
+  "tasks": [
+    {
+      "taskId": "smoke-e1-lru-cache",
+      "revision": "upstream-latitude-02-lru-cache@smoke",
+      "repo": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "provenance": null,
+      "kind": "single-turn"
+    }
+  ],
+  "startedAt": "2026-11-04T09:31:33.567Z",
+  "executionScope": {
+    "mode": "subset",
+    "onlyTrialIds": [
+      "d0c0a0b9b4866efe1d903ed1"
+    ],
+    "totalAssignments": 2,
+    "partial": true,
+    "note": "A smoke/subset run: the frozen allocation was not executed in full, so this receipt must not be promoted as a complete experiment."
+  },
+  "aborted": null,
+  "trials": [
+    {
+      "trialId": "d0c0a0b9b4866efe1d903ed1",
+      "taskId": "smoke-e1-lru-cache",
+      "repeat": 0,
+      "arm": "single",
+      "strategy": "single",
+      "group": "E1",
+      "policyVersion": "smoke-policy-v1",
+      "taskRevision": "upstream-latitude-02-lru-cache@smoke",
+      "model": "k3.1-pro",
+      "harness": "native",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "branch": "omc/smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw1x3aod",
+      "repositoryRoot": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark",
+      "stage": "executed",
+      "ok": false,
+      "execution": "failed",
+      "acceptance": "failed",
+      "evidenceKind": "runtime-terminal",
+      "evidenceRef": "execution:d0c0a0b9b4866efe1d903ed1:failed",
+      "criticalRegression": false,
+      "falseCompletion": false,
+      "actualActions": [
+        "native child omc-trial-d0c0a0b9b4866efe1d903ed1-e33d3f1c ran one turn"
+      ],
+      "interventions": [],
+      "humanInterventions": 0,
+      "costUsd": null,
+      "costBasis": "unknown",
+      "costVersion": null,
+      "calls": 1,
+      "observedModel": "kimi-coding/k3.1-pro",
+      "collectionCoverage": "partial",
+      "unknownCost": true,
+      "unknownCalls": false,
+      "sessionDecision": {
+        "action": "new-packet",
+        "ruleId": "S02-no-prior-worker",
+        "reasons": [
+          "no prior worker for this module/role/route: there is no session to continue"
+        ],
+        "options": [
+          "new-packet"
+        ],
+        "rulesVersion": 1,
+        "features": {
+          "hasPriorWorker": false,
+          "childBusy": false,
+          "sameModule": false,
+          "constraintsMatch": true,
+          "routeMatch": true,
+          "permissionMatch": true,
+          "workspaceMatch": true,
+          "factsStale": false,
+          "failureUnclear": false,
+          "independentReview": false,
+          "contextOverLimit": false
+        },
+        "capabilities": {
+          "compactAvailable": false
+        }
+      },
+      "chainSteps": [],
+      "error": "dispatch step 0 ended failed: no adapter registered for provider \"kimi-coding\"",
+      "startedAt": "2026-11-04T09:31:32.516Z",
+      "endedAt": "2026-11-04T09:31:33.566Z",
+      "worktree": {
+        "path": "E:\\Calculations\\Plugins\\Oh-My-CoHarness\\.ops\\benchmark-repos\\latitude-dev--coding-agent-benchmark\\.agents\\worktrees\\smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw1x3aod",
+        "branch": "omc/smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw1x3aod",
+        "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488"
+      }
+    }
+  ],
+  "unknownCostTrials": 1,
+  "unknownCost": true,
+  "limitations": [
+    "This receipt records what the runner passed to the executor; it does not prove the executor stayed inside the cap.",
+    "Trial outcomes here are the executor-reported ones; integration/trial-collector.js is what turns them into evaluator records from the execution store and usage ledger.",
+    "Unknown cost/calls are recorded as null, never as 0, and an unknown cost never supports a promotion conclusion.",
+    "No trial result implies strategy promotion; that decision belongs to the offline evaluator."
+  ]
+}

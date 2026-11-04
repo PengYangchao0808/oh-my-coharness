@@ -77,12 +77,115 @@ export function experimentArms(manifest) {
   return Array.isArray(manifest?.arms) && manifest.arms.length ? manifest.arms : SESSION_STRATEGIES
 }
 
+function normalizeRole(raw, label) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail(`${label} must be an object`)
+  const out = {
+    id: string(raw.id, `${label}.id`),
+    writer: raw.writer === true,
+    surface: string(raw.surface, `${label}.surface`),
+    provider: string(raw.provider, `${label}.provider`),
+    model: string(raw.model, `${label}.model`),
+  }
+  if (raw.prompt !== undefined) out.prompt = string(raw.prompt, `${label}.prompt`)
+  if (raw.readOnly !== undefined && raw.readOnly !== (out.writer !== true)) {
+    fail(`${label}.readOnly must equal !writer`)
+  }
+  return out
+}
+
+function normalizeExecution(raw, label) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail(`${label} must be an object`)
+  if (!Array.isArray(raw.roles) || raw.roles.length === 0) fail(`${label}.roles must be a non-empty array`)
+  const roles = raw.roles.map((role, index) => normalizeRole(role, `${label}.roles[${index}]`))
+  if (new Set(roles.map((role) => role.id)).size !== roles.length) fail(`${label}.roles ids must be unique`)
+  const writers = roles.filter((role) => role.writer === true)
+  if (writers.length !== 1) fail(`${label}.roles must contain exactly one writer`)
+  return { roles }
+}
+
 function normalizeArms(arms) {
   if (arms === undefined || arms === null) return null
   if (!Array.isArray(arms) || !arms.length) fail('arms must be a non-empty array')
-  const out = arms.map((arm, index) => string(arm, `arms[${index}]`))
-  if (new Set(out).size !== out.length) fail('duplicate arm')
+  const out = arms.map((arm, index) => {
+    if (typeof arm === 'string') return { id: string(arm, `arms[${index}]`), execution: null }
+    if (!arm || typeof arm !== 'object' || Array.isArray(arm)) fail(`arms[${index}] must be a string or an arm object`)
+    const id = string(arm.id, `arms[${index}].id`)
+    const execution = arm.execution ?? (arm.roles ? { roles: arm.roles } : null)
+    return { id, execution: execution === null ? null : normalizeExecution(execution, `arms[${index}].execution`) }
+  })
+  if (new Set(out.map((arm) => arm.id)).size !== out.length) fail('duplicate arm')
   return out
+}
+
+/** Resolve explicit per-arm execution roles, or derive a conservative default. */
+export function resolveArmRoles({ manifest, arm, task } = {}) {
+  const id = string(arm, 'arm')
+  const explicit = manifest?.armExecution?.[id]
+  if (explicit !== undefined) return normalizeExecution(explicit, `armExecution.${id}`).roles
+  const conditions = manifest?.conditions ?? {}
+  const writer = {
+    id: 'writer',
+    writer: true,
+    surface: conditions.harness ?? 'native',
+    provider: conditions.provider,
+    model: conditions.model,
+  }
+  if (task?.chain) return [writer]
+  const textArm = String(id)
+  if (textArm === 'single') return [writer]
+  if (/multi-role|same-model/.test(textArm)) {
+    return [writer, {
+      id: 'reviewer',
+      writer: false,
+      surface: conditions.harness ?? 'native',
+      provider: conditions.reviewerProvider ?? conditions.provider,
+      model: conditions.reviewerModel ?? conditions.model,
+    }]
+  }
+  if (/different-model/.test(textArm)) {
+    if (!conditions.reviewerProvider || !conditions.reviewerModel) {
+      fail(`arm ${id} needs an explicit reviewerProvider/reviewerModel or armExecution roles`)
+    }
+    return [writer, {
+      id: 'reviewer',
+      writer: false,
+      surface: conditions.harness ?? 'native',
+      provider: conditions.reviewerProvider,
+      model: conditions.reviewerModel,
+    }]
+  }
+  return [writer]
+}
+
+/** One ordered execution step list shared by graph planning and the executor. */
+export function resolveTrialSteps({ manifest, trial, task } = {}) {
+  const roles = resolveArmRoles({ manifest, arm: trial?.arm ?? trial?.strategy, task })
+  const writer = roles.find((role) => role.writer === true)
+  const chain = Array.isArray(task?.chain) && task.chain.length > 1 ? task.chain : null
+  if (chain) {
+    return chain.map((step, index) => {
+      const stepId = typeof step === 'string' ? step : (step?.id ?? step?.name)
+      return {
+        index,
+        id: String(stepId),
+        step,
+        role: writer,
+        roleId: writer.id,
+        writer: true,
+      }
+    })
+  }
+  if (trial?.role === 'prerequisite') {
+    return [{ index: 0, id: `role-${writer.id}`, step: null, role: writer, roleId: writer.id, writer: true }]
+  }
+  return roles.map((role, index) => ({
+    index,
+    id: `role-${role.id}`,
+    step: null,
+    role,
+    roleId: role.id,
+    writer: role.writer === true,
+  }))
 }
 
 function normalizeChain(chain, label) {
@@ -147,7 +250,7 @@ function promotionConfig(input = {}, arms = SESSION_STRATEGIES) {
  */
 export function createStrategyExperiment({ experimentId, tasks, repeats = 2, seed = 'omc-session-v1',
   conditions, policyVersions, dataKind = 'synthetic', split = 'development', optimizerCostUsd,
-  promotion, arms, experimentGroup, prerequisite } = {}) {
+  promotion, arms, armExecution, experimentGroup, prerequisite } = {}) {
   string(experimentId, 'experimentId')
   number(repeats, 'repeats', { integer: true, min: 1, max: 100 })
   if (!DATA_KINDS.includes(dataKind) || !['development', 'validation', 'holdout'].includes(split)) fail('invalid dataKind/split')
@@ -157,8 +260,24 @@ export function createStrategyExperiment({ experimentId, tasks, repeats = 2, see
   if (conditions.harness !== undefined) string(conditions.harness, 'conditions.harness')
 
   const group = experimentGroup === undefined || experimentGroup === null ? null : string(experimentGroup, 'experimentGroup')
-  const explicitArms = normalizeArms(arms)
+  const explicitArmRows = normalizeArms(arms)
+  const explicitArms = explicitArmRows ? explicitArmRows.map((arm) => arm.id) : null
   const armList = explicitArms ?? [...SESSION_STRATEGIES]
+  const fusedExecution = {}
+  if (explicitArmRows) {
+    for (const arm of explicitArmRows) if (arm.execution) fusedExecution[arm.id] = arm.execution
+  }
+  if (armExecution !== undefined) {
+    plainObject(armExecution, 'armExecution')
+    for (const [id, execution] of Object.entries(armExecution)) {
+      if (!armList.includes(id)) fail(`armExecution.${id} names an arm outside the frozen allocation`)
+      fusedExecution[id] = normalizeExecution(execution, `armExecution.${id}`)
+    }
+  }
+  for (const id of Object.keys(fusedExecution)) {
+    const execution = fusedExecution[id]
+    if (execution && !armList.includes(id)) fail(`arm execution ${id} names an arm outside the frozen allocation`)
+  }
 
   plainObject(policyVersions, 'policyVersions')
   for (const id of armList) {
@@ -216,6 +335,7 @@ export function createStrategyExperiment({ experimentId, tasks, repeats = 2, see
     seed: String(seed),
     repeats,
     ...(explicitArms ? { arms: armList } : {}),
+    ...(Object.keys(fusedExecution).length ? { armExecution: fusedExecution } : {}),
     tasks: normalizedTasks,
     ...(sharedPrerequisite ? { prerequisite: sharedPrerequisite } : {}),
     conditions: cloneJson(conditions, 'conditions'),

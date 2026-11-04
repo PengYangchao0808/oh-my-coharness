@@ -349,3 +349,36 @@ test('deterministicSplit records a singleton family as development-preferred', (
   assert.match(result.notes.join('\n'), /development-preferred/)
   assert.match(result.notes.join('\n'), /approximate the weights/)
 })
+
+test('OMC_NODE_EXECUTABLE runs a bare node acceptance command when PATH has no node', async () => {
+  const dir = await makeSandbox({ fix: 'reference' })
+  const previousNode = process.env.OMC_NODE_EXECUTABLE
+  const previousPath = process.env.PATH
+  try {
+    process.env.OMC_NODE_EXECUTABLE = process.execPath
+    process.env.PATH = 'C:/Windows/System32;C:/Windows'
+    const verdict = await runnerFor(dir).run({ spec: SPEC, workdir: dir })
+    assert.equal(verdict.passed, true, verdict.reason ?? '')
+    assert.equal(verdict.checks[0].exitCode, 0)
+  } finally {
+    if (previousNode === undefined) delete process.env.OMC_NODE_EXECUTABLE
+    else process.env.OMC_NODE_EXECUTABLE = previousNode
+    process.env.PATH = previousPath
+  }
+})
+
+test('an invalid OMC_NODE_EXECUTABLE fails closed instead of falling back to PATH', async () => {
+  const dir = await makeSandbox({ fix: 'reference' })
+  const previousNode = process.env.OMC_NODE_EXECUTABLE
+  try {
+    for (const fake of ['node', 'C:/definitely/missing/node.exe', tmpdir()]) {
+      process.env.OMC_NODE_EXECUTABLE = fake
+      const verdict = await runnerFor(dir).run({ spec: SPEC, workdir: dir })
+      assert.equal(verdict.passed, false, `fake node path must fail: ${fake}`)
+      assert.match(verdict.checks[0].outputTail, /OMC\/ACCEPTANCE-NODE/)
+    }
+  } finally {
+    if (previousNode === undefined) delete process.env.OMC_NODE_EXECUTABLE
+    else process.env.OMC_NODE_EXECUTABLE = previousNode
+  }
+})

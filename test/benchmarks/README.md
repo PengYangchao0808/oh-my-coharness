@@ -15,13 +15,36 @@ Fixtures, the provenance registry and the frozen experiment plans live here:
   budget caps, concurrency and deadline, and mark model/provider/harness as
   explicit `placeholder-*` values with `executionStatus: "not-executed"`.
   `--plan` writes no receipt and executes nothing; a real run still needs a
-  model/harness selection, a host executor, machine-specific upstream checkouts
-  at the frozen commits and (for E2) the fixtures committed.
+  model/harness selection, a host executor and (for E1/E3) the upstream checkout
+  mapping, while the arm execution semantics are still under audit.
 - `imported/` — **A group** (4 JavaScript tasks from
   `latitude-dev/coding-agent-benchmark`, experiment **E1**) and **B group**
   (2 Python tasks from `sipratt-p/coding-agent-bench`, experiment **E3**).
 - `upstream/` — the vendored upstream bytes the imported fixtures were cut
   from, kept verbatim (including each dataset's `LICENSE`).
+
+## Prompt content in the plans
+
+Every plan task carries an executable `prompt` with `{text, sha256, source}`;
+E2 chain turns carry one prompt per turn, and the prerequisite has its own.
+
+| group | prompt source | digest |
+|---|---|---|
+| E1 | the vendored upstream `tasks/<id>/prompt.md`, **verbatim** | sha256 of the prompt text (the same digest as the upstream file) |
+| E3 | the upstream `prompt` value of `CRDT_TASK` / `ORCH_TASK`, frozen as `imported/sipratt-p/<id>/prompt.md` | sha256 of that file; `source.upstreamModule` + `moduleSha256` + `anchor` pin where it came from |
+| E2 | OMC-authored `prompts/NN-*.md` per turn (and `prerequisites/session-primer/prompt.md`) | sha256 of each turn file; every turn names the real `acceptance/check.mjs` command and write scope |
+
+`manifest.conditions.promptDigest` is a digest over every task/turn prompt hash,
+so editing an instruction changes the frozen plan. The plans also freeze each
+task's `workspace` (fixture, `startPath`, `referencePath`, `writeScope`) and
+`acceptance` (`spec`, `acceptanceFiles`, `forbidChanges`, `command`,
+`gradingSha256`).
+
+E2 worktrees use base commit `a5d60d74aa77b8c0161b5ed68dca72f016598dc2` (the
+first commit that actually contains the OMC fixtures); the plan records a
+`git cat-file` check that every E2 start/reference/acceptance/spec path exists
+there. E1/E3 keep the upstream task commit as `baseCommit` and mark their
+worktree/checkout mapping as still open instead of pretending it is resolved.
 
 `MANIFEST.json` is the single registry: datasets (repo URL, frozen commit,
 license, runtime floor), experiments (E1=4, E2=3, E3=2), the digest of every

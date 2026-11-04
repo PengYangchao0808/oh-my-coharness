@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-real-trial-smoke-blocked",
+  "at": "2026-11-04T09:12:13.000Z",
+  "authorizedScope": {
+    "trials": 1,
+    "maxUsd": 2,
+    "concurrency": 1,
+    "confirmPaidExperiment": true,
+    "manifest": "test/benchmarks/plans/smoke-e1-lru-native.json",
+    "receipt": "docs/evidence/v0.8/smoke-e1.json"
+  },
+  "plan": {
+    "ok": true,
+    "mode": "plan",
+    "assignmentCount": 2,
+    "executedSubset": ["d0c0a0b9b4866efe1d903ed1"],
+    "note": "The frozen allocation has two arms because the strategy schema requires distinct candidate/reference arms. smokeTrialIds executes exactly the single arm and nothing else."
+  },
+  "execution": {
+    "tool": "coharness action=trial trial_action=execute",
+    "ok": true,
+    "synthetic": false,
+    "spentUsd": 0,
+    "selectedTrial": "d0c0a0b9b4866efe1d903ed1",
+    "execution": "failed",
+    "acceptance": "failed",
+    "acceptanceRan": false,
+    "calls": 1,
+    "costUsd": null,
+    "unknownCost": true,
+    "observedModel": "deepseek-account/deepseek-flash",
+    "error": "dispatch step 0 ended failed",
+    "worktree": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark/.agents/worktrees/smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw1weetz",
+    "branch": "omc/smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw1weetz",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488"
+  },
+  "nativeAttempt": {
+    "record": ".ops/dsh-home/omc/profiles/desktop/execution/d0c0a0b9b4866efe1d903ed1.json",
+    "attemptId": "d0c0a0b9b4866efe1d903ed1#a1",
+    "backend": "native",
+    "route": "deepseek-account/deepseek-flash/high",
+    "execution": "failed",
+    "stopReason": "error",
+    "runningAt": "2026-11-04T09:12:12.597Z",
+    "endedAt": "2026-11-04T09:12:12.625Z",
+    "elapsedMs": 28,
+    "usageRecord": ".ops/dsh-home/omc/profiles/desktop/usage/omc-trial-dac55dfe-7609-476a-a59b-a8c8cf55c3b2.jsonl",
+    "usage": null,
+    "coverage": "unknown",
+    "note": "The request was assembled (session projection seq 15, prompt and tool definitions present) and the model attempt failed before any token usage was recorded."
+  },
+  "diagnosis": {
+    "classification": "blocked on isolated Native model authentication/route, not a trial-service or acceptance bypass",
+    "rawLog": "docs/evidence/v0.8/smoke-e1-stdout.log preserves the first run verbatim. It contains TRIAL_HOST_PASS because the first script version treated executePlan completion as success; scripts/trial-host-run.mjs now requires every executed trial to be completed/passed, and smoke-e1.json.host.json records the corrected exitCode=1. No retry was made.",
+    "evidence": [
+      "The child agent selected deepseek-account/deepseek-flash/high and reached one model attempt.",
+      "The attempt ended error in 28 ms with no usage, which is consistent with local credential/model-route rejection rather than a model response.",
+      "The isolated DSH_HOME contains only a client-connection/browser-session grant (.ops/dsh-home/.credentials.yaml) and no successful deepseek-account usage record under .ops/dsh-home.",
+      "The exact provider failure code was not captured in this run because the native child was disposed before its event log was flushed. Native dispatch no longer disposes the child; future failures retain turn/end reason and receipt error detail."
+    ],
+    "notDone": [
+      "No second model call or retry was made: the authorization covers exactly one smoke trial.",
+      "No E1/E2/E3 full-plan execution was started.",
+      "No credential was read, copied, or written.",
+      "Acceptance was not fabricated: it is reported failed because execution failed, with evidenceKind runtime-terminal."
+    ]
+  },
+  "next": {
+    "unblock": "Re-authenticate the isolated Native account (or provide an authorized Native route with working credentials) and re-run the same manifest and receipt path; the trial service preflight, native dispatch, baseline, graph/attempt identity and acceptance runner are ready.",
+    "retryAuthorization": "A retry is a second real model call and needs explicit user authorization."
+  }
+}

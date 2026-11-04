@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-smoke-acceptance-verification",
+  "at": "2026-11-04T11:17:03.433Z",
+  "receipt": "docs/evidence/v0.8/smoke-e1-desktop.json",
+  "receiptAcceptance": "failed",
+  "trialFacts": {
+    "route": "kimi-coding/k3.1-pro",
+    "execution": "completed",
+    "calls": 9,
+    "usage": {
+      "uncachedInputTokens": 15638,
+      "cacheReadTokens": 143872,
+      "cacheWriteTokens": 0,
+      "outputTokens": 2603
+    },
+    "costUsd": null,
+    "coverage": "partial"
+  },
+  "reasonForReceiptFailure": {
+    "classification": "environment: node executable not on the host process PATH",
+    "observed": "--- stderr ---\nspawn node ENOENT",
+    "reproduced": true,
+    "notCause": "The model fix and acceptance command semantics are correct; the same command passes when the DSH node directory is on PATH."
+  },
+  "realRunnerOnProducedWorktree": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "upstream-lru-contract",
+        "command": "node --test --test-reporter=tap tasks/02-lru-cache/workspace/lru.test.js",
+        "exitCode": 0,
+        "passed": true,
+        "outputTail": "TAP version 13\n# Subtest: stores and retrieves values\nok 1 - stores and retrieves values\n  ---\n  duration_ms: 0.51\n  type: 'test'\n  ...\n# Subtest: evicts the least recently used entry when full\nok 2 - evicts the least recently used entry when full\n  ---\n  duration_ms: 0.529\n  type: 'test'\n  ...\n# Subtest: a get refreshes recency so another key is evicted\nok 3 - a get refreshes recency so another key is evicted\n  ---\n  duration_ms: 0.0887\n  type: 'test'\n  ...\n# Subtest: overwriting a key refreshes its recency\nok 4 - overwriting a key refreshes its recency\n  ---\n  duration_ms: 0.0786\n  type: 'test'\n  ...\n# Subtest: capacity of one keeps only the latest entry\nok 5 - capacity of one keeps only the latest entry\n  ---\n  duration_ms: 0.0757\n  type: 'test'\n  ...\n# Subtest: missing keys return undefined without side effects\nok 6 - missing keys return undefined without side effects\n  ---\n  duration_ms: 0.056\n  type: 'test'\n  ...\n# Subtest: mixed reads and writes track recency across several evictions\nok 7 - mixed reads and writes track recency across several evictions\n  ---\n  duration_ms: 0.4346\n  type: 'test'\n  ...\n1..7\n# tests 7\n# suites 0\n# pass 7\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 56.4247"
+      }
+    ],
+    "problems": [],
+    "worktree": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark/.agents/worktrees/smoke-e1-lru-native-single-smoke-e1-lru-cache-0-mw20qv3y",
+    "changedFiles": [
+      "M tasks/02-lru-cache/workspace/src/lru.js"
+    ],
+    "sourceDiff": "diff --git a/tasks/02-lru-cache/workspace/src/lru.js b/tasks/02-lru-cache/workspace/src/lru.js\nindex 9c86914..ce2eed8 100644\n--- a/tasks/02-lru-cache/workspace/src/lru.js\n+++ b/tasks/02-lru-cache/workspace/src/lru.js\n@@ -17,7 +17,10 @@ export class LruCache {\n \n   get(key) {\n     if (!this.entries.has(key)) return undefined\n-    return this.entries.get(key)\n+    const value = this.entries.get(key)\n+    this.entries.delete(key)\n+    this.entries.set(key, value)\n+    return value\n   }\n \n   set(key, value) {\n"
+  },
+  "fullRunFix": "Launch the host process with the DSH bundled node directory on PATH, e.g. C:\\Users\\彭扬超\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\node\\bin, or make every acceptance command use an absolute node path."
+}

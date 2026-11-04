@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-real-trial-multirole-green",
+  "at": "2026-11-04T12:02:12.907Z",
+  "authorizedScope": {
+    "trials": 1,
+    "maxUsd": 2,
+    "concurrency": 1,
+    "confirmPaidExperiment": true,
+    "manifest": "test/benchmarks/plans/smoke-e1-lru-multirole-kimi-review.json",
+    "receipt": "docs/evidence/v0.8/smoke-e1-multirole-kimi-review.json"
+  },
+  "plan": {
+    "ok": true,
+    "mode": "plan",
+    "assignmentCount": 2,
+    "executedSubset": ["2ff95d4320d9e4a9a25da1f8"],
+    "armExecution": "multi-role writer + read-only reviewer"
+  },
+  "trial": {
+    "trialId": "2ff95d4320d9e4a9a25da1f8",
+    "execution": "completed",
+    "acceptance": "passed",
+    "ok": true,
+    "evidenceKind": "external-tests",
+    "evidenceRef": "acceptance-runner:smoke-e1-lru-native:0c4b729c758d8ef28071e2fc410935bec055101a68ac56a838fb36aacf435cbb",
+    "calls": 13,
+    "costUsd": null,
+    "unknownCost": true,
+    "models": ["kimi-coding/k3.1-pro", "kimi-coding/kimi-for-coding"],
+    "changedFiles": ["tasks/02-lru-cache/workspace/src/lru.js"],
+    "worktree": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark/.agents/worktrees/smoke-e1-lru-multirole-kimi-review-multi-role-smoke-e1-lru-m-mw22cmog",
+    "branch": "omc/smoke-e1-lru-multirole-kimi-review-multi-role-smoke-e1-lru-m-mw22cmog",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488"
+  },
+  "steps": [
+    {
+      "stepId": "role-writer",
+      "roleId": "writer",
+      "writer": true,
+      "status": "completed",
+      "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-writer-762a469d",
+      "decision": "new-packet",
+      "actualAction": "new-packet",
+      "route": "kimi-coding/k3.1-pro",
+      "changedFiles": ["tasks/02-lru-cache/workspace/src/lru.js"]
+    },
+    {
+      "stepId": "role-reviewer",
+      "roleId": "reviewer",
+      "writer": false,
+      "status": "completed",
+      "sessionId": "omc-trial-2ff95d4320d9e4a9a25da1f8-reviewer-f7eb92b0",
+      "decision": "new-packet",
+      "actualAction": "new-packet",
+      "ruleId": "S01-independent-review",
+      "route": "kimi-coding/kimi-for-coding",
+      "changedFiles": []
+    }
+  ],
+  "distinctSessions": true,
+  "usageByRole": {
+    "writer": {
+      "calls": 10,
+      "usage": { "uncachedInputTokens": 7817, "cacheReadTokens": 175104, "cacheWriteTokens": 0, "outputTokens": 3230 },
+      "costUsd": null,
+      "coverage": "priced-unknown"
+    },
+    "reviewer": {
+      "calls": 3,
+      "usage": { "uncachedInputTokens": 17306, "cacheReadTokens": 31488, "cacheWriteTokens": 0, "outputTokens": 1357 },
+      "costUsd": null,
+      "coverage": "priced-unknown"
+    }
+  },
+  "reviewerReadOnly": {
+    "sessionProjection": "C:/Users/彭扬超/.dsh/storages/session_projcache/sessions/omc-trial-2ff95d4320d9e4a9a25da1f8-reviewer-f7eb92b0.json",
+    "sandboxMode": "read-only",
+    "permissions": { "sandbox": "read-only", "approval": "never" },
+    "changedFiles": [],
+    "note": "The reviewer completed its review without changing the worktree; only the writer's lru.js is modified."
+  },
+  "graph": {
+    "writerNode": { "id": "trial-2ff95d4320d9e4a9a25da1f8-role-writer", "write": true, "state": "completed", "deps": [] },
+    "reviewerNode": {
+      "id": "trial-2ff95d4320d9e4a9a25da1f8-role-reviewer",
+      "write": false,
+      "state": "completed",
+      "deps": ["trial-2ff95d4320d9e4a9a25da1f8-role-writer"]
+    },
+    "uniqueNodes": true
+  },
+  "files": {
+    "worktreeStatus": ["M tasks/02-lru-cache/workspace/src/lru.js"],
+    "diffStat": "1 file changed, 4 insertions(+), 1 deletion(-)"
+  },
+  "host": {
+    "profile": "desktop",
+    "version": "0.2.1-rc.5",
+    "exitCode": 0,
+    "trialsOk": true,
+    "modelCalls": 13
+  },
+  "evidence": {
+    "receipt": "docs/evidence/v0.8/smoke-e1-multirole-kimi-review.json",
+    "hostLog": "docs/evidence/v0.8/smoke-e1-multirole-kimi-review.json.host.json",
+    "stdout": "docs/evidence/v0.8/smoke-e1-multirole-kimi-review.stdout.log",
+    "stderr": "docs/evidence/v0.8/smoke-e1-multirole-kimi-review.stderr.log",
+    "planStdout": "docs/evidence/v0.8/smoke-e1-multirole-kimi-review-plan.stdout.log",
+    "planStderr": "docs/evidence/v0.8/smoke-e1-multirole-kimi-review-plan.stderr.log"
+  },
+  "fullRunDecision": {
+    "canContinue": true,
+    "routes": {
+      "writer": { "provider": "kimi-coding", "model": "k3.1-pro" },
+      "differentModelReviewer": { "provider": "kimi-coding", "model": "kimi-for-coding" },
+      "sameModelReviewer": { "provider": "kimi-coding", "model": "k3.1-pro" }
+    },
+    "note": "Both routes share the registered kimi-coding adapter but use different models; this is the different-model arm. Cost remains null/unknown on this adapter and must be evaluated as unknown, not zero."
+  }
+}

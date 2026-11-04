@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-real-trial-multirole-blocked",
+  "at": "2026-11-04T11:55:15.026Z",
+  "authorizedScope": {
+    "trials": 1,
+    "maxUsd": 2,
+    "concurrency": 1,
+    "confirmPaidExperiment": true,
+    "manifest": "test/benchmarks/plans/smoke-e1-lru-multirole.json",
+    "receipt": "docs/evidence/v0.8/smoke-e1-multirole.json"
+  },
+  "plan": {
+    "ok": true,
+    "mode": "plan",
+    "assignmentCount": 2,
+    "executedSubset": ["a067ce2d3625a8caf593892e"],
+    "writer": { "role": "writer", "provider": "kimi-coding", "model": "k3.1-pro", "write": true },
+    "reviewer": { "role": "reviewer", "provider": "deepseek-account", "model": "deepseek-flash", "write": false, "readOnly": true }
+  },
+  "execution": {
+    "trialId": "a067ce2d3625a8caf593892e",
+    "execution": "failed",
+    "acceptance": "failed",
+    "acceptanceRan": false,
+    "calls": 13,
+    "costUsd": null,
+    "unknownCost": true,
+    "models": ["kimi-coding/k3.1-pro", "deepseek-account/deepseek-flash"],
+    "changedFiles": ["tasks/02-lru-cache/workspace/src/lru.js"],
+    "steps": [
+      {
+        "stepId": "role-writer",
+        "roleId": "writer",
+        "writer": true,
+        "status": "completed",
+        "sessionId": "omc-trial-a067ce2d3625a8caf593892e-writer-42817569",
+        "sessionAction": "new-packet",
+        "actualAction": "new-packet",
+        "provider": "kimi-coding",
+        "model": "kimi-coding/k3.1-pro",
+        "changedFiles": ["tasks/02-lru-cache/workspace/src/lru.js"]
+      },
+      {
+        "stepId": "role-reviewer",
+        "roleId": "reviewer",
+        "writer": false,
+        "status": "failed",
+        "sessionId": "omc-trial-a067ce2d3625a8caf593892e-reviewer-512c572e",
+        "sessionAction": "new-packet",
+        "actualAction": "new-packet",
+        "provider": "deepseek-account",
+        "model": "deepseek-account/deepseek-flash",
+        "changedFiles": []
+      }
+    ],
+    "error": "dispatch step role-reviewer ended failed: DeepSeek Messages transport failed",
+    "worktree": "E:/Calculations/Plugins/Oh-My-CoHarness/.ops/benchmark-repos/latitude-dev--coding-agent-benchmark/.agents/worktrees/smoke-e1-lru-multirole-multi-role-smoke-e1-lru-multirole-0-mw225wso",
+    "branch": "omc/smoke-e1-lru-multirole-multi-role-smoke-e1-lru-multirole-0-mw225wso",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488"
+  },
+  "rolesActuallyExecuted": {
+    "writer": {
+      "sessionId": "omc-trial-a067ce2d3625a8caf593892e-writer-42817569",
+      "sessionMode": "workspace-write",
+      "status": "completed",
+      "calls": 7,
+      "usage": { "uncachedInputTokens": 5519, "cacheReadTokens": 115968, "cacheWriteTokens": 0, "outputTokens": 1942 },
+      "costUsd": null
+    },
+    "reviewer": {
+      "sessionId": "omc-trial-a067ce2d3625a8caf593892e-reviewer-512c572e",
+      "sessionMode": "read-only",
+      "status": "failed",
+      "calls": 6,
+      "usage": null,
+      "coverage": "unknown",
+      "costUsd": null,
+      "note": "Six failed reviewer attempts booked unknown usage; they are null/unknown, never 0."
+    }
+  },
+  "graph": {
+    "writerNode": "trial-a067ce2d3625a8caf593892e-role-writer",
+    "reviewerNode": "trial-a067ce2d3625a8caf593892e-role-reviewer",
+    "writerWrite": true,
+    "reviewerWrite": false,
+    "reviewerDeps": ["trial-a067ce2d3625a8caf593892e-role-writer"],
+    "states": { "writer": "completed", "reviewer": "failed" }
+  },
+  "writerAcceptanceVerification": {
+    "passed": true,
+    "command": "node --test --test-reporter=tap tasks/02-lru-cache/workspace/lru.test.js",
+    "exitCode": 0,
+    "note": "The writer's worktree change passes the frozen upstream LRU contract; the trial receipt is failed because the reviewer step failed before the chain verdict."
+  },
+  "reviewerSandboxEvidence": {
+    "projection": "C:/Users/彭扬超/.dsh/storages/session_projcache/sessions/omc-trial-a067ce2d3625a8caf593892e-reviewer-512c572e.json",
+    "sandboxMode": "read-only",
+    "permissions": { "sandbox": "read-only", "approval": "never" },
+    "changedFiles": []
+  },
+  "decisionAndSessionConsistency": {
+    "writer": { "decision": "new-packet", "actualAction": "new-packet", "sessionId": "omc-trial-a067ce2d3625a8caf593892e-writer-42817569" },
+    "reviewer": { "decision": "new-packet", "actualAction": "new-packet", "sessionId": "omc-trial-a067ce2d3625a8caf593892e-reviewer-512c572e", "ruleId": "S01-independent-review" },
+    "distinctSessions": true
+  },
+  "actionsTaken": [
+    "Ran real trial plan (PASS).",
+    "Ran exactly one authorized multi-role trial against the existing desktop profile.",
+    "Stopped after the reviewer provider failure; did not try a third provider/route and did not start E1/E2/E3 full.",
+    "Did not read or copy credentials; did not modify the desktop profile."
+  ],
+  "fullRunDecision": {
+    "canContinue": false,
+    "reason": "Multi-role execution is not green: kimi-coding/deepseek-account mixed roles reached the reviewer, but the DeepSeek account transport failed. Full E1/E2/E3 must wait for a working reviewer route or a user-approved different reviewer configuration."
+  },
+  "evidence": {
+    "receipt": "docs/evidence/v0.8/smoke-e1-multirole.json",
+    "hostLog": "docs/evidence/v0.8/smoke-e1-multirole.json.host.json",
+    "stdout": "docs/evidence/v0.8/smoke-e1-multirole.stdout.log",
+    "stderr": "docs/evidence/v0.8/smoke-e1-multirole.stderr.log",
+    "planStdout": "docs/evidence/v0.8/smoke-e1-multirole-plan.stdout.log",
+    "planStderr": "docs/evidence/v0.8/smoke-e1-multirole-plan.stderr.log"
+  }
+}

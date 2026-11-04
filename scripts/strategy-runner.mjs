@@ -313,7 +313,7 @@ function receiptStamp(now) {
   return String(now()).replace(/[^0-9A-Za-z]+/g, '').slice(0, 20) || 'run'
 }
 
-function writeReceipt({ receiptDir, receiptPath = null, manifest, plan, results, prerequisites = [], budget, aborted, now }) {
+function writeReceipt({ receiptDir, receiptPath = null, manifest, plan, results, prerequisites = [], budget, aborted, now, onlyTrialIds = null }) {
   const explicit = typeof receiptPath === 'string' && receiptPath.trim() !== '' ? resolve(receiptPath) : null
   const dir = explicit ? dirname(explicit) : resolve(receiptDir)
   mkdirSync(dir, { recursive: true, mode: 0o700 })
@@ -346,6 +346,15 @@ function writeReceipt({ receiptDir, receiptPath = null, manifest, plan, results,
       ...(task.chain ? { chain: task.chain } : {}),
     })),
     startedAt: iso(now()),
+    ...(onlyTrialIds ? {
+      executionScope: {
+        mode: 'subset',
+        onlyTrialIds,
+        totalAssignments: manifest.assignments.length,
+        partial: onlyTrialIds.length < manifest.assignments.length,
+        note: 'A smoke/subset run: the frozen allocation was not executed in full, so this receipt must not be promoted as a complete experiment.',
+      },
+    } : {}),
     aborted,
     trials: results,
     ...(manifest.prerequisite ? { prerequisites } : {}),
@@ -421,6 +430,11 @@ function outcomePatch(outcome, { manifest, task }) {
     unknownCost: costUsd === null,
     unknownCalls: calls === null,
     ...(outcome?.sessionDecision ? { sessionDecision: outcome.sessionDecision } : {}),
+    ...(Array.isArray(outcome?.models) ? { models: outcome.models } : {}),
+    ...(Array.isArray(outcome?.changedFiles) ? { changedFiles: outcome.changedFiles } : {}),
+    ...(Array.isArray(outcome?.steps) ? { steps: outcome.steps } : {}),
+    ...(Array.isArray(outcome?.sessions) ? { sessions: outcome.sessions } : {}),
+    ...(Array.isArray(outcome?.sessionDecisions) ? { sessionDecisions: outcome.sessionDecisions } : {}),
     ...(outcome?.chainSteps ? { chainSteps: outcome.chainSteps } : {}),
     ...(outcome?.error ? { error: outcome.error } : {}),
   }
@@ -501,6 +515,7 @@ export async function executePlan({
   receiptPath = null,
   runTrial = defaultRunTrial,
   repo = process.cwd(),
+  onlyTrialIds = null,
   now = () => new Date().toISOString(),
 } = {}) {
   const plan = planExperiment({ document, maxUsd })
@@ -513,6 +528,22 @@ export async function executePlan({
   capsProblems.push(...runnerSettingsProblems({ concurrency, deadline }))
   if (capsProblems.length) {
     return { ok: false, code: BUDGET_CAPS_MISSING, problems: capsProblems, plan, receipt: null }
+  }
+  let selectedAssignments = manifest.assignments
+  if (onlyTrialIds !== null && onlyTrialIds !== undefined) {
+    if (!Array.isArray(onlyTrialIds) || onlyTrialIds.length === 0) {
+      return { ok: false, code: MANIFEST_INVALID, problems: ['onlyTrialIds must be a non-empty array when supplied'], plan, receipt: null }
+    }
+    const wanted = new Set(onlyTrialIds.filter((id) => typeof id === 'string' && id !== ''))
+    const known = new Set(manifest.assignments.map((row) => row.trialId))
+    const unknown = [...wanted].filter((id) => !known.has(id))
+    if (unknown.length) {
+      return { ok: false, code: MANIFEST_INVALID, problems: [`onlyTrialIds names unknown trial(s): ${unknown.join(', ')}`], plan, receipt: null }
+    }
+    selectedAssignments = manifest.assignments.filter((row) => wanted.has(row.trialId))
+    if (!selectedAssignments.length) {
+      return { ok: false, code: MANIFEST_INVALID, problems: ['onlyTrialIds selected no frozen assignment'], plan, receipt: null }
+    }
   }
   if (!ctx || typeof ctx?.subprocess?.spawn !== 'function') {
     // Without a worktree-capable host nothing can be isolated, so no trial can
@@ -639,7 +670,7 @@ export async function executePlan({
     return true
   }
 
-  for (const assignment of manifest.assignments) {
+  for (const assignment of selectedAssignments) {
     const stop = stopReason(assignment.trialId)
     if (stop) {
       aborted = stop
@@ -759,7 +790,7 @@ export async function executePlan({
 
   let receipt
   try {
-    receipt = writeReceipt({ receiptDir, receiptPath, manifest, plan, results, prerequisites, budget, aborted, now })
+    receipt = writeReceipt({ receiptDir, receiptPath, manifest, plan, results, prerequisites, budget, aborted, now, onlyTrialIds: selectedAssignments.length === manifest.assignments.length ? null : selectedAssignments.map((row) => row.trialId) })
   } catch (error) {
     if (error?.code === RECEIPT_EXISTS) {
       return { ok: false, code: RECEIPT_EXISTS, aborted: { code: RECEIPT_EXISTS, detail: error.message }, plan, results, prerequisites, receipt: null, spentUsd }
@@ -767,7 +798,9 @@ export async function executePlan({
     throw error
   }
   return {
-    ok: aborted === null && results.length === manifest.assignments.length,
+    ok: aborted === null && results.length === selectedAssignments.length,
+    partial: selectedAssignments.length !== manifest.assignments.length,
+    onlyTrialIds: selectedAssignments.map((row) => row.trialId),
     code: aborted?.code ?? null,
     aborted,
     plan,

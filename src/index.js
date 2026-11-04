@@ -21,12 +21,14 @@ import { buildExecutionStatus, detectLegacyCompanion, PRESET_ID, readRoleConfigu
 import { createSessionRegistry } from '../integration/sessions.js'
 import { createTaskRegistry } from '../integration/tasks.js'
 import { statePath } from '../integration/state.js'
+import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { createGraphStore, mergeAcceptance } from '../integration/graph.js'
+import { resolveTrialSteps } from '../integration/strategy-eval.js'
 import { createMailbox } from '../integration/mailbox.js'
 import { readProjectPolicy, renderProjectPolicy } from '../integration/project-policy.js'
-import { createWorktreeStore, mergeWorktree } from '../integration/worktree.js'
+import { createWorktreeStore, mergeWorktree, captureTaskWorktree } from '../integration/worktree.js'
 import { buildRolePrompt, createCustomRoles, readProjectRoles } from '../integration/custom-roles.js'
 import { externalRoleResult, renderRoleResult } from '../integration/role-result.js'
 import { createPresetSnapshotStore, diffPresetSnapshot } from '../integration/preset-snapshot.js'
@@ -718,30 +720,37 @@ export function createTrialService(rt, overrides = {}) {
 
   function planNode(manifest) {
     const rows = []
-    for (const assignment of manifest.assignments ?? []) rows.push({ trialId: assignment.trialId, taskId: assignment.taskId })
-    for (const prerequisite of manifest.prerequisiteTrials ?? []) rows.push({ trialId: prerequisite.trialId, taskId: prerequisite.taskId })
+    for (const assignment of manifest.assignments ?? []) {
+      rows.push({ trialId: assignment.trialId, taskId: assignment.taskId, arm: assignment.arm ?? assignment.strategy, repeat: assignment.repeat })
+    }
+    for (const prerequisite of manifest.prerequisiteTrials ?? []) {
+      rows.push({ trialId: prerequisite.trialId, taskId: prerequisite.taskId, arm: prerequisite.arm ?? prerequisite.strategy, repeat: null, role: 'prerequisite' })
+    }
     return rows
   }
 
-  function nodeIdFor(trialId) {
+  function nodeIdFor(trialId, stepId = null) {
     const safe = String(trialId ?? '').replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 70)
-    return `trial-${safe || 'unknown'}`
+    const step = stepId === null ? '' : `-${String(stepId).replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 50)}`
+    return `trial-${safe || 'unknown'}${step}`
   }
 
-  function featuresFor({ trial }) {
-    const arm = String(trial?.arm ?? trial?.strategy ?? '')
+  function featuresFor({ role, prior } = {}) {
+    const hasPrior = Boolean(prior?.sessionId)
     return {
-      hasPriorWorker: Number.isSafeInteger(trial?.repeat) && trial.repeat > 0,
+      hasPriorWorker: hasPrior,
       childBusy: false,
-      sameModule: /reuse|adaptive/i.test(arm),
-      constraintsMatch: true,
-      routeMatch: true,
-      permissionMatch: true,
-      workspaceMatch: true,
+      sameModule: hasPrior,
+      constraintsMatch: prior?.constraintsMatch !== false,
+      routeMatch: !hasPrior || (
+        prior?.route?.provider === role?.provider && prior?.route?.model === role?.model
+      ),
+      permissionMatch: !hasPrior || prior?.permission === (role?.writer === true ? 'workspace-write' : 'read-only'),
+      workspaceMatch: prior?.workspaceMatch !== false,
       factsStale: false,
-      failureUnclear: false,
-      independentReview: /review|verify/i.test(arm),
-      contextOverLimit: false,
+      failureUnclear: hasPrior && prior?.status !== 'completed',
+      independentReview: role?.writer === false,
+      contextOverLimit: prior?.contextOverLimit === true,
     }
   }
 
@@ -749,32 +758,60 @@ export function createTrialService(rt, overrides = {}) {
     const graph = rt.graph
     if (!graph) return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: 'the host graph store is unavailable' }] }
     const nodeIds = new Map()
+    const descriptors = []
     const status = graph.status(parentId)
     const existing = new Map(status.nodes.map((node) => [node.id, node]))
+    const tasks = new Map([
+      ...(manifest.tasks ?? []),
+      ...(manifest.prerequisite ? [manifest.prerequisite] : []),
+    ].map((task) => [task.id, task]))
     for (const row of trialRows) {
       if (typeof row.trialId !== 'string' || row.trialId === '') {
         return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: 'the frozen allocation contains a trial without a trialId' }] }
       }
-      const nodeId = nodeIdFor(row.trialId)
-      nodeIds.set(row.trialId, nodeId)
-      const node = existing.get(nodeId)
-      if (node?.state === 'running') {
-        return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: `trial node ${nodeId} is already running; refusing a concurrent paid run` }] }
+      const task = tasks.get(row.taskId)
+      if (!task) {
+        return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: `trial ${row.trialId} names unknown task ${row.taskId}` }] }
       }
-      if (node && ['completed', 'failed', 'cancelled'].includes(node.state)) {
-        graph.reopen(parentId, nodeId, { reason: 'new paid trial run' })
+      let steps
+      try {
+        steps = resolveTrialSteps({
+          manifest,
+          trial: { trialId: row.trialId, taskId: row.taskId, arm: row.arm, role: row.role, repeat: row.repeat },
+          task,
+        })
+      } catch (error) {
+        return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: `trial ${row.trialId}: ${String(error?.message ?? error)}` }] }
+      }
+      let previous = null
+      for (const step of steps) {
+        const key = `${row.trialId}:${step.id}`
+        const nodeId = nodeIdFor(row.trialId, step.id)
+        nodeIds.set(key, nodeId)
+        const node = existing.get(nodeId)
+        if (node?.state === 'running') {
+          return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: `trial node ${nodeId} is already running; refusing a concurrent paid run` }] }
+        }
+        if (node && ['completed', 'failed', 'cancelled'].includes(node.state)) {
+          graph.reopen(parentId, nodeId, { reason: 'new paid trial run' })
+        }
+        descriptors.push({
+          id: nodeId,
+          role: step.roleId ?? (step.writer ? 'writer' : 'reviewer'),
+          title: `trial ${row.trialId} · ${step.id}${step.writer ? '' : ' (read-only)'}`,
+          write: step.writer === true,
+          ...(step.writer === true ? { writeScope: [] } : {}),
+          acceptance: [],
+          ...(previous ? { deps: [previous] } : {}),
+        })
+        previous = nodeId
       }
     }
-    if (!trialRows.length) return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: 'the frozen manifest has no trials' }] }
+    if (!trialRows.length || !descriptors.length) {
+      return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: 'the frozen manifest has no trials' }] }
+    }
     try {
-      graph.plan(parentId, trialRows.map((row) => ({
-        id: nodeIds.get(row.trialId),
-        role: 'trial',
-        title: `trial ${row.trialId} (${row.taskId})`,
-        write: true,
-        writeScope: [],
-        acceptance: [],
-      })), {
+      graph.plan(parentId, descriptors, {
         rootTaskId: shard.rootTaskId,
         parentTaskId: shard.binding?.taskId ?? null,
         lineage: shard.lineage,
@@ -783,6 +820,266 @@ export function createTrialService(rt, overrides = {}) {
       return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: String(error?.message ?? error) }] }
     }
     return { nodeIds, problems: [] }
+  }
+
+  function nativeBackendFor(manifest) {
+    return manifest?.conditions?.harness === 'native' || manifest?.conditions?.provider === 'native'
+  }
+
+  /**
+   * The native tier of a trial: a real DSH child agent (no second runtime), a
+   * real graph claim/attempt, and the real native bridge's usage/event records.
+   * It is selected only by an explicit native manifest; an external provider is
+   * never silently used as a writer.
+   */
+  function createNativeTrialDispatch({ exec, shard, manifest }) {
+    // Trial/arm/role session Map. It keeps the REAL live handle and id so a
+    // legal resume can continue that exact child; nothing here fabricates a
+    // compact interface.
+    const sessions = new Map()
+    return async function nativeTrialDispatch(request, _exec, context) {
+      const graph = rt.graph
+      const executionStore = rt.executionStore
+      const native = rt.native
+      const nodeId = request.nodeId
+      if (!nodeId) throw Object.assign(new Error('OMC/TRIAL-NATIVE-NODE: native dispatch needs the planned graph node'), { code: 'OMC/TRIAL-NATIVE-NODE' })
+      if (!graph || !executionStore || !native) {
+        throw Object.assign(new Error('OMC/TRIAL-NATIVE-UNAVAILABLE: the native graph/execution/bridge stores are unavailable'), { code: 'OMC/TRIAL-NATIVE-UNAVAILABLE' })
+      }
+      const parentId = shard.parentId
+      const taskId = request.taskId
+      const workspace = request.cwd
+      const roleId = request.role ?? 'writer'
+      const writer = request.writer === true
+      const provider = request.provider ?? manifest?.conditions?.provider ?? 'native'
+      const model = request.model ?? manifest?.conditions?.model ?? 'default'
+      const sessionKey = `${taskId}:${roleId}`
+      let sessionState = sessions.get(sessionKey) ?? null
+      const canResume = request.sessionAction === 'resume' && sessionState?.handle && sessionState?.sessionId
+      const reused = Boolean(canResume)
+      const actualAction = reused
+        ? 'resume'
+        : (request.sessionAction === 'restart' ? 'restart' : 'new-packet')
+      const claim = graph.claim(parentId, nodeId, {
+        taskId,
+        rootTaskId: shard.rootTaskId,
+        lineage: shard.lineage,
+        workspace,
+      })
+      let attempt = executionStore.open({
+        taskId,
+        parentId,
+        backend: 'native',
+        reason: 'native trial',
+        intent: { backend: 'native', nodeId, cwd: workspace, roleId, writer },
+      })
+      let sessionId = sessionState?.sessionId ?? `omc-trial-${String(taskId).replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 48)}-${String(roleId).replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 24)}-${randomUUID().slice(0, 8)}`
+      if (!reused) {
+        sessionState = { sessionId, handle: null, provider, model, writer, permission: writer ? 'workspace-write' : 'read-only' }
+        sessions.set(sessionKey, sessionState)
+        // Bind BEFORE the new child's first request: the trial's task identity
+        // is the ledger/graph identity, and the bridge books the real events
+        // under it.
+        native.bind({
+          sessionId,
+          parentId,
+          taskId,
+          parentTaskId: shard.binding?.taskId ?? null,
+          rootTaskId: shard.rootTaskId,
+          rootSessionId: exec.agent?.session?.id ?? null,
+          depth: 1,
+          source: 'managed',
+          lineage: {
+            source: 'host',
+            parentSessionId: exec.agent?.session?.id ?? null,
+            rootSessionId: exec.agent?.session?.id ?? null,
+          },
+        })
+      }
+      const events = []
+      let stopCapture = null
+      try {
+        stopCapture = rt.ctx.effect(() => rt.ctx.on('session/event', (session, event) => {
+          if (session?.id === sessionId) events.push(event)
+        }))
+      } catch {
+        stopCapture = null
+      }
+      let handle = null
+      let child = null
+      try {
+        const hostCtx = exec.agent?.ctx ?? rt.ctx
+        const agents = hostCtx.get?.('agents') ?? rt.ctx.get?.('agents')
+        const presets = hostCtx.get?.('agentPresets') ?? rt.ctx.get?.('agentPresets')
+        if (!agents?.create) {
+          throw Object.assign(new Error('OMC/TRIAL-NATIVE-UNAVAILABLE: the host agents service is unavailable'), { code: 'OMC/TRIAL-NATIVE-UNAVAILABLE' })
+        }
+        if (!presets?.mount) {
+          throw Object.assign(new Error('OMC/TRIAL-NATIVE-PRESET: the host agentPresets service is unavailable; the native child would have no tools'), { code: 'OMC/TRIAL-NATIVE-PRESET' })
+        }
+        if (reused) {
+          handle = sessionState.handle
+          child = handle?.agent
+          if (!child) throw Object.assign(new Error('OMC/TRIAL-NATIVE-SESSION: the prior session handle is gone'), { code: 'OMC/TRIAL-NATIVE-SESSION' })
+        } else {
+          handle = await agents.create({
+            sessionId,
+            parentAgent: exec.agent,
+            agentOptions: {
+              provider,
+              model,
+              ...(typeof manifest?.conditions?.reasoningEffort === 'string' ? { reasoningEffort: manifest.conditions.reasoningEffort } : {}),
+            },
+            meta: {
+              cwd: workspace,
+              agentPreset: 'oh-my-coharness',
+              parentSession: exec.agent?.session?.id,
+              origin: 'subagent',
+            },
+            setup: async (agentCtx, agent) => {
+              await presets.mount(agentCtx, 'oh-my-coharness')
+              if (!writer) {
+                // A reviewer is a real read-only child: the graph node is
+                // write:false and the session sandbox is read-only, so its
+                // text can never silently become a second writer.
+                try {
+                  if (typeof agent?.session?.append !== 'function') {
+                    throw new Error('the host session has no append() surface')
+                  }
+                  agent.session.append('sandbox/mode', { mode: 'read-only', source: 'omc-reviewer' })
+                  agent.session.append('approval/policy', { policy: 'never', source: 'omc-reviewer' })
+                } catch (error) {
+                  throw Object.assign(new Error(`OMC/TRIAL-NATIVE-SANDBOX: the reviewer read-only sandbox could not be established: ${String(error?.message ?? error)}`), { code: 'OMC/TRIAL-NATIVE-SANDBOX' })
+                }
+              }
+            },
+          })
+          child = handle.agent
+          sessionState.handle = handle
+        }
+        child.followup({ content: [{ type: 'text', text: String(request.prompt ?? '') }], source: { kind: 'user' } })
+        await child.whenIdle()
+      } catch (error) {
+        // A failed creation/followup must not leave a claimed node or a running
+        // attempt behind: the dispatch path is the only writer of this identity.
+        try {
+          const current = executionStore.read(taskId)
+          if (current?.execution === 'running') {
+            executionStore.settle(taskId, current.currentAttemptId, {
+              execution: 'failed',
+              stopReason: 'error',
+              by: 'native trial',
+              note: String(error?.message ?? error),
+            })
+          }
+        } catch { /* the attempt may already be terminal */ }
+        try {
+          graph.release(parentId, nodeId, {
+            to: 'failed',
+            reason: `native trial dispatch failed: ${String(error?.message ?? error)}`,
+            claimId: claim.claimId,
+          })
+        } catch { /* the node may already be settled */ }
+        throw error
+      } finally {
+        try { stopCapture?.() } catch { /* listener already gone */ }
+      }
+
+      let view = executionStore.read(taskId)
+      if (view?.execution === 'running') {
+        const end = [...events].reverse().find((event) => event.type === 'turn/end')
+        if (end) {
+          const verdict = native.execStateFromTurnEnd?.(end.data?.reason) ?? { execution: 'unknown', stopReason: null }
+          try {
+            executionStore.settle(taskId, view.currentAttemptId, {
+              execution: verdict.execution,
+              stopReason: verdict.stopReason,
+              by: 'native trial',
+            })
+          } catch { /* the bridge's own settlement already landed */ }
+        }
+      }
+      view = executionStore.read(taskId)
+      const execution = view?.execution ?? 'unknown'
+      const status = execution === 'completed'
+        ? 'completed'
+        : execution === 'cancelled'
+          ? 'cancelled'
+          : execution === 'unknown' ? 'unknown' : 'failed'
+      let captured = { files: [] }
+      if (writer) {
+        try {
+          captured = await captureTaskWorktree(rt.ctx, workspace)
+        } catch {
+          captured = { files: [] }
+        }
+      }
+      try {
+        if (status === 'completed') {
+          graph.complete(parentId, nodeId, {
+            status: 'completed',
+            changedFiles: writer ? (captured.files ?? []) : [],
+            taskId,
+            claimId: claim.claimId,
+          })
+        } else {
+          graph.complete(parentId, nodeId, {
+            status: status === 'cancelled' ? 'cancelled' : 'failed',
+            taskId,
+            claimId: claim.claimId,
+          })
+        }
+      } catch (error) {
+        try {
+          graph.release(parentId, nodeId, { to: 'failed', reason: `native trial settlement: ${String(error?.message ?? error)}`, claimId: claim.claimId })
+        } catch { /* already settled */ }
+      }
+      // Keep the native child session on disk: the execution record and its
+      // event log are the evidence for a failed paid turn. Host teardown disposes
+      // the live agent; disposing here would remove that transcript immediately.
+      const lastAssistant = [...events].reverse().find((event) => event.type === 'assistant/message')
+      const output = Array.isArray(lastAssistant?.data?.message?.content)
+        ? lastAssistant.data.message.content.filter((block) => block?.type === 'text').map((block) => block.text).join('')
+        : ''
+      const turnEnd = [...events].reverse().find((event) => event.type === 'turn/end')
+      const stopReason = turnEnd?.data?.reason ?? null
+      let failureDetail = null
+      if (status !== 'completed') {
+        const reason = stopReason
+        if (typeof reason?.message === 'string') failureDetail = reason.message
+        else if (typeof reason?.error?.message === 'string') failureDetail = reason.error.message
+        else if (reason) failureDetail = JSON.stringify(reason).slice(0, 2000)
+        else failureDetail = `native child ended ${status} without a turn/end reason`
+      }
+      return {
+        results: [{
+          status,
+          harnessId: 'native',
+          provider,
+          model: `${provider}/${model}`,
+          roleId,
+          writer,
+          readOnly: !writer,
+          permission: writer ? 'workspace-write' : 'read-only',
+          sessionId,
+          sessionReused: reused,
+          sessionAction: request.sessionAction ?? null,
+          actualAction,
+          output,
+          changedFiles: writer ? (captured.files ?? []) : [],
+          attempts: view?.attempts?.length ?? 1,
+          managed: true,
+          actualActions: [
+            `session:${actualAction}`,
+            `native child ${sessionId} ran one turn`,
+            ...(writer ? [] : ['read-only reviewer']),
+          ],
+          interventions: [],
+          ...(stopReason ? { stopReason } : {}),
+          ...(failureDetail ? { error: failureDetail } : {}),
+        }],
+      }
+    }
   }
 
   return async function trialAction(args, exec) {
@@ -931,11 +1228,43 @@ export function createTrialService(rt, overrides = {}) {
       }
     }
 
-    const trialRows = planNode(manifest)
+    // A smoke manifest may name the exact frozen assignment(s) it is allowed to
+    // execute. This is a subset of the frozen allocation, never a new plan.
+    let onlyTrialIds = null
+    if (Array.isArray(document.smokeTrialIds)) {
+      const wanted = [...new Set(document.smokeTrialIds.filter((id) => typeof id === 'string' && id !== ''))]
+      const assignments = manifest?.assignments ?? []
+      const known = new Set(assignments.map((row) => row.trialId))
+      const unknown = wanted.filter((id) => !known.has(id))
+      if (!wanted.length || unknown.length) {
+        return {
+          ok: false,
+          code: 'OMC/TRIAL-MANIFEST',
+          problems: [unknown.length
+            ? `smokeTrialIds names unknown trial(s): ${unknown.join(', ')}`
+            : 'smokeTrialIds must name at least one frozen assignment'],
+          executesAnything: false,
+          plan,
+        }
+      }
+      const selectedArms = new Set(assignments.filter((row) => wanted.includes(row.trialId)).map((row) => row.strategy))
+      onlyTrialIds = [
+        ...wanted,
+        ...((manifest?.prerequisiteTrials ?? [])
+          .filter((row) => selectedArms.has(row.strategy))
+          .map((row) => row.trialId)
+          .filter((id) => typeof id === 'string' && id !== '')),
+      ]
+    }
+    const allTrialRows = planNode(manifest)
+    const trialRows = onlyTrialIds
+      ? allTrialRows.filter((row) => onlyTrialIds.includes(row.trialId))
+      : allTrialRows
     const planned = await planTrialNodes({ parentId: shard.parentId, shard, manifest, trialRows })
     if (planned.problems.length) {
       return { ok: false, code: planned.problems[0].code, problems: planned.problems.map((row) => `${row.code}: ${row.detail}`), executesAnything: false, plan }
     }
+    const nativeBackend = nativeBackendFor(manifest)
     const executor = createExecutor({
       ctx: rt.ctx,
       managed: rt.managed,
@@ -946,17 +1275,31 @@ export function createTrialService(rt, overrides = {}) {
       parentIdForTrial: () => shard.parentId,
       taskIdForTrial: ({ trial }) => trial?.trialId ?? null,
       resolveAcceptance: ({ task }) => specByTask.get(task?.id) ?? null,
-      buildPrompt: ({ task, step }) => {
-        if (step && typeof step.goal === 'string' && step.goal.trim() !== '') return step.goal
-        if (typeof task?.prompt === 'string' && task.prompt.trim() !== '') return task.prompt
-        return task?.goal ?? ''
+      buildPrompt: ({ task, step, role, prior }) => {
+        if (typeof role?.prompt === 'string' && role.prompt.trim() !== '') return role.prompt
+        const base = step && typeof step.goal === 'string' && step.goal.trim() !== ''
+          ? step.goal
+          : (typeof task?.prompt === 'string' && task.prompt.trim() !== '' ? task.prompt : (task?.goal ?? ''))
+        if (role?.writer === false) {
+          return [
+            `You are the read-only reviewer role "${role.id}". Do not modify any file and do not run write commands.`,
+            'Review the writer\'s delivered change against the task. Return findings and risks only; your text is not acceptance evidence.',
+            `Task:\n${base}`,
+            prior?.output ? `Writer handoff:\n${prior.output}` : 'Writer handoff: (none)',
+          ].join('\n\n')
+        }
+        if (prior?.output) return `${base}\n\nHandoff from the previous step:\n${prior.output}`
+        return base
       },
-      buildRequest: ({ trial, worktree }) => ({
-        nodeId: planned.nodeIds.get(trial.trialId),
+      buildRequest: ({ trial, worktree, stepId, role }) => ({
+        nodeId: planned.nodeIds.get(`${trial.trialId}:${stepId}`) ?? null,
         taskId: trial.trialId,
         ledgerTaskId: trial.trialId,
         cwd: worktree.path,
-        mode: 'in-place',
+        mode: role?.writer === true ? 'in-place' : 'read-only',
+        role: role?.id ?? null,
+        writer: role?.writer === true,
+        readOnly: role?.writer !== true,
       }),
       resolveFeatures: featuresFor,
       resolveCapabilities: () => ({ compactAvailable: false }),
@@ -964,6 +1307,10 @@ export function createTrialService(rt, overrides = {}) {
       signal: exec.signal,
       mode: 'in-place',
       now: overrides.now ?? (() => new Date().toISOString()),
+      ...(nativeBackend ? {
+        dispatch: createNativeTrialDispatch({ exec, shard, manifest }),
+        surface: 'native-managed',
+      } : {}),
       ...(overrides.executorDeps ?? {}),
     })
     const now = overrides.now ?? (() => new Date().toISOString())
@@ -976,6 +1323,7 @@ export function createTrialService(rt, overrides = {}) {
         receiptPath,
         repo: repoInfo.real,
         runTrial: executor.runTrial,
+        ...(onlyTrialIds ? { onlyTrialIds } : {}),
         now,
       })
     } catch (error) {
@@ -991,6 +1339,8 @@ export function createTrialService(rt, overrides = {}) {
       ok: result?.ok === true,
       mode: 'execute',
       synthetic: (manifest?.dataKind ?? 'synthetic') !== 'live',
+      partial: result?.partial === true,
+      onlyTrialIds: result?.onlyTrialIds ?? null,
       manifestPath: loaded.path,
       receiptPath: result?.receipt ?? receiptPath,
       code: result?.code ?? null,
@@ -1008,7 +1358,18 @@ export function createTrialService(rt, overrides = {}) {
         trialId: row.trialId, taskId: row.taskId, arm: row.arm,
         execution: row.execution, acceptance: row.acceptance, ok: row.ok,
         costUsd: row.costUsd, unknownCost: row.unknownCost,
-        nodeId: planned.nodeIds.get(row.trialId) ?? null,
+        calls: row.calls ?? null, observedModel: row.observedModel ?? null,
+        models: Array.isArray(row.models) ? row.models : [],
+        changedFiles: Array.isArray(row.changedFiles) ? row.changedFiles : [],
+        steps: Array.isArray(row.steps) ? row.steps : [],
+        sessions: Array.isArray(row.sessions) ? row.sessions : [],
+        error: row.error ?? null, stopReason: row.stopReason ?? null,
+        nodeId: [...planned.nodeIds.entries()]
+          .filter(([key]) => key.startsWith(`${row.trialId}:`))
+          .map(([, value]) => value)[0] ?? null,
+        nodeIds: [...planned.nodeIds.entries()]
+          .filter(([key]) => key.startsWith(`${row.trialId}:`))
+          .map(([, value]) => value),
         worktree: row.worktree ?? null,
       })) : [],
       prerequisites: Array.isArray(result?.prerequisites) ? result.prerequisites.map((row) => ({
