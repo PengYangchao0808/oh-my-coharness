@@ -1,0 +1,7 @@
+# Frozen benchmark fixtures are hashed byte-for-byte: prompt, spec and grading
+# sha256 values live in test/benchmarks/plans/*.json and must not drift across
+# platforms. A Windows checkout that rewrites LF to CRLF changes those bytes, so
+# keep this tree LF everywhere. The rule is intentionally scoped to
+# test/benchmarks and does not change line-ending handling for the rest of the
+# repository.
+test/benchmarks/** text eol=lf
