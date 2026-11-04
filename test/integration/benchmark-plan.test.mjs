@@ -106,9 +106,14 @@ const commitSha256 = (repo, commit, path) => {
   const result = git(repo, ['show', `${commit}:${path}`], null)
   return result.status === 0 ? sha256(result.stdout) : null
 }
-const repoHead = (repo) => {
-  const result = git(repo, ['rev-parse', 'HEAD'])
-  return result.status === 0 ? String(result.stdout).trim() : null
+/**
+ * A frozen base commit is an immutable object that must still exist in the
+ * repository and contain the frozen files. The checkout's current HEAD is
+ * allowed to advance past it: later commits must not invalidate a plan.
+ */
+function assertFrozenCommit(repo, commit) {
+  assert.equal(String(git(repo, ['cat-file', '-t', commit]).stdout).trim(), 'commit', `${repo}: ${commit} is not a commit object`)
+  assert.equal(String(git(repo, ['rev-parse', '--verify', `${commit}^{commit}`]).stdout).trim(), commit.toLowerCase(), `${repo}: ${commit} does not resolve to itself`)
 }
 
 function extractLiteral(source, marker, token) {
@@ -216,22 +221,24 @@ test('repositories, base commits and worktree checks are real', () => {
     const plan = CLI.get(group)
     const check = planFile(group).inputs.worktreeCheck
     assert.ok(existsSync(REPOS[group]), `${group}: frozen checkout is missing: ${REPOS[group]}`)
-    assert.equal(repoHead(REPOS[group]), expected.base, `${group}: the checkout is not on the frozen base commit`)
+    // The base commit is immutable evidence, not "whatever HEAD is today".
+    // HEAD may equal or be ahead of it; only the object and its contents matter.
+    assert.ok(String(git(REPOS[group], ['rev-parse', 'HEAD']).stdout).trim(), `${group}: checkout has no HEAD`)
+    assertFrozenCommit(REPOS[group], expected.base)
     assert.equal(check.checked, true, `${group}: the worktree base must be verified, not assumed`)
     assert.equal(check.repo, REPOS[group])
-    assert.equal(check.baseCommit, expected.base)
+    assert.equal(check.baseCommit, expected.base, `${group}: the plan must not chase a newer commit`)
     assert.deepEqual(check.missing, [], `${group}: every required path must exist at the base commit`)
     assert.ok(check.verifiedPaths.length > 0)
+    for (const row of check.verifiedPaths) {
+      assert.ok(commitHas(REPOS[group], expected.base, row.path), `${group}: ${row.path} is not in the frozen commit`)
+    }
     if (group === 'E2') {
-      assert.equal(check.headMatchesBase, undefined)
       assert.ok(check.digestChecks.length >= 8, 'E2 must also check the frozen spec/grading digests')
       for (const row of check.digestChecks) {
         assert.equal(row.expected, row.actual, `${group}/${row.taskId}: committed ${row.kind} differs from the frozen digest`)
         assert.equal(commitSha256(REPOS[group], expected.base, row.path), row.expected, `${group}/${row.taskId}: committed ${row.path} drifted`)
       }
-    } else {
-      assert.equal(check.headMatchesBase, true, `${group}: HEAD must equal the frozen commit`)
-      for (const row of check.verifiedPaths) assert.ok(commitHas(REPOS[group], expected.base, row.path), `${group}: ${row.path} is not in the frozen commit`)
     }
 
     for (const task of plan.tasks) {
@@ -244,7 +251,25 @@ test('repositories, base commits and worktree checks are real', () => {
       assert.equal(trial.repo, REPOS[group])
       assert.equal(trial.provenance.executionBaseCommit, expected.base)
       assert.equal(trial.provenance.repo, REPOS[group])
-      assert.equal(trial.provenance.baseCommit, readJson(join(root, REGISTERED_BY_ID.get(task.id).specPath)).provenance.baseCommit)
+      const spec = readJson(join(root, REGISTERED_BY_ID.get(task.id).specPath))
+      assert.equal(trial.provenance.baseCommit, spec.provenance.baseCommit)
+
+      // The committed bytes, not just object existence, must match the frozen
+      // digest of the grading artifact.
+      if (group === 'E1') {
+        assert.equal(
+          commitSha256(REPOS[group], expected.base, task.acceptance.acceptanceFiles[0]),
+          spec.provenance.grading.sha256,
+          `${task.id}: committed upstream test differs from the frozen grading digest`,
+        )
+      }
+      if (group === 'E3') {
+        assert.equal(
+          commitSha256(REPOS[group], expected.base, task.promptMeta.source.upstreamModule),
+          task.promptMeta.source.moduleSha256,
+          `${task.id}: committed upstream module differs from the frozen prompt module`,
+        )
+      }
     }
   }
 })
