@@ -11,15 +11,21 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { createAcceptanceRunner, validateAcceptanceSpec } from '../../integration/acceptance-runner.js'
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const BENCH = join(root, 'test', 'benchmarks', 'session-strategies')
+// The checks invoke `node`; make sure the child resolves the same interpreter
+// even when the parent was started by absolute path from a bare PATH.
+const ENV = { PATH: [dirname(process.execPath), process.env.PATH].filter(Boolean).join(delimiter) }
 
 const TASKS = [
+  // example-local-fix is the first real task and was previously graded only by
+  // acceptance-runner.test.mjs; it is part of the C group, so grade it here too.
+  { dir: 'example-local-fix', kind: 'should-reuse' },
   { dir: 'should-reuse-module-fix', kind: 'should-reuse' },
   { dir: 'should-restart-stale-api', kind: 'should-restart' },
 ]
@@ -49,7 +55,7 @@ for (const task of TASKS) {
     try {
       const runner = createAcceptanceRunner({ cwd: broken.dir })
       const baseline = await runner.baseline({ spec: broken.spec, workdir: broken.dir })
-      const verdict = await runner.run({ spec: broken.spec, workdir: broken.dir, baseline })
+      const verdict = await runner.run({ spec: broken.spec, workdir: broken.dir, baseline, env: ENV })
       assert.equal(verdict.passed, false, 'the start state must not pass')
       assert.ok(
         verdict.checks.some((check) => check.passed === false),
@@ -65,7 +71,7 @@ for (const task of TASKS) {
     try {
       const runner = createAcceptanceRunner({ cwd: fixed.dir })
       const baseline = await runner.baseline({ spec: fixed.spec, workdir: fixed.dir })
-      const verdict = await runner.run({ spec: fixed.spec, workdir: fixed.dir, baseline })
+      const verdict = await runner.run({ spec: fixed.spec, workdir: fixed.dir, baseline, env: ENV })
       assert.equal(verdict.passed, true, `reference fix must pass (${JSON.stringify(verdict.checks)})`)
       assert.ok(verdict.checks.every((check) => check.passed))
       assert.match(verdict.fingerprint, /^[a-f0-9]{16,}$/)
@@ -87,6 +93,12 @@ test('the benchmark set covers both required kinds and keeps families from leaki
     assert.equal(raw.split, 'development', 'a new task starts in development, never in holdout')
     assert.ok(Array.isArray(raw.rubric) && raw.rubric.length >= 3, `${task.dir} needs an explicit rubric`)
     assert.ok(raw.forbidChanges.includes('acceptance/'), `${task.dir} must protect its grader`)
+    // C-group tasks are OMC-authored. They must not claim an upstream dataset,
+    // commit or digest: there is no upstream fixture to point at.
+    assert.equal(raw.provenance?.dataset, 'omc-authored', `${task.dir} must declare OMC authorship`)
+    assert.equal(raw.provenance?.authoredBy, 'OMC', `${task.dir} must say it was authored by OMC`)
+    assert.deepEqual(raw.provenance?.upstreamDigests, {}, `${task.dir} must not invent upstream digests`)
+    assert.match(String(raw.provenance?.baseCommit), /^[a-f0-9]{40}$/, `${task.dir} needs the OMC checkout baseline commit`)
   }
   assert.deepEqual([...kinds].sort(), ['should-restart', 'should-reuse'])
   assert.equal(families.size, TASKS.length, 'each task is its own family, so a split can keep them whole')

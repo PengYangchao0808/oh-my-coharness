@@ -1,0 +1,12 @@
+﻿✔ the Host row still mounts tools, commands, skills, providers and both event surfaces (9.7758ms)
+✔ the preset row still registers every role row and every dynamic file row (3.7797ms)
+﹣ real profile RPC transport registration and the host settings card are not exercisable here (0.0955ms) # companion.apply registers /coharness through ctx.inject([loader, connection, webServer, agentPresets, configEditor, settings]) and the host connection service; a bare Node test has none of those, so invoking that async callback would test a stub, not the host. The injection declaration is asserted above; test/integration/client.test.mjs loads the settings card bundle without a host.
+✔ the Host half alone keeps the same tool/command/skill/provider set (1.5249ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 17.9184

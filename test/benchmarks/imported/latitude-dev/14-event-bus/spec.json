@@ -1,0 +1,142 @@
+{
+  "taskId": "upstream-latitude-14-event-bus",
+  "kind": "upstream-single-agent",
+  "split": "development",
+  "family": "latitude-event-bus",
+  "goal": "Fix once()/replay behaviour in src/once.js so a once handler runs exactly once even when a handler re-emits the event, and the frozen upstream suite passes.",
+  "startState": {
+    "from": "start/",
+    "knownFailure": "node --test --test-reporter=tap exits 1 because the unmodified upstream start workspace invokes the once handler twice during a re-entrant emit.",
+    "origin": "upstream-workspace"
+  },
+  "reference": "reference/src/once.js",
+  "writeScope": [
+    "src/"
+  ],
+  "commands": [
+    {
+      "name": "upstream-suite",
+      "run": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "# pass 14",
+          "# fail 0"
+        ],
+        "stdoutNotContains": [
+          "not ok"
+        ]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "event-bus.test.js",
+    "package.json"
+  ],
+  "forbidChanges": [
+    "event-bus.test.js",
+    "package.json"
+  ],
+  "rubric": [
+    "The frozen upstream suite (event-bus.test.js) passes unmodified: # pass 14, # fail 0.",
+    "Only files under src/ differ from the upstream start workspace.",
+    "The worker may add tests but may not weaken or edit the frozen upstream test file.",
+    "The fix addresses the reported bug instead of rewriting the module from scratch."
+  ],
+  "provenance": {
+    "dataset": "latitude-dev/coding-agent-benchmark",
+    "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+    "taskId": "14-event-bus",
+    "upstreamTaskPath": "tasks/14-event-bus",
+    "license": {
+      "spdx": "MIT",
+      "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+      "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+    },
+    "importedAt": "2026-11-04T05:10:07Z",
+    "verifiedOn": {
+      "at": "2026-11-04T05:10:07Z",
+      "node": "24.21.0",
+      "python": "3.12.14"
+    },
+    "runtime": {
+      "node": ">=24",
+      "note": "upstream package.json engines.node is >=24; the repo harness uses Node type stripping"
+    },
+    "upstreamDigests": {
+      "tasks/14-event-bus/prompt.md": {
+        "sha256": "a1690dbdbe337621eecfae9f8d4949cc6928ccd8d9f034bca1f8160dacffe83a",
+        "gitBlobSha1": "7600d9145c1e121fe60ef5df80536303ecb2e6c2",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/prompt.md"
+      },
+      "tasks/14-event-bus/solution/src/once.js": {
+        "sha256": "2a58ca82ed20e0cabd5be23b1fdec8cb5fff50fea2672e5380795bf42fcf595b",
+        "gitBlobSha1": "c9dfef140db1664d403523c7e192f11144312049",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/solution/src/once.js"
+      },
+      "tasks/14-event-bus/workspace/event-bus.test.js": {
+        "sha256": "85f7847b4692b2390ee0cb455ae5ffdf2c5e0621e25dc701cb43fd51d8c67458",
+        "gitBlobSha1": "591a1fb5349868b2973d0754dc46d1eaa45f1807",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/event-bus.test.js"
+      },
+      "tasks/14-event-bus/workspace/package.json": {
+        "sha256": "48a92b6fc994ced247c1cd007ba06c597addfb242800b3c25409844d92d54db9",
+        "gitBlobSha1": "cd3393528aafbb11fdd66e03061670d0de85f1f3",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/package.json"
+      },
+      "tasks/14-event-bus/workspace/src/bus.js": {
+        "sha256": "ab779ea38def41b5797230abf6e9a55d19c954d1869354129ff45ed877c79891",
+        "gitBlobSha1": "350348756e1c6a084b541d8006c61725253fbec8",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/src/bus.js"
+      },
+      "tasks/14-event-bus/workspace/src/once.js": {
+        "sha256": "1be2c82f44f053c0ad84defc54d2c772de47ed3501c85fb019b4ed1ff68be97a",
+        "gitBlobSha1": "c5efd5c39ea70259eb74a3d6de5639ddbd7e421d",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/src/once.js"
+      },
+      "tasks/14-event-bus/workspace/src/replay.js": {
+        "sha256": "045aae83d45e2d227827502dd5a3833a74bcdaf02828d134f5eeb90c96119d78",
+        "gitBlobSha1": "889b59de6b1cc55f478b73a77bea55239c360661",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/src/replay.js"
+      }
+    },
+    "fixtureDigests": {
+      "acceptance/event-bus.test.js": "85f7847b4692b2390ee0cb455ae5ffdf2c5e0621e25dc701cb43fd51d8c67458",
+      "reference/src/once.js": "2a58ca82ed20e0cabd5be23b1fdec8cb5fff50fea2672e5380795bf42fcf595b",
+      "start/event-bus.test.js": "85f7847b4692b2390ee0cb455ae5ffdf2c5e0621e25dc701cb43fd51d8c67458",
+      "start/package.json": "48a92b6fc994ced247c1cd007ba06c597addfb242800b3c25409844d92d54db9",
+      "start/src/bus.js": "ab779ea38def41b5797230abf6e9a55d19c954d1869354129ff45ed877c79891",
+      "start/src/once.js": "1be2c82f44f053c0ad84defc54d2c772de47ed3501c85fb019b4ed1ff68be97a",
+      "start/src/replay.js": "045aae83d45e2d227827502dd5a3833a74bcdaf02828d134f5eeb90c96119d78"
+    },
+    "grading": {
+      "method": "node-test-pristine-restore",
+      "argv": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "sha256": "85f7847b4692b2390ee0cb455ae5ffdf2c5e0621e25dc701cb43fd51d8c67458",
+      "frozenFile": "acceptance/event-bus.test.js",
+      "workdirFile": "event-bus.test.js",
+      "note": "upstream restores pristine test files before scoring; OMC materialises start/ then restores acceptance/<test> over it and digests it before/after the run",
+      "officialScore": "functional-pass-fail"
+    },
+    "startState": {
+      "origin": "upstream-workspace",
+      "upstreamPath": "tasks/14-event-bus/workspace"
+    },
+    "reference": {
+      "origin": "upstream-solution",
+      "upstreamPath": "tasks/14-event-bus/solution/src/once.js",
+      "sha256": "2a58ca82ed20e0cabd5be23b1fdec8cb5fff50fea2672e5380795bf42fcf595b"
+    },
+    "status": "verified",
+    "quarantined": []
+  }
+}

@@ -23,6 +23,18 @@ import { probePlugins, renderReport } from '../src/doctor.js'
 import { apply } from '../src/index.js'
 import { createSessionRegistry, sessionKeyFor } from '../integration/sessions.js'
 
+/** Config where automatic routing is on and every enabled connection is paid by subscription. */
+function autoRoutingCfg(extra = {}) {
+  const ids = ['codex', 'claude', 'glm', 'gemini', 'antigravity', 'kimi', 'opencode', 'qwen']
+  return resolveConfig({
+    surface: 'direct',
+    transport: 'native',
+    routing: { enabled: true },
+    harnesses: Object.fromEntries(ids.map((id) => [id, { enabled: true, billing: 'subscription' }])),
+    ...extra,
+  })
+}
+
 /** A ctx shim: only the seams OMC actually touches. */
 function fakeCtx({
   stdout = 'ok\n',
@@ -278,16 +290,16 @@ test('an over-limit batch fails loudly instead of dropping tasks', async () => {
   )
 })
 
-test('auto prefers an authenticated harness and never auto-selects a signed-out one', async () => {
+test('auto only selects a routable connection and never a signed-out one', async () => {
   const { ctx } = fakeCtx()
   const rt = {
     ctx,
-    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    cfg: autoRoutingCfg(),
     registered: new Set(),
     async detect() {
       return {
         rows: [
-          { id: 'gemini', auth: 'unknown', verified: true },
+          { id: 'gemini', auth: 'ok', verified: true },
           { id: 'codex', auth: 'signed-out', verified: true },
           { id: 'opencode', auth: 'ok', verified: true },
           { id: 'kimi', auth: 'missing' },
@@ -304,13 +316,14 @@ test('auto prefers an authenticated harness and never auto-selects a signed-out 
 
   assert.equal(payload.results[0].harnessId, 'opencode')
   assert.equal(payload.results[0].status, 'completed')
+  assert.equal(payload.results[0].route.state, 'routable')
 })
 
-test('auto falls back to verified before unverified when auth is equal', async () => {
+test('auto never selects an unverified or auth-unknown connection', async () => {
   const { ctx } = fakeCtx()
   const rt = {
     ctx,
-    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    cfg: autoRoutingCfg(),
     registered: new Set(),
     async detect() {
       return {
@@ -327,14 +340,18 @@ test('auto falls back to verified before unverified when auth is equal', async (
     { harness: 'auto', prompt: 'go' },
     { agent: { id: 's' }, signal: new AbortController().signal },
   )
-  assert.equal(payload.results[0].harnessId, 'gemini')
+  assert.equal(payload.results[0].status, 'failed')
+  const diagnostic = payload.results[0].diagnostics.join(' ')
+  assert.match(diagnostic, /OMC\/NO-ROUTABLE-PROVIDER/)
+  assert.match(diagnostic, /qwen/)
+  assert.match(diagnostic, /gemini/)
 })
 
-test('auto with nothing usable explains every row', async () => {
+test('auto with nothing routable explains every connection', async () => {
   const { ctx } = fakeCtx()
   const rt = {
     ctx,
-    cfg: resolveConfig({ surface: 'direct', transport: 'native' }),
+    cfg: autoRoutingCfg(),
     registered: new Set(),
     async detect() {
       return {
@@ -354,9 +371,10 @@ test('auto with nothing usable explains every row', async () => {
 
   assert.equal(payload.results[0].status, 'failed')
   const diagnostic = payload.results[0].diagnostics.join(' ')
-  assert.match(diagnostic, /OMC\/CLI-MISSING/)
-  assert.match(diagnostic, /codex: missing \(not installed\)/)
-  assert.match(diagnostic, /kimi: signed-out/)
+  assert.match(diagnostic, /OMC\/NO-ROUTABLE-PROVIDER/)
+  assert.match(diagnostic, /codex/)
+  assert.match(diagnostic, /kimi/)
+  assert.match(diagnostic, /missing|signed-out|installed/)
 })
 
 test('one bad task does not reject the whole batch', async () => {

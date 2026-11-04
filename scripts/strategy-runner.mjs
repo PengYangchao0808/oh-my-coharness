@@ -22,6 +22,13 @@
  * Isolation and caps:
  *   - one fresh worktree per trial via `createTaskWorktree` (integration/
  *     worktree.js), so one trial cannot see another trial's edits;
+ *   - a task may freeze `repo` / `baseCommit` / `provenance`; the runner
+ *     resolves that commit in that repository before spending anything and
+ *     refuses (OMC/WORKTREE-BASECOMMIT) when it cannot. It never falls back to
+ *     this repository's HEAD;
+ *   - shared prerequisites (E2) run once per arm before that arm's first trial.
+ *     They are recorded under `receipt.prerequisites`, never counted as an
+ *     independent trial, and their cost/calls are attributed to the arm;
  *   - the budget caps (total, per trial, remaining) are passed into every
  *     `runTrial` call. The runner passes caps; it does not meter model spend —
  *     the executor must enforce them and settle real costs, which the trial
@@ -50,10 +57,10 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { isAbsolute, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createStrategyExperiment } from '../integration/strategy-eval.js'
-import { createTaskWorktree } from '../integration/worktree.js'
+import { createStrategyExperiment, experimentArms } from '../integration/strategy-eval.js'
+import { createTaskWorktree, runGit } from '../integration/worktree.js'
 
 export const RUNNER_VERSION = 1
 export const RECEIPT_DIR = 'docs/evidence/alpha.2/session-strategies'
@@ -63,20 +70,22 @@ export const MANIFEST_INVALID = 'OMC/TRIAL-MANIFEST'
 export const EXECUTOR_FAILED = 'OMC/TRIAL-EXECUTOR-FAILED'
 export const BUDGET_EXHAUSTED = 'OMC/TRIAL-BUDGET-EXHAUSTED'
 export const DEADLINE_REACHED = 'OMC/TRIAL-DEADLINE'
+export const WORKTREE_BASECOMMIT = 'OMC/WORKTREE-BASECOMMIT'
+export const RECEIPT_EXISTS = 'OMC/TRIAL-RECEIPT-EXISTS'
 
 /** The callback signature a future (paid) integration must provide. */
 export const EXECUTOR_CONTRACT = Object.freeze({
   name: 'runTrial',
   signature: 'async runTrial(ctx, { trial, worktree, budget, manifest, plan }) => TrialOutcome',
   callShape: {
-    trial: '{ trialId, taskId, repeat, strategy, policyVersion, taskRevision }',
+    trial: '{ trialId, taskId, repeat, arm, strategy, policyVersion, taskRevision, role?, prerequisite? }',
     worktree: '{ path, branch, baseCommit, repositoryRoot }',
     budget: '{ totalUsd, perTrialUsd, remainingUsd, spentUsd, enforcedBy }',
-    manifest: 'the frozen createStrategyExperiment() manifest (digest, conditions, policyVersions)',
+    manifest: 'the frozen createStrategyExperiment() manifest (digest, experimentGroup, arms, conditions, policyVersions, prerequisite)',
     plan: 'the JSON printed by --plan (runnerVersion, concurrency, deadline, effective caps)',
   },
   outcome: {
-    execution: "'completed' | 'failed' | 'cancelled' — the real terminal state, never inferred",
+    execution: "'completed' | 'failed' | 'cancelled' | 'timeout' — the real terminal state, never inferred",
     acceptance: "{ state: 'passed' | 'failed' | 'unknown' | 'pending', evidenceKind, evidenceRef, criticalRegression, falseCompletion }",
     startedAt: 'ISO timestamp of the trial start (caller-supplied wall clock)',
     endedAt: 'ISO timestamp of the trial end',
@@ -84,6 +93,7 @@ export const EXECUTOR_CONTRACT = Object.freeze({
     calls: 'model request count, or null when unknown',
     actualActions: 'the documented actions the strategy really performed',
     interventions: 'manual help, one entry per episode',
+    provenance: '{ model, harness, baseCommit, branch, policyVersion, group, arm, costBasis, costVersion, collectionCoverage, unknownCost } as observed by the executor',
   },
   must: [
     'refuse to start a trial when cost would exceed budget.perTrialUsd or budget.remainingUsd',
@@ -211,6 +221,8 @@ export function planExperiment({ document = null, maxUsd = null } = {}) {
     }
   }
 
+  const arms = experimentArms(manifest)
+  const taskFor = (taskId) => manifest.tasks.find((task) => task.id === taskId) ?? null
   return {
     mode: 'plan',
     runnerVersion: RUNNER_VERSION,
@@ -218,32 +230,70 @@ export function planExperiment({ document = null, maxUsd = null } = {}) {
     manifest: {
       experimentId: manifest.experimentId,
       digest: manifest.digest,
+      experimentGroup: manifest.experimentGroup ?? null,
+      arms,
       dataKind: manifest.dataKind,
       split: manifest.split,
       seed: manifest.seed,
       repeats: manifest.repeats,
       conditions: manifest.conditions,
       policyVersions: manifest.policyVersions,
+      ...(manifest.prerequisite ? { prerequisite: manifest.prerequisite } : {}),
     },
     model: manifest.conditions.model,
     provider: manifest.conditions.provider,
+    experimentGroup: manifest.experimentGroup ?? null,
+    arms,
+    prerequisite: manifest.prerequisite
+      ? { ...manifest.prerequisite, countedAsTrial: false, note: 'shared prerequisite; its cost/calls belong to each arm and it is not an independent trial' }
+      : null,
     concurrency,
     deadline,
     budgetCaps: { ...caps, effectiveTotalUsd },
     assignmentCount: manifest.assignments.length,
     taskCount: manifest.tasks.length,
     tasks: manifest.tasks,
-    trials: manifest.assignments.map((assignment) => ({
-      trialId: assignment.trialId,
-      taskId: assignment.taskId,
-      repeat: assignment.repeat,
-      strategy: assignment.strategy,
-      policyVersion: manifest.policyVersions[assignment.strategy],
-      budgetCaps: {
-        perTrialUsd: caps.perTrialUsd,
-        remainingUsdIfFirst: effectiveTotalUsd,
-      },
-    })),
+    trials: manifest.assignments.map((assignment) => {
+      const task = taskFor(assignment.taskId)
+      return {
+        trialId: assignment.trialId,
+        taskId: assignment.taskId,
+        repeat: assignment.repeat,
+        arm: assignment.strategy,
+        // `strategy` is kept as the legacy alias: the frozen arm id is what it
+        // always meant.
+        strategy: assignment.strategy,
+        group: manifest.experimentGroup ?? null,
+        policyVersion: manifest.policyVersions[assignment.strategy],
+        taskRevision: task?.revision ?? null,
+        repo: task?.repo ?? null,
+        baseCommit: task?.baseCommit ?? null,
+        provenance: task?.provenance ?? null,
+        harness: task?.harness ?? manifest.conditions.harness ?? null,
+        model: manifest.conditions.model,
+        budgetCaps: {
+          perTrialUsd: caps.perTrialUsd,
+          remainingUsdIfFirst: effectiveTotalUsd,
+        },
+      }
+    }),
+    ...(manifest.prerequisite ? {
+      prerequisites: arms.map((arm) => {
+        const frozen = (manifest.prerequisiteTrials ?? []).find((row) => row.trialId && row.strategy === arm)
+        return {
+          trialId: frozen?.trialId ?? null,
+          taskId: manifest.prerequisite.id,
+          arm,
+          group: manifest.experimentGroup ?? null,
+          policyVersion: manifest.policyVersions[arm],
+          taskRevision: manifest.prerequisite.revision,
+          repo: manifest.prerequisite.repo ?? null,
+          baseCommit: manifest.prerequisite.baseCommit ?? null,
+          countedAsTrial: false,
+          note: 'runs once per arm before that arm’s first trial; its cost/calls are attributed to the arm',
+        }
+      }),
+    } : {}),
     problems,
     warnings,
   }
@@ -263,33 +313,170 @@ function receiptStamp(now) {
   return String(now()).replace(/[^0-9A-Za-z]+/g, '').slice(0, 20) || 'run'
 }
 
-function writeReceipt({ receiptDir, manifest, plan, results, budget, aborted, now }) {
-  const dir = resolve(receiptDir)
+function writeReceipt({ receiptDir, receiptPath = null, manifest, plan, results, prerequisites = [], budget, aborted, now }) {
+  const explicit = typeof receiptPath === 'string' && receiptPath.trim() !== '' ? resolve(receiptPath) : null
+  const dir = explicit ? dirname(explicit) : resolve(receiptDir)
   mkdirSync(dir, { recursive: true, mode: 0o700 })
-  const file = join(dir, `run-${String(manifest.experimentId).replace(/[^A-Za-z0-9._-]+/g, '-')}-${receiptStamp(now)}.json`)
+  const file = explicit ?? join(dir, `run-${String(manifest.experimentId).replace(/[^A-Za-z0-9._-]+/g, '-')}-${receiptStamp(now)}.json`)
+  const allRows = [...results, ...prerequisites]
+  const unknownCost = allRows.filter((row) => row.unknownCost === true).length
   const receipt = {
     schemaVersion: RUNNER_VERSION,
     kind: 'session-strategy-trial-receipt',
     runnerVersion: RUNNER_VERSION,
     experimentId: manifest.experimentId,
     experimentDigest: manifest.digest,
+    experimentGroup: manifest.experimentGroup ?? null,
+    group: manifest.experimentGroup ?? null,
+    arms: experimentArms(manifest),
     dataKind: manifest.dataKind,
     split: manifest.split,
     model: manifest.conditions.model,
     concurrency: plan.concurrency,
     deadline: plan.deadline,
     budgetCaps: plan.budgetCaps,
+    ...(manifest.prerequisite ? { prerequisite: manifest.prerequisite } : {}),
+    tasks: manifest.tasks.map((task) => ({
+      taskId: task.id,
+      revision: task.revision,
+      repo: task.repo ?? null,
+      baseCommit: task.baseCommit ?? null,
+      provenance: task.provenance ?? null,
+      kind: task.kind ?? 'single-turn',
+      ...(task.chain ? { chain: task.chain } : {}),
+    })),
     startedAt: iso(now()),
     aborted,
     trials: results,
+    ...(manifest.prerequisite ? { prerequisites } : {}),
+    unknownCostTrials: unknownCost,
+    unknownCost: unknownCost > 0,
     limitations: [
       'This receipt records what the runner passed to the executor; it does not prove the executor stayed inside the cap.',
       'Trial outcomes here are the executor-reported ones; integration/trial-collector.js is what turns them into evaluator records from the execution store and usage ledger.',
+      'Unknown cost/calls are recorded as null, never as 0, and an unknown cost never supports a promotion conclusion.',
       'No trial result implies strategy promotion; that decision belongs to the offline evaluator.',
     ],
   }
-  writeFileSync(file, JSON.stringify(receipt, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' })
+  try {
+    writeFileSync(file, JSON.stringify(receipt, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' })
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      const exists = new Error(`${RECEIPT_EXISTS}: receipt ${file} already exists; refusing to overwrite evidence`)
+      exists.code = RECEIPT_EXISTS
+      throw exists
+    }
+    throw error
+  }
   return file
+}
+
+function trialTask(manifest, taskId) {
+  const task = manifest.tasks.find((row) => row.id === taskId)
+  return task ?? null
+}
+
+function receiptBaseRow({ manifest, assignment, task, worktree, resolvedBase }) {
+  const arm = assignment.strategy
+  return {
+    trialId: assignment.trialId,
+    taskId: assignment.taskId,
+    repeat: assignment.repeat,
+    arm,
+    strategy: arm,
+    group: manifest.experimentGroup ?? null,
+    policyVersion: manifest.policyVersions[arm],
+    taskRevision: task?.revision ?? null,
+    model: manifest.conditions.model,
+    harness: task?.harness ?? manifest.conditions.harness ?? null,
+    baseCommit: worktree?.baseCommit ?? resolvedBase ?? task?.baseCommit ?? null,
+    branch: worktree?.branch ?? null,
+    repositoryRoot: worktree?.repositoryRoot ?? null,
+  }
+}
+
+function outcomePatch(outcome, { manifest, task }) {
+  const costUsd = Number.isFinite(outcome?.costUsd) && outcome.costUsd >= 0 ? outcome.costUsd : null
+  const acceptance = outcome?.acceptance
+  const calls = Number.isSafeInteger(outcome?.calls) && outcome.calls >= 0 ? outcome.calls : null
+  return {
+    execution: outcome?.execution ?? 'unknown',
+    acceptance: typeof acceptance === 'string' ? acceptance : acceptance?.state ?? 'unknown',
+    evidenceKind: acceptance && typeof acceptance === 'object' ? acceptance.evidenceKind ?? null : null,
+    evidenceRef: acceptance && typeof acceptance === 'object' ? acceptance.evidenceRef ?? null : null,
+    criticalRegression: acceptance && typeof acceptance === 'object' ? acceptance.criticalRegression === true : false,
+    falseCompletion: acceptance && typeof acceptance === 'object' ? acceptance.falseCompletion === true : false,
+    actualActions: Array.isArray(outcome?.actualActions) ? outcome.actualActions : [],
+    interventions: Array.isArray(outcome?.interventions) ? outcome.interventions : [],
+    humanInterventions: Array.isArray(outcome?.interventions) ? outcome.interventions.length : null,
+    costUsd,
+    costBasis: outcome?.costBasis ?? 'unknown',
+    costVersion: outcome?.costVersion ?? null,
+    calls,
+    observedModel: outcome?.model ?? null,
+    harness: outcome?.harness ?? task?.harness ?? manifest.conditions.harness ?? null,
+    collectionCoverage: ['complete', 'partial', 'unknown'].includes(outcome?.collectionCoverage)
+      ? outcome.collectionCoverage
+      : 'unknown',
+    unknownCost: costUsd === null,
+    unknownCalls: calls === null,
+    ...(outcome?.sessionDecision ? { sessionDecision: outcome.sessionDecision } : {}),
+    ...(outcome?.chainSteps ? { chainSteps: outcome.chainSteps } : {}),
+    ...(outcome?.error ? { error: outcome.error } : {}),
+  }
+}
+
+/**
+ * Freeze-check every task that declares its own repository/base commit before
+ * any trial runs. A commit that cannot be resolved here is a plan-level error:
+ * the runner must never fall back to this repository's HEAD when the frozen
+ * plan names another commit.
+ */
+async function verifyFrozenRefs(ctx, { manifest, repo }) {
+  const problems = []
+  const resolvedBases = new Map()
+  const tasks = [...manifest.tasks, ...(manifest.prerequisite ? [manifest.prerequisite] : [])]
+  for (const task of tasks) {
+    if (!task.repo && !task.baseCommit) continue
+    const target = task.repo ?? repo
+    if (!isAbsolute(target)) {
+      problems.push({ code: 'OMC/WORKTREE-REPO', detail: `task ${task.id}: repo is not an absolute path: ${target}` })
+      continue
+    }
+    if (task.baseCommit) {
+      const result = await runGit(ctx, {
+        cwd: target,
+        args: ['rev-parse', '--verify', `${task.baseCommit}^{commit}`],
+      })
+      const hash = result.ok
+        ? (result.output.split(/\r?\n/).filter(Boolean).at(-1) ?? '')
+        : ''
+      if (!result.ok || !/^[0-9a-f]{7,64}$/i.test(hash)) {
+        problems.push({
+          code: WORKTREE_BASECOMMIT,
+          detail: `task ${task.id}: baseCommit ${task.baseCommit} does not resolve in ${target}${result.output ? ` (${result.output})` : ''}${result.error ? ` (${result.error})` : ''}`,
+        })
+        continue
+      }
+      const requested = task.baseCommit.toLowerCase()
+      const matches = hash.toLowerCase() === requested
+        || (requested.length >= 7 && hash.toLowerCase().startsWith(requested))
+      if (!matches) {
+        problems.push({
+          code: WORKTREE_BASECOMMIT,
+          detail: `task ${task.id}: baseCommit ${task.baseCommit} resolved to ${hash}; refusing to substitute another commit`,
+        })
+        continue
+      }
+      resolvedBases.set(task.id, hash)
+    } else {
+      const result = await runGit(ctx, { cwd: target, args: ['rev-parse', '--show-toplevel'] })
+      if (!result.ok || !result.output.trim()) {
+        problems.push({ code: 'OMC/WORKTREE-REPO', detail: `task ${task.id}: repo ${target} is not a readable git worktree` })
+      }
+    }
+  }
+  return { problems, resolvedBases }
 }
 
 /**
@@ -311,6 +498,7 @@ export async function executePlan({
   document = null,
   maxUsd = null,
   receiptDir = RECEIPT_DIR,
+  receiptPath = null,
   runTrial = defaultRunTrial,
   repo = process.cwd(),
   now = () => new Date().toISOString(),
@@ -338,33 +526,162 @@ export async function executePlan({
     }
   }
 
+  const frozen = await verifyFrozenRefs(ctx, { manifest, repo })
+  if (frozen.problems.length) {
+    return {
+      ok: false,
+      code: frozen.problems[0].code,
+      problems: frozen.problems.map((problem) => problem.detail),
+      aborted: frozen.problems[0],
+      plan,
+      receipt: null,
+    }
+  }
+  const { resolvedBases } = frozen
+
   const effectiveTotalUsd = Math.min(Number(maxUsd), Number(budget.totalUsd))
   const deadlineMs = Date.parse(deadline)
   const results = []
+  const prerequisites = []
+  const completedPrerequisites = new Set()
   let spentUsd = 0
   let aborted = null
 
-  for (const assignment of manifest.assignments) {
+  const stopReason = (label) => {
     if (spentUsd >= effectiveTotalUsd) {
-      aborted = { code: BUDGET_EXHAUSTED, detail: `spent ${spentUsd} of ${effectiveTotalUsd} USD` }
-      break
+      return { code: BUDGET_EXHAUSTED, detail: `spent ${spentUsd} of ${effectiveTotalUsd} USD before ${label}` }
     }
     if (Number.isFinite(deadlineMs) && Date.parse(now()) >= deadlineMs) {
-      aborted = { code: DEADLINE_REACHED, detail: `deadline ${deadline} reached before ${assignment.trialId}` }
-      break
+      return { code: DEADLINE_REACHED, detail: `deadline ${deadline} reached before ${label}` }
     }
+    return null
+  }
+
+  const runPrerequisite = async (arm) => {
+    const task = manifest.prerequisite
+    const frozenTrial = (manifest.prerequisiteTrials ?? []).find((row) => row.strategy === arm) ?? null
+    const effectiveRepo = task.repo ?? repo
+    const base = resolvedBases.get(task.id) ?? task.baseCommit ?? 'HEAD'
     const remainingUsd = Math.max(0, effectiveTotalUsd - spentUsd)
     const perTrialUsd = Math.min(Number(budget.perTrialUsd), remainingUsd)
     const worktree = await createTaskWorktree(ctx, {
-      repo,
-      name: `${manifest.experimentId}-${assignment.strategy}-${assignment.taskId}-${assignment.repeat}`,
+      repo: effectiveRepo,
+      name: `${manifest.experimentId}-prerequisite-${arm}`,
+      base,
     })
+    const baseRow = {
+      trialId: frozenTrial?.trialId ?? null,
+      taskId: task.id,
+      repeat: null,
+      arm,
+      strategy: arm,
+      group: manifest.experimentGroup ?? null,
+      policyVersion: manifest.policyVersions[arm],
+      taskRevision: task.revision,
+      role: 'prerequisite',
+      countedAsTrial: false,
+      model: manifest.conditions.model,
+      harness: task.harness ?? manifest.conditions.harness ?? null,
+      baseCommit: worktree.baseCommit ?? base,
+      branch: worktree.branch ?? null,
+    }
     if (!worktree.ok) {
+      prerequisites.push({ ...baseRow, stage: 'worktree', ok: false, code: worktree.code ?? 'OMC/WORKTREE', detail: worktree.output ?? null })
+      aborted = { code: worktree.code ?? 'OMC/WORKTREE', detail: worktree.output ?? null }
+      return false
+    }
+    if (task.baseCommit && worktree.baseCommit !== base) {
+      prerequisites.push({ ...baseRow, stage: 'worktree', ok: false, code: WORKTREE_BASECOMMIT,
+        detail: `worktree was created at ${worktree.baseCommit}, the frozen baseCommit is ${base}` })
+      aborted = { code: WORKTREE_BASECOMMIT, detail: `worktree was created at ${worktree.baseCommit}, the frozen baseCommit is ${base}` }
+      return false
+    }
+    let outcome
+    try {
+      outcome = await runTrial(ctx, {
+        trial: {
+          trialId: frozenTrial?.trialId ?? null,
+          taskId: task.id,
+          repeat: null,
+          arm,
+          strategy: arm,
+          policyVersion: manifest.policyVersions[arm],
+          taskRevision: task.revision,
+          role: 'prerequisite',
+          prerequisite: true,
+        },
+        worktree: {
+          path: worktree.path ?? null,
+          branch: worktree.branch ?? null,
+          baseCommit: worktree.baseCommit ?? null,
+          repositoryRoot: worktree.repositoryRoot ?? null,
+        },
+        budget: {
+          totalUsd: effectiveTotalUsd,
+          perTrialUsd,
+          remainingUsd,
+          spentUsd,
+          enforcedBy: 'executor (the runner passes caps, it does not meter model spend)',
+        },
+        manifest,
+        plan,
+      })
+    } catch (error) {
+      prerequisites.push({ ...baseRow, stage: 'executor', ok: false, code: error?.code ?? EXECUTOR_FAILED, detail: error?.message ?? String(error) })
+      aborted = { code: error?.code ?? EXECUTOR_FAILED, detail: error?.message ?? String(error) }
+      return false
+    }
+    const costUsd = Number.isFinite(outcome?.costUsd) && outcome.costUsd >= 0 ? outcome.costUsd : null
+    if (costUsd !== null) spentUsd += costUsd
+    prerequisites.push({ ...baseRow, ...outcomePatch(outcome, { manifest, task }),
+      worktree: { path: worktree.path ?? null, branch: worktree.branch ?? null, baseCommit: worktree.baseCommit ?? null },
+      startedAt: outcome?.startedAt ?? null, endedAt: outcome?.endedAt ?? null })
+    return true
+  }
+
+  for (const assignment of manifest.assignments) {
+    const stop = stopReason(assignment.trialId)
+    if (stop) {
+      aborted = stop
+      break
+    }
+    if (manifest.prerequisite && !completedPrerequisites.has(assignment.strategy)) {
+      completedPrerequisites.add(assignment.strategy)
+      if (!(await runPrerequisite(assignment.strategy))) break
+      const afterPrerequisite = stopReason(assignment.trialId)
+      if (afterPrerequisite) {
+        aborted = afterPrerequisite
+        break
+      }
+    }
+    const task = trialTask(manifest, assignment.taskId)
+    if (!task) {
       results.push({
         trialId: assignment.trialId,
         taskId: assignment.taskId,
         repeat: assignment.repeat,
+        arm: assignment.strategy,
         strategy: assignment.strategy,
+        stage: 'plan',
+        ok: false,
+        code: MANIFEST_INVALID,
+        detail: `the frozen allocation names task ${assignment.taskId}, but the manifest has no such task`,
+      })
+      aborted = { code: MANIFEST_INVALID, detail: `frozen allocation names an unknown task: ${assignment.taskId}` }
+      break
+    }
+    const effectiveRepo = task.repo ?? repo
+    const base = resolvedBases.get(task.id) ?? task.baseCommit ?? 'HEAD'
+    const remainingUsd = Math.max(0, effectiveTotalUsd - spentUsd)
+    const perTrialUsd = Math.min(Number(budget.perTrialUsd), remainingUsd)
+    const worktree = await createTaskWorktree(ctx, {
+      repo: effectiveRepo,
+      name: `${manifest.experimentId}-${assignment.strategy}-${assignment.taskId}-${assignment.repeat}`,
+      base,
+    })
+    if (!worktree.ok) {
+      results.push({
+        ...receiptBaseRow({ manifest, assignment, task, resolvedBase: base }),
         stage: 'worktree',
         ok: false,
         code: worktree.code ?? 'OMC/WORKTREE',
@@ -374,6 +691,18 @@ export async function executePlan({
       aborted = { code: worktree.code ?? 'OMC/WORKTREE', detail: worktree.output ?? null }
       break
     }
+    if (task.baseCommit && worktree.baseCommit !== base) {
+      const detail = `worktree was created at ${worktree.baseCommit}, the frozen baseCommit is ${base}; refusing to substitute another commit`
+      results.push({
+        ...receiptBaseRow({ manifest, assignment, task, worktree, resolvedBase: base }),
+        stage: 'worktree',
+        ok: false,
+        code: WORKTREE_BASECOMMIT,
+        detail,
+      })
+      aborted = { code: WORKTREE_BASECOMMIT, detail }
+      break
+    }
     let outcome
     try {
       outcome = await runTrial(ctx, {
@@ -381,9 +710,12 @@ export async function executePlan({
           trialId: assignment.trialId,
           taskId: assignment.taskId,
           repeat: assignment.repeat,
+          arm: assignment.strategy,
           strategy: assignment.strategy,
           policyVersion: manifest.policyVersions[assignment.strategy],
-          taskRevision: manifest.tasks.find((task) => task.id === assignment.taskId)?.revision ?? null,
+          taskRevision: task.revision,
+          group: manifest.experimentGroup ?? null,
+          harness: task.harness ?? manifest.conditions.harness ?? null,
         },
         worktree: {
           path: worktree.path ?? null,
@@ -403,10 +735,7 @@ export async function executePlan({
       })
     } catch (error) {
       results.push({
-        trialId: assignment.trialId,
-        taskId: assignment.taskId,
-        repeat: assignment.repeat,
-        strategy: assignment.strategy,
+        ...receiptBaseRow({ manifest, assignment, task, worktree, resolvedBase: base }),
         stage: 'executor',
         ok: false,
         code: error?.code ?? EXECUTOR_FAILED,
@@ -418,28 +747,32 @@ export async function executePlan({
     const costUsd = Number.isFinite(outcome?.costUsd) && outcome.costUsd >= 0 ? outcome.costUsd : null
     if (costUsd !== null) spentUsd += costUsd
     results.push({
-      trialId: assignment.trialId,
-      taskId: assignment.taskId,
-      repeat: assignment.repeat,
-      strategy: assignment.strategy,
+      ...receiptBaseRow({ manifest, assignment, task, worktree, resolvedBase: base }),
       stage: 'executed',
       ok: outcome?.ok !== false,
-      execution: outcome?.execution ?? 'unknown',
-      acceptance: outcome?.acceptance?.state ?? outcome?.acceptance ?? 'unknown',
-      costUsd,
+      ...outcomePatch(outcome, { manifest, task }),
       startedAt: outcome?.startedAt ?? null,
       endedAt: outcome?.endedAt ?? null,
-      worktree: { path: worktree.path ?? null, branch: worktree.branch ?? null },
+      worktree: { path: worktree.path ?? null, branch: worktree.branch ?? null, baseCommit: worktree.baseCommit ?? null },
     })
   }
 
-  const receipt = writeReceipt({ receiptDir, manifest, plan, results, budget, aborted, now })
+  let receipt
+  try {
+    receipt = writeReceipt({ receiptDir, receiptPath, manifest, plan, results, prerequisites, budget, aborted, now })
+  } catch (error) {
+    if (error?.code === RECEIPT_EXISTS) {
+      return { ok: false, code: RECEIPT_EXISTS, aborted: { code: RECEIPT_EXISTS, detail: error.message }, plan, results, prerequisites, receipt: null, spentUsd }
+    }
+    throw error
+  }
   return {
     ok: aborted === null && results.length === manifest.assignments.length,
     code: aborted?.code ?? null,
     aborted,
     plan,
     results,
+    prerequisites,
     receipt,
     spentUsd,
   }

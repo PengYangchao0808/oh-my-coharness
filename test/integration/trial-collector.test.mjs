@@ -124,6 +124,69 @@ function collectAll(manifest, optionsByTrial = {}) {
   return manifest.assignments.map((assignment) => collectOne(manifest, assignment, optionsByTrial[assignment.trialId]).trial)
 }
 
+/** An E2 manifest: session-reuse chains plus one shared prerequisite task. */
+function e2Spec(over = {}) {
+  return spec({
+    experimentGroup: 'E2',
+    tasks: [
+      { id: 'e2-chain-a', revision: 'tree@e2a', kind: 'chain', chain: ['a1', 'a2'] },
+      { id: 'e2-chain-b', revision: 'tree@e2b', kind: 'chain', chain: ['b1', 'b2'] },
+    ],
+    prerequisite: { id: 'e2-shared-prereq', revision: 'prereq@1' },
+    ...over,
+  })
+}
+
+/** What the runner writes under receipt.prerequisites: one run per arm. */
+function prerequisiteRows(manifest, overridesByArm = {}) {
+  return (manifest.prerequisiteTrials ?? []).map((row) => ({
+    trialId: row.trialId,
+    taskId: manifest.prerequisite.id,
+    repeat: null,
+    arm: row.strategy,
+    strategy: row.strategy,
+    role: 'prerequisite',
+    countedAsTrial: false,
+    policyVersion: manifest.policyVersions[row.strategy],
+    taskRevision: manifest.prerequisite.revision,
+    model: 'fixture-v1',
+    execution: 'completed',
+    acceptance: 'passed',
+    evidenceKind: 'external-tests',
+    evidenceRef: `evidence/prerequisite-${row.strategy}`,
+    calls: 2,
+    costUsd: 0.5,
+    costBasis: 'estimated',
+    costVersion: PRICE,
+    usage: { uncachedInputTokens: 10, cacheReadTokens: 20, cacheWriteTokens: 0, outputTokens: 5 },
+    startedAt: START,
+    endedAt: END,
+    ...(overridesByArm[row.strategy] ?? {}),
+  }))
+}
+
+/** Collect every E2 trial with the same receipt-style prerequisite rows. */
+function collectE2(manifest, prerequisites, options = {}) {
+  return manifest.assignments.map((assignment) => {
+    const fixture = fixtureFor(assignment, options)
+    return collectTrial({
+      parentId: PARENT,
+      taskId: fixture.taskId,
+      assignment,
+      strategy: assignment.strategy,
+      usageLedger: fixture.ledger,
+      executionStore: fixture.execution,
+      startedAt: fixture.startedAt,
+      endedAt: fixture.endedAt,
+      interventions: options.interventions ?? [],
+      acceptance: fixture.acceptance,
+      actualActions: options.actualActions ?? ACTIONS[assignment.strategy],
+      manifest,
+      prerequisites,
+    }).trial
+  })
+}
+
 function fakeCtx() {
   return {
     subprocess: {
@@ -218,6 +281,8 @@ test('six synthetic trials collect into records the existing evaluator accepts',
     assert.equal(trial.model, 'fixture-v1')
     assert.equal(trial.experimentDigest, manifest.digest)
     assert.equal(trial.policyVersion, manifest.policyVersions[trial.strategy])
+    // A manifest with no shared prerequisite keeps exactly the old record shape.
+    assert.equal('prerequisite' in trial, false)
   }
 
   const exported = exportTrials({ manifest, collected: trials })
@@ -347,6 +412,253 @@ test('actions that contradict the assigned strategy set strategyMismatch and blo
   const report = evaluateStrategyExperiment(manifest, exported.trials, { bootstrapIterations: 200 })
   assert.equal(report.review.status, 'blocked')
   assert(report.review.reasons.some((reason) => reason.includes('not applied')))
+})
+
+test('an E2 shared prerequisite is attributed to its arm once and is not folded into trial cost', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  assert.equal(manifest.assignments.length, 6)
+  assert.equal(manifest.prerequisiteTrials.length, 3)
+  const rows = prerequisiteRows(manifest)
+  const trials = collectE2(manifest, rows)
+  assert.equal(trials.length, 6, 'the prerequisite never becomes an extra trial')
+
+  // The prerequisite is its own arm-level execution: it does not change the
+  // trial's own cost/calls, and it never becomes a trialId of its own.
+  for (const trial of trials) {
+    assert.equal(trial.costUsd, 0.5)
+    assert.equal(trial.calls, 1)
+    assert.equal(trial.incomplete.includes('prerequisite'), false, trial.incomplete.join(', '))
+    assert.notEqual(trial.trialId, rows.find((row) => row.arm === trial.strategy).trialId)
+  }
+
+  // Exactly one carrier per arm, and it is the arm's first frozen assignment.
+  const carriers = trials.filter((trial) => trial.prerequisite)
+  assert.equal(carriers.length, 3)
+  assert.equal(new Set(carriers.map((trial) => trial.strategy)).size, 3)
+  for (const carrier of carriers) {
+    const first = manifest.assignments.find((assignment) => assignment.strategy === carrier.strategy)
+    assert.equal(carrier.trialId, first.trialId)
+    assert.equal(carrier.prerequisite.execution, 'completed')
+    assert.equal(carrier.prerequisite.costUsd, 0.5)
+    assert.equal(carrier.prerequisite.calls, 2)
+    assert.equal(carrier.prerequisite.costBasis, 'estimated')
+    assert.equal(carrier.prerequisite.costVersion, PRICE)
+    assert.equal(carrier.prerequisite.arm, carrier.strategy)
+    assert.equal(carrier.prerequisite.taskId, 'e2-shared-prereq')
+    assert.deepEqual(Object.keys(carrier.prerequisite.usage),
+      ['uncachedInputTokens', 'cacheReadTokens', 'cacheWriteTokens', 'outputTokens'])
+  }
+  const nonCarriers = trials.filter((trial) => !trial.prerequisite)
+  for (const trial of nonCarriers) {
+    assert.equal(trial.prerequisite, null)
+    assert(trial.notes.some((note) => note.includes('single execution')), trial.notes.join('\n'))
+  }
+
+  const exported = exportTrials({ manifest, collected: trials })
+  assert.deepEqual(exported.problems, [])
+  assert.equal(exported.complete, true)
+
+  const report = evaluateStrategyExperiment(manifest, exported.trials, { bootstrapIterations: 200 })
+  // The blocker was unknown E2 cost: it is now a settled arm total.
+  assert.equal(report.unknownCost.any, false)
+  assert.equal(report.unknownCost.prerequisite, false)
+  assert.equal(report.prerequisite.recorded, 3)
+  assert.equal(report.prerequisite.costUsd, 1.5)
+  for (const arm of SESSION_STRATEGIES) {
+    assert.equal(report.summaries[arm].prerequisite.recorded, 1)
+    assert.equal(report.summaries[arm].prerequisite.costUsd, 0.5)
+    assert.equal(report.summaries[arm].prerequisite.calls, 2)
+    // 2 trials x 0.5 operating + one shared 0.5 prerequisite + 0 optimizer.
+    assert.equal(report.summaries[arm].totalCostUsd, 1.5)
+    assert.equal(report.summaries[arm].calls, 4)
+  }
+  assert.equal(report.review.reasons.some((reason) => reason.includes('unknown')), false)
+  // The evaluator prices the arm-level carrier once, so both E2 arms have an
+  // identical known cost (2 x 0.5 operating + one 0.5 prerequisite + 0
+  // optimizer): the cost-reduction interval is computable and exactly 0.
+  const primary = report.comparisons.find((row) => row.candidate === 'adaptive')
+  assert.equal(primary.costPerAcceptedReduction.estimate, 0)
+  assert.equal(primary.costPerAcceptedReduction.low, 0)
+  assert.equal(primary.costPerAcceptedReduction.high, 0)
+  assert.equal(primary.costPerAcceptedReduction.finiteReplicates, 200)
+})
+
+test('a second task in the same arm does not carry or re-price the shared prerequisite', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  const rows = prerequisiteRows(manifest)
+  // Simulate a caller that passes the same receipt to every trial. A second
+  // trial of an arm must not attach the record again.
+  const trials = collectE2(manifest, rows)
+  for (const arm of SESSION_STRATEGIES) {
+    const armTrials = trials.filter((trial) => trial.strategy === arm)
+    assert.equal(armTrials.length, 2)
+    assert.equal(armTrials.filter((trial) => trial.prerequisite).length, 1)
+    const total = armTrials.reduce((sum, trial) => sum + trial.costUsd + (trial.prerequisite?.costUsd ?? 0), 0)
+    assert.equal(total, 1.5)
+  }
+  // Handing the same rows to a second collect pass is still deterministic.
+  const again = collectE2(manifest, rows)
+  assert.deepEqual(
+    again.map((trial) => [trial.trialId, trial.prerequisite?.costUsd ?? null]),
+    trials.map((trial) => [trial.trialId, trial.prerequisite?.costUsd ?? null]),
+  )
+})
+
+test('a single prerequisite block and a whole receipt are both accepted', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  const rows = prerequisiteRows(manifest)
+  const collectWith = (extra) => manifest.assignments.map((assignment) => {
+    const fixture = fixtureFor(assignment)
+    return collectTrial({
+      parentId: PARENT,
+      taskId: fixture.taskId,
+      assignment,
+      strategy: assignment.strategy,
+      usageLedger: fixture.ledger,
+      executionStore: fixture.execution,
+      startedAt: fixture.startedAt,
+      endedAt: fixture.endedAt,
+      acceptance: fixture.acceptance,
+      actualActions: ACTIONS[assignment.strategy],
+      manifest,
+      ...extra(assignment),
+    }).trial
+  })
+  const viaBlock = collectWith((assignment) => ({
+    prerequisite: rows.find((row) => row.arm === assignment.strategy),
+  }))
+  const viaReceipt = collectWith(() => ({ receipt: { prerequisites: rows } }))
+  // A caller that only hands the run to the arm's carrier trial still works:
+  // the other trials neither repeat nor lose the record.
+  const viaCarrierOnly = collectWith((assignment) => {
+    const first = manifest.assignments.find((row) => row.strategy === assignment.strategy)
+    return first.trialId === assignment.trialId
+      ? { prerequisite: rows.find((row) => row.arm === assignment.strategy) }
+      : {}
+  })
+  for (const trials of [viaBlock, viaReceipt, viaCarrierOnly]) {
+    const carriers = trials.filter((trial) => trial.prerequisite)
+    assert.equal(carriers.length, 3)
+    assert.equal(carriers.reduce((sum, trial) => sum + trial.prerequisite.costUsd, 0), 1.5)
+    assert.deepEqual(exportTrials({ manifest, collected: trials }).problems, [])
+  }
+})
+
+
+test('unknown prerequisite cost/calls stay null and make the arm total incomplete, never 0', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  const rows = prerequisiteRows(manifest, {
+    fresh_handoff: { costUsd: null, costBasis: 'unknown', calls: null },
+  })
+  const trials = collectE2(manifest, rows)
+  const carrier = trials.find((trial) => trial.strategy === 'fresh_handoff' && trial.prerequisite)
+  assert(carrier)
+  assert.equal(carrier.prerequisite.costUsd, null)
+  assert.notEqual(carrier.prerequisite.costUsd, 0)
+  assert.equal(carrier.prerequisite.costBasis, 'unknown')
+  assert.equal(carrier.prerequisite.calls, null)
+  assert.notEqual(carrier.prerequisite.calls, 0)
+  assert.equal(carrier.incomplete.includes('prerequisite.costUsd'), true)
+  assert.equal(carrier.incomplete.includes('prerequisite.calls'), true)
+
+  const exported = exportTrials({ manifest, collected: trials })
+  assert.deepEqual(exported.problems, [])
+  const report = evaluateStrategyExperiment(manifest, exported.trials, { bootstrapIterations: 200 })
+  assert.equal(report.unknownCost.prerequisite, true)
+  assert.equal(report.unknownCost.any, true)
+  assert.equal(report.summaries.fresh_handoff.prerequisite.costUsd, null)
+  assert.equal(report.summaries.fresh_handoff.prerequisite.calls, null)
+  assert.equal(report.summaries.fresh_handoff.totalCostUsd, null)
+  assert.equal(report.summaries.fresh_handoff.costPerAcceptedTaskUsd, null)
+  assert(report.review.reasons.some((reason) => reason.includes('unknown trial/optimizer/prerequisite cost')))
+})
+
+test('a missing shared prerequisite is an explicit problem, not a silent success', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  const trials = collectE2(manifest, [])
+  const carriers = trials.filter((trial) => {
+    const first = manifest.assignments.find((assignment) => assignment.strategy === trial.strategy)
+    return first.trialId === trial.trialId
+  })
+  assert.equal(carriers.length, 3)
+  for (const trial of carriers) {
+    assert.equal(trial.prerequisite, null)
+    assert(trial.incomplete.includes('prerequisite'), trial.incomplete.join(', '))
+  }
+  for (const trial of trials.filter((row) => !carriers.includes(row))) {
+    // The non-carrier trial neither claims nor repeats the missing record.
+    assert.equal(trial.prerequisite, null)
+    assert.equal(trial.incomplete.includes('prerequisite'), false)
+  }
+  const exported = exportTrials({ manifest, collected: trials })
+  assert.equal(exported.complete, false)
+  assert(exported.problems.some((problem) => problem.includes('no prerequisite run was collected')))
+  const report = evaluateStrategyExperiment(manifest, exported.trials, { bootstrapIterations: 200 })
+  assert.equal(report.unknownCost.prerequisite, true)
+  assert.equal(report.review.status, 'blocked')
+  assert(report.review.reasons.some((reason) => reason.includes('unknown trial/optimizer/prerequisite cost')))
+})
+
+test('a duplicated shared prerequisite run blocks instead of being summed', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  const rows = prerequisiteRows(manifest)
+  const duplicated = [...rows, rows[0]]
+  const trials = collectE2(manifest, duplicated)
+  const exported = exportTrials({ manifest, collected: trials })
+  assert.equal(exported.complete, false)
+  assert(exported.problems.some((problem) => problem.includes('recorded 2 times')))
+  const report = evaluateStrategyExperiment(manifest, exported.trials, { bootstrapIterations: 200 })
+  // The duplicated arm has no attributable prerequisite: its total stays null.
+  assert.equal(report.summaries.reuse_compact.prerequisite.recorded, 0)
+  assert.equal(report.summaries.reuse_compact.totalCostUsd, null)
+})
+
+test('a prerequisite recorded for another arm may not be borrowed', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  const rows = prerequisiteRows(manifest)
+  const onlyFresh = rows.filter((row) => row.arm === 'fresh_handoff')
+  const trials = collectE2(manifest, onlyFresh)
+  const exported = exportTrials({ manifest, collected: trials })
+  assert.equal(exported.complete, false)
+  assert(exported.problems.some((problem) => problem.includes('not for this trial\'s arm')))
+  assert(exported.problems.some((problem) => problem.includes('borrowed from another arm')))
+})
+
+test('a prerequisite chain executed out of the frozen order blocks attribution', () => {
+  const manifest = createStrategyExperiment(e2Spec({
+    prerequisite: {
+      id: 'e2-shared-prereq',
+      revision: 'prereq@1',
+      kind: 'chain',
+      chain: ['p1', 'p2'],
+    },
+  }))
+  const rows = prerequisiteRows(manifest, {
+    reuse_compact: { chainSteps: [{ stepId: 'p2' }, { stepId: 'p1' }] },
+  })
+  const trials = collectE2(manifest, rows)
+  const exported = exportTrials({ manifest, collected: trials })
+  assert.equal(exported.complete, false)
+  assert(exported.problems.some((problem) => problem.includes('chain order')))
+  // The ordered arm still gets its prerequisite attributed normally.
+  const orderedCarrier = trials.find((trial) => trial.strategy === 'adaptive' && trial.prerequisite)
+  assert.equal(orderedCarrier.prerequisite.costUsd, 0.5)
+})
+
+test('prerequisite policy/revision drift and a non-terminal prerequisite are refused', () => {
+  const manifest = createStrategyExperiment(e2Spec())
+  const driftedRows = prerequisiteRows(manifest, {
+    reuse_compact: { policyVersion: 'reuse@2', taskRevision: 'prereq@2' },
+    fresh_handoff: { execution: 'pending', costUsd: 0.5, costBasis: 'estimated' },
+    adaptive: { observedModel: 'other-model-v2' },
+  })
+  const trials = collectE2(manifest, driftedRows)
+  const exported = exportTrials({ manifest, collected: trials })
+  assert.equal(exported.complete, false)
+  assert(exported.problems.some((problem) => problem.includes('policyVersion reuse@2')))
+  assert(exported.problems.some((problem) => problem.includes('revision prereq@2')))
+  assert(exported.problems.some((problem) => problem.includes('not a terminal state')))
+  assert(exported.problems.some((problem) => problem.includes('observed model other-model-v2')))
 })
 
 test('a manifest without randomisation/freeze metadata is reported observational', () => {

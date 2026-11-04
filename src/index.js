@@ -21,7 +21,8 @@ import { buildExecutionStatus, detectLegacyCompanion, PRESET_ID, readRoleConfigu
 import { createSessionRegistry } from '../integration/sessions.js'
 import { createTaskRegistry } from '../integration/tasks.js'
 import { statePath } from '../integration/state.js'
-import { join } from 'node:path'
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { createGraphStore, mergeAcceptance } from '../integration/graph.js'
 import { createMailbox } from '../integration/mailbox.js'
 import { readProjectPolicy, renderProjectPolicy } from '../integration/project-policy.js'
@@ -31,6 +32,9 @@ import { externalRoleResult, renderRoleResult } from '../integration/role-result
 import { createPresetSnapshotStore, diffPresetSnapshot } from '../integration/preset-snapshot.js'
 import { createUsageLedger } from '../integration/usage-ledger.js'
 import { createExecutionStore } from '../integration/execution-events.js'
+import { createAcceptanceAuthority } from '../integration/acceptance-verdict.js'
+import { createAcceptanceRunner } from '../integration/acceptance-runner.js'
+import { createWriterLease } from '../integration/writer-lease.js'
 import { createArtifactStore } from '../integration/artifact-store.js'
 import { createContextView } from '../integration/context-view.js'
 import { createRetrievalCache } from '../integration/retrieval-cache.js'
@@ -40,6 +44,8 @@ import { createManagedExecution } from '../integration/managed-execution.js'
 import { createNativeRuntime } from '../integration/native-runtime.js'
 import { createRequestGate, resolveBudgetLimits } from '../integration/request-gate.js'
 import { createNativeManaged } from '../integration/native-managed.js'
+import { createHostExecutor } from '../integration/host-executor.js'
+import { validateAcceptanceSpec } from '../integration/acceptance-runner.js'
 import { createWorkerRegistry } from '../integration/worker-registry.js'
 import { createDecisionLog, decideSessionAction } from '../integration/session-strategy.js'
 import { roleIdFromLabel } from '../vendor/omd/npm-package/preset/roles.js'
@@ -475,10 +481,13 @@ function installBudgetGate(ctx, rt) {
 function bindCallingSession(rt, exec) {
   const agent = exec?.agent
   const sessionId = agent?.session?.id
-  const parentId = agent?.id
-  if (!rt?.native || typeof sessionId !== 'string' || typeof parentId !== 'string') return null
+  if (!rt?.native || typeof sessionId !== 'string') return null
+  const header = agent?.session?.header ?? null
   try {
-    return rt.native.bindRoot({ sessionId, parentId })
+    // PR-01: only a session the host says has no parent becomes a root. A child
+    // agent's tool call resolves through the already-bound host ancestor, so it
+    // stays in the root's shard instead of opening a second autoRoot.
+    return rt.native.resolveCallingSession({ sessionId, header, agentId: agent?.id })
   } catch (error) {
     try {
       rt.ctx?.logger?.warn?.(`oh-my-coharness: native binding skipped: ${String(error?.message ?? error)}`)
@@ -486,6 +495,526 @@ function bindCallingSession(rt, exec) {
       // torn-down logger
     }
     return null
+  }
+}
+
+/**
+ * The shard every parent-scoped action of this call belongs to.
+ *
+ * A host-proven child resolves to its root's parent id (where the graph/tasks
+ * already live); an unproven session keeps its own id but is labeled
+ * `unknown`, never `host`.
+ */
+function callingShard(rt, exec) {
+  const agentId = exec?.agent?.id ?? null
+  if (!agentId) return { parentId: null, binding: null, lineage: null, rootTaskId: null, trusted: false }
+  const sessionId = exec?.agent?.session?.id
+  let binding = null
+  try {
+    binding = typeof sessionId === 'string' ? rt.native?.bindingFor?.(sessionId) ?? null : null
+  } catch {
+    binding = null
+  }
+  if (binding && binding.unresolved !== true) {
+    return {
+      parentId: binding.parentId ?? agentId,
+      binding,
+      lineage: binding.lineage ?? { source: 'unknown' },
+      rootTaskId: binding.rootTaskId ?? null,
+      trusted: binding.lineage?.source === 'host',
+    }
+  }
+  return {
+    parentId: agentId,
+    binding: null,
+    lineage: {
+      source: 'unknown',
+      parentSessionId: null,
+      rootSessionId: null,
+      note: 'the host did not prove this session lineage; actions stay in the session shard and are labeled unknown',
+    },
+    rootTaskId: null,
+    trusted: false,
+  }
+}
+
+/**
+ * PR-07: the real Host Executor entry for the frozen session-strategy plans.
+ *
+ * The CLI runner (`scripts/strategy-runner.mjs`) deliberately has no host. This
+ * service is the host half: it validates the paid-run preconditions, plans one
+ * graph node per trial, builds the acceptance/prompt/session facts, and calls
+ * `executePlan()` with a `runTrial` callback backed by `createHostExecutor()`.
+ *
+ * Test seams are explicit: `overrides` may replace the planner, executePlan,
+ * host-executor factory, dispatch and acceptance runner. Production uses the
+ * real modules; no second Agent Runtime is introduced.
+ */
+export function createTrialService(rt, overrides = {}) {
+  async function loadRunner() {
+    return import('../scripts/strategy-runner.mjs')
+  }
+
+  function workspaceFor(exec, args) {
+    const headerCwd = exec?.agent?.session?.header?.cwd
+    if (typeof args?.cwd === 'string' && args.cwd.trim() !== '') return resolve(args.cwd)
+    if (typeof headerCwd === 'string' && headerCwd.trim() !== '') return resolve(headerCwd)
+    return process.cwd()
+  }
+
+  /** Resolve a real path, or null when it does not exist / is unreadable. */
+  function canonicalPath(value) {
+    try {
+      return (typeof realpathSync.native === 'function' ? realpathSync.native : realpathSync)(value)
+    } catch {
+      return null
+    }
+  }
+
+  function lexicalInside(root, abs) {
+    const rel = relative(root, abs)
+    return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+  }
+
+  /**
+   * Resolve a receipt path against the REAL workspace.
+   *
+   * Existing targets must realpath inside the workspace. A new target may be
+   * absent, but its nearest existing ancestor must realpath inside the
+   * workspace, so a symlink/junction cannot redirect the write outside. The
+   * final file is still created with `wx` by executePlan, never overwritten.
+   */
+  function receiptBoundary(root, ref) {
+    if (typeof ref !== 'string' || ref.trim() === '') return { problem: 'trial_receipt must be a non-empty path' }
+    const abs = resolve(root, ref)
+    const rootReal = canonicalPath(root)
+    if (!rootReal) return { problem: `the workspace cannot be resolved: ${root}` }
+    if (existsSync(abs)) {
+      const targetReal = canonicalPath(abs)
+      if (!targetReal) return { problem: `the receipt target cannot be resolved: ${abs}` }
+      if (!lexicalInside(rootReal, targetReal)) {
+        return { problem: `receipt ${abs} resolves outside the workspace (${targetReal}); symlink/junction escape is refused` }
+      }
+      return { path: abs, exists: true, real: targetReal }
+    }
+    let ancestor = dirname(abs)
+    for (let guard = 0; guard < 256; guard += 1) {
+      if (existsSync(ancestor)) break
+      const parent = dirname(ancestor)
+      if (parent === ancestor) break
+      ancestor = parent
+    }
+    const ancestorReal = canonicalPath(ancestor)
+    if (!ancestorReal) return { problem: `the receipt parent cannot be resolved: ${ancestor}` }
+    if (!lexicalInside(rootReal, ancestorReal)) {
+      return { problem: `receipt parent ${ancestor} resolves outside the workspace (${ancestorReal}); symlink/junction escape is refused` }
+    }
+    return { path: abs, exists: false, real: null, ancestorReal }
+  }
+
+  /**
+   * A repository path must be a real directory. A path lexically inside the
+   * workspace may not resolve outside it through a symlink/junction; explicit
+   * machine checkouts outside the workspace remain allowed.
+   */
+  function repositoryBoundary(raw, root, rootReal) {
+    if (typeof raw !== 'string' || raw.trim() === '' || !isAbsolute(raw)) {
+      return { problem: `repo must be an absolute checkout: ${String(raw)}` }
+    }
+    const abs = resolve(raw)
+    if (!existsSync(abs)) return { problem: `repo checkout does not exist: ${abs}` }
+    const real = canonicalPath(abs)
+    if (!real) return { problem: `repo checkout cannot be resolved: ${abs}` }
+    try {
+      if (!statSync(real).isDirectory()) return { problem: `repo checkout is not a directory: ${real}` }
+    } catch (error) {
+      return { problem: `repo checkout cannot be inspected: ${String(error?.message ?? error)}` }
+    }
+    if (lexicalInside(root, abs) && rootReal && !lexicalInside(rootReal, real)) {
+      return { problem: `repo ${abs} is lexically inside the workspace but resolves outside (${real}); symlink escape is refused` }
+    }
+    return { abs, real }
+  }
+
+  function readDocument(manifestPath) {
+    if (typeof manifestPath !== 'string' || manifestPath.trim() === '') {
+      return { document: null, problems: ['trial_manifest is required (a JSON manifest document)'] }
+    }
+    const abs = resolve(manifestPath)
+    if (!existsSync(abs)) return { document: null, problems: [`manifest file does not exist: ${abs}`] }
+    try {
+      return { document: JSON.parse(readFileSync(abs, 'utf8')), path: abs, problems: [] }
+    } catch (error) {
+      return { document: null, problems: [`manifest is not valid JSON: ${error?.message ?? error}`] }
+    }
+  }
+
+  function placeholder(value) {
+    return typeof value === 'string' && /^placeholder-/.test(value)
+  }
+
+  function selectionProblems(document, manifest) {
+    const problems = []
+    const conditions = manifest?.conditions ?? {}
+    const inputs = document?.inputs ?? {}
+    if (Array.isArray(inputs.blockers) && inputs.blockers.length > 0) {
+      problems.push({ code: 'OMC/TRIAL-BLOCKED', detail: `the plan still declares ${inputs.blockers.length} blocker(s): ${inputs.blockers[0]}` })
+    }
+    if (inputs.modelSelection === 'not-selected' || inputs.harnessSelection === 'not-selected') {
+      problems.push({ code: 'OMC/TRIAL-SELECTION', detail: 'model/harness selection is still marked not-selected in the plan document' })
+    }
+    if (placeholder(conditions.provider) || placeholder(conditions.model) || placeholder(conditions.harness)) {
+      problems.push({ code: 'OMC/TRIAL-SELECTION', detail: 'provider/model/harness are placeholder values; a paid run needs a real frozen selection' })
+    }
+    if (conditions.modelSelected !== true || conditions.harnessSelected !== true) {
+      problems.push({ code: 'OMC/TRIAL-SELECTION', detail: 'manifest.conditions.modelSelected/harnessSelected must both be true' })
+    }
+    for (const task of [...(manifest?.tasks ?? []), ...(manifest?.prerequisite ? [manifest.prerequisite] : [])]) {
+      if (placeholder(task?.harness)) {
+        problems.push({ code: 'OMC/TRIAL-SELECTION', detail: `task ${task.id}: harness is still a placeholder` })
+      }
+    }
+    return problems
+  }
+
+  function readAcceptanceSpec(task, repoRef) {
+    const rel = task?.acceptance?.spec
+    if (typeof rel !== 'string' || rel.trim() === '') {
+      return { problem: { code: 'OMC/TRIAL-ACCEPTANCE', detail: `task ${task?.id}: no acceptance.spec is frozen` } }
+    }
+    const repo = repoRef
+    if (typeof repo !== 'string' || !isAbsolute(repo) || !existsSync(repo)) {
+      return { problem: { code: 'OMC/TRIAL-CHECKOUT', detail: `task ${task.id}: repo checkout is missing or not absolute: ${String(repo)}` } }
+    }
+    const specPath = resolve(repo, rel)
+    if (!existsSync(specPath)) {
+      return { problem: { code: 'OMC/TRIAL-CHECKOUT', detail: `task ${task.id}: acceptance spec is missing at ${specPath}` } }
+    }
+    let spec
+    try {
+      spec = JSON.parse(readFileSync(specPath, 'utf8'))
+    } catch (error) {
+      return { problem: { code: 'OMC/TRIAL-ACCEPTANCE', detail: `task ${task.id}: acceptance spec is not valid JSON: ${error?.message ?? error}` } }
+    }
+    try {
+      validateAcceptanceSpec(spec)
+    } catch (error) {
+      return { problem: { code: 'OMC/TRIAL-ACCEPTANCE', detail: `task ${task.id}: ${error?.message ?? error}` } }
+    }
+    return { spec, path: specPath }
+  }
+
+  function promptProblems(task) {
+    if (task?.kind === 'chain') {
+      if (!Array.isArray(task.chain) || task.chain.length < 2 || task.chain.some((step) => typeof step?.goal !== 'string' || step.goal.trim() === '')) {
+        return [{ code: 'OMC/TRIAL-PROMPT', detail: `task ${task?.id}: a chain needs >=2 ordered steps, each with a goal` }]
+      }
+      return []
+    }
+    if (typeof task?.prompt === 'string' && task.prompt.trim() !== '') return []
+    if (typeof task?.goal === 'string' && task.goal.trim() !== '') return []
+    return [{ code: 'OMC/TRIAL-PROMPT', detail: `task ${task?.id}: no prompt/goal is provided; a paid trial cannot be executed from an empty task` }]
+  }
+
+  function planNode(manifest) {
+    const rows = []
+    for (const assignment of manifest.assignments ?? []) rows.push({ trialId: assignment.trialId, taskId: assignment.taskId })
+    for (const prerequisite of manifest.prerequisiteTrials ?? []) rows.push({ trialId: prerequisite.trialId, taskId: prerequisite.taskId })
+    return rows
+  }
+
+  function nodeIdFor(trialId) {
+    const safe = String(trialId ?? '').replace(/[^A-Za-z0-9._:-]+/g, '-').slice(0, 70)
+    return `trial-${safe || 'unknown'}`
+  }
+
+  function featuresFor({ trial }) {
+    const arm = String(trial?.arm ?? trial?.strategy ?? '')
+    return {
+      hasPriorWorker: Number.isSafeInteger(trial?.repeat) && trial.repeat > 0,
+      childBusy: false,
+      sameModule: /reuse|adaptive/i.test(arm),
+      constraintsMatch: true,
+      routeMatch: true,
+      permissionMatch: true,
+      workspaceMatch: true,
+      factsStale: false,
+      failureUnclear: false,
+      independentReview: /review|verify/i.test(arm),
+      contextOverLimit: false,
+    }
+  }
+
+  async function planTrialNodes({ parentId, shard, manifest, trialRows }) {
+    const graph = rt.graph
+    if (!graph) return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: 'the host graph store is unavailable' }] }
+    const nodeIds = new Map()
+    const status = graph.status(parentId)
+    const existing = new Map(status.nodes.map((node) => [node.id, node]))
+    for (const row of trialRows) {
+      if (typeof row.trialId !== 'string' || row.trialId === '') {
+        return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: 'the frozen allocation contains a trial without a trialId' }] }
+      }
+      const nodeId = nodeIdFor(row.trialId)
+      nodeIds.set(row.trialId, nodeId)
+      const node = existing.get(nodeId)
+      if (node?.state === 'running') {
+        return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: `trial node ${nodeId} is already running; refusing a concurrent paid run` }] }
+      }
+      if (node && ['completed', 'failed', 'cancelled'].includes(node.state)) {
+        graph.reopen(parentId, nodeId, { reason: 'new paid trial run' })
+      }
+    }
+    if (!trialRows.length) return { problems: [{ code: 'OMC/TRIAL-PLAN', detail: 'the frozen manifest has no trials' }] }
+    try {
+      graph.plan(parentId, trialRows.map((row) => ({
+        id: nodeIds.get(row.trialId),
+        role: 'trial',
+        title: `trial ${row.trialId} (${row.taskId})`,
+        write: true,
+        writeScope: [],
+        acceptance: [],
+      })), {
+        rootTaskId: shard.rootTaskId,
+        parentTaskId: shard.binding?.taskId ?? null,
+        lineage: shard.lineage,
+      })
+    } catch (error) {
+      return { problems: [{ code: 'OMC/TRIAL-GRAPH', detail: String(error?.message ?? error) }] }
+    }
+    return { nodeIds, problems: [] }
+  }
+
+  return async function trialAction(args, exec) {
+    const action = String(args?.trial_action ?? 'plan')
+    if (!['plan', 'execute', 'status'].includes(action)) {
+      return { ok: false, code: 'OMC/TRIAL-ACTION', problems: [`unknown trial_action "${action}"; use plan, execute, or status`] }
+    }
+    const runner = await loadRunner()
+    const planExperiment = overrides.planExperiment ?? runner.planExperiment
+    const executePlan = overrides.executePlan ?? runner.executePlan
+    const createExecutor = overrides.createHostExecutor ?? createHostExecutor
+    const cwd = workspaceFor(exec, args)
+    const loaded = readDocument(args.trial_manifest)
+    if (!loaded.document) {
+      return { ok: false, code: 'OMC/TRIAL-MANIFEST', problems: loaded.problems }
+    }
+    const document = loaded.document
+    const maxUsd = Number.isFinite(args.max_usd) ? Number(args.max_usd) : null
+    const plan = planExperiment({ document, maxUsd })
+
+    if (action === 'plan') {
+      return {
+        ok: plan.problems.length === 0,
+        mode: 'plan',
+        executesAnything: false,
+        manifestPath: loaded.path,
+        plan,
+      }
+    }
+
+    if (action === 'status') {
+      const boundary = args.trial_receipt ? receiptBoundary(cwd, args.trial_receipt) : null
+      if (boundary?.problem) {
+        return { ok: false, code: 'OMC/TRIAL-RECEIPT', problems: [boundary.problem] }
+      }
+      const receiptPath = boundary?.path ?? null
+      if (receiptPath && boundary.exists) {
+        let receipt = null
+        let problem = null
+        try {
+          receipt = JSON.parse(readFileSync(receiptPath, 'utf8'))
+        } catch (error) {
+          problem = String(error?.message ?? error)
+        }
+        return {
+          ok: problem === null,
+          mode: 'status',
+          receiptPath,
+          ...(problem ? { problems: [`receipt is unreadable: ${problem}`] } : {
+            experimentId: receipt.experimentId ?? null,
+            trials: Array.isArray(receipt.trials) ? receipt.trials.length : null,
+            aborted: receipt.aborted ?? null,
+            unknownCost: receipt.unknownCost === true,
+            receipt,
+          }),
+        }
+      }
+      return {
+        ok: true,
+        mode: 'status',
+        manifestPath: loaded.path,
+        receiptPath,
+        executesAnything: false,
+        plan: {
+          manifest: plan.manifest?.digest ?? null,
+          assignmentCount: plan.assignmentCount ?? null,
+          problems: plan.problems,
+          warnings: plan.warnings,
+        },
+        note: receiptPath ? 'no receipt exists at the given path yet' : 'no trial_receipt was provided; nothing was read',
+      }
+    }
+
+    // ── execute: every refusal happens before a graph or receipt write ───────
+    const resolved = runner.resolveBundle(document)
+    const manifest = resolved.manifest ?? document.manifest ?? null
+    const problems = []
+    if (args.confirm_paid_experiment !== true) {
+      problems.push({ code: 'OMC/TRIAL-NOT-CONFIRMED', detail: 'execute needs confirm_paid_experiment=true; this spends real money' })
+    }
+    if (maxUsd === null || maxUsd <= 0) {
+      problems.push({ code: 'OMC/TRIAL-BUDGET-CAPS', detail: 'execute needs a finite max_usd > 0' })
+    }
+    if (!rt.ctx || typeof rt.ctx?.subprocess?.spawn !== 'function') {
+      problems.push({ code: 'OMC/TRIAL-NO-EXECUTOR', detail: 'no DSH host context (subprocess service) is available; the CLI cannot execute paid trials' })
+    }
+    if (plan.problems.length) {
+      problems.push({ code: 'OMC/TRIAL-MANIFEST', detail: plan.problems.join('; ') })
+    }
+    if (plan.warnings?.length) {
+      problems.push({ code: 'OMC/TRIAL-BUDGET-CAPS', detail: plan.warnings.join('; ') })
+    }
+    problems.push(...selectionProblems(document, manifest))
+
+    const workspace = cwd
+    const boundary = args.trial_receipt ? receiptBoundary(workspace, args.trial_receipt) : null
+    const receiptPath = boundary?.path ?? null
+    if (!args.trial_receipt) {
+      problems.push({ code: 'OMC/TRIAL-RECEIPT', detail: 'execute needs trial_receipt, a receipt path inside the workspace' })
+    } else if (boundary?.problem) {
+      problems.push({ code: 'OMC/TRIAL-RECEIPT', detail: boundary.problem })
+    } else if (boundary?.exists) {
+      problems.push({ code: 'OMC/TRIAL-RECEIPT-EXISTS', detail: `receipt ${boundary.path} already exists; refusing to overwrite evidence` })
+    }
+
+    const rootReal = canonicalPath(workspace)
+    const repoCandidate = args.trial_repo ? resolve(args.trial_repo) : workspace
+    const repoInfo = repositoryBoundary(repoCandidate, workspace, rootReal)
+    if (repoInfo.problem) {
+      problems.push({ code: 'OMC/TRIAL-CHECKOUT', detail: `trial_repo: ${repoInfo.problem}` })
+    }
+
+    const specByTask = new Map()
+    if (manifest) {
+      for (const task of [...(manifest.tasks ?? []), ...(manifest.prerequisite ? [manifest.prerequisite] : [])]) {
+        problems.push(...promptProblems(task))
+        const taskRepo = repositoryBoundary(task.repo ?? repoCandidate, workspace, rootReal)
+        if (taskRepo.problem) {
+          problems.push({ code: 'OMC/TRIAL-CHECKOUT', detail: `task ${task.id}: ${taskRepo.problem}` })
+        } else {
+          const acceptance = readAcceptanceSpec(task, taskRepo.real)
+          if (acceptance.problem) problems.push(acceptance.problem)
+          else specByTask.set(task.id, acceptance.spec)
+        }
+        if (typeof task?.baseCommit !== 'string' || task.baseCommit.trim() === '') {
+          problems.push({ code: 'OMC/TRIAL-BASECOMMIT', detail: `task ${task?.id}: no baseCommit is frozen` })
+        }
+      }
+    }
+    if (problems.length) {
+      return { ok: false, code: problems[0].code, problems: problems.map((row) => `${row.code}: ${row.detail}`), executesAnything: false, plan }
+    }
+
+    const shard = callingShard(rt, exec)
+    if (!shard.parentId) return { ok: false, code: 'OMC/TRIAL-PARENT', problems: ['trial execute needs a calling agent'] }
+    // A child cannot widen the operator's USD ceiling through arguments.
+    const limits = resolveBudgetLimits(rt.cfg)
+    const effectiveMaxUsd = limits.maxUsd !== null ? Math.min(maxUsd, limits.maxUsd) : maxUsd
+    if (!(effectiveMaxUsd > 0)) {
+      return { ok: false, code: 'OMC/TRIAL-BUDGET-CAPS', problems: ['the effective USD ceiling is zero after the operator cap is applied'] }
+    }
+    if (rt.requestGate && typeof rt.requestGate.budgetView === 'function') {
+      const view = rt.requestGate.budgetView({ parentId: shard.parentId, limits })
+      if (view.exhausted) {
+        return { ok: false, code: 'OMC/BUDGET-EXHAUSTED', problems: [`the parent budget is exhausted: ${rt.requestGate.describe(view)}`] }
+      }
+    }
+
+    const trialRows = planNode(manifest)
+    const planned = await planTrialNodes({ parentId: shard.parentId, shard, manifest, trialRows })
+    if (planned.problems.length) {
+      return { ok: false, code: planned.problems[0].code, problems: planned.problems.map((row) => `${row.code}: ${row.detail}`), executesAnything: false, plan }
+    }
+    const executor = createExecutor({
+      ctx: rt.ctx,
+      managed: rt.managed,
+      rt,
+      usageLedger: rt.usageLedger,
+      executionStore: rt.executionStore,
+      parentId: shard.parentId,
+      parentIdForTrial: () => shard.parentId,
+      taskIdForTrial: ({ trial }) => trial?.trialId ?? null,
+      resolveAcceptance: ({ task }) => specByTask.get(task?.id) ?? null,
+      buildPrompt: ({ task, step }) => {
+        if (step && typeof step.goal === 'string' && step.goal.trim() !== '') return step.goal
+        if (typeof task?.prompt === 'string' && task.prompt.trim() !== '') return task.prompt
+        return task?.goal ?? ''
+      },
+      buildRequest: ({ trial, worktree }) => ({
+        nodeId: planned.nodeIds.get(trial.trialId),
+        taskId: trial.trialId,
+        ledgerTaskId: trial.trialId,
+        cwd: worktree.path,
+        mode: 'in-place',
+      }),
+      resolveFeatures: featuresFor,
+      resolveCapabilities: () => ({ compactAvailable: false }),
+      callerAgent: exec.agent,
+      signal: exec.signal,
+      mode: 'in-place',
+      now: overrides.now ?? (() => new Date().toISOString()),
+      ...(overrides.executorDeps ?? {}),
+    })
+    const now = overrides.now ?? (() => new Date().toISOString())
+    let result
+    try {
+      result = await executePlan({
+        ctx: rt.ctx,
+        document,
+        maxUsd: effectiveMaxUsd,
+        receiptPath,
+        repo: repoInfo.real,
+        runTrial: executor.runTrial,
+        now,
+      })
+    } catch (error) {
+      return {
+        ok: false,
+        code: error?.code ?? 'OMC/TRIAL-EXECUTOR-FAILED',
+        problems: [String(error?.message ?? error)],
+        executesAnything: false,
+        plan,
+      }
+    }
+    return {
+      ok: result?.ok === true,
+      mode: 'execute',
+      synthetic: (manifest?.dataKind ?? 'synthetic') !== 'live',
+      manifestPath: loaded.path,
+      receiptPath: result?.receipt ?? receiptPath,
+      code: result?.code ?? null,
+      aborted: result?.aborted ?? null,
+      spentUsd: result?.spentUsd ?? null,
+      budget: { requestedMaxUsd: maxUsd, effectiveMaxUsd, operatorCapUsd: limits.maxUsd },
+      plan: {
+        experimentId: plan.manifest?.experimentId ?? null,
+        digest: plan.manifest?.digest ?? null,
+        assignmentCount: plan.assignmentCount ?? null,
+        concurrency: plan.concurrency,
+        deadline: plan.deadline,
+      },
+      trials: Array.isArray(result?.results) ? result.results.map((row) => ({
+        trialId: row.trialId, taskId: row.taskId, arm: row.arm,
+        execution: row.execution, acceptance: row.acceptance, ok: row.ok,
+        costUsd: row.costUsd, unknownCost: row.unknownCost,
+        nodeId: planned.nodeIds.get(row.trialId) ?? null,
+        worktree: row.worktree ?? null,
+      })) : [],
+      prerequisites: Array.isArray(result?.prerequisites) ? result.prerequisites.map((row) => ({
+        trialId: row.trialId, arm: row.arm, execution: row.execution, acceptance: row.acceptance, ok: row.ok,
+      })) : [],
+    }
   }
 }
 
@@ -498,7 +1027,7 @@ function coharnessTool(rt) {
       properties: {
         action: {
           type: 'string',
-          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate', 'sessions', 'tasks', 'result', 'cancel', 'fleet', 'demo', 'graph', 'send', 'inbox', 'ack', 'thread', 'reuse', 'worktree', 'project', 'role', 'preset', 'usage', 'native', 'session'],
+          enum: ['dispatch', 'list', 'status', 'doctor', 'migrate', 'sessions', 'tasks', 'result', 'cancel', 'fleet', 'demo', 'graph', 'council', 'trial', 'send', 'inbox', 'ack', 'thread', 'reuse', 'worktree', 'project', 'role', 'preset', 'usage', 'native', 'session'],
           description: 'dispatch = run work; list = who is available (free); status = role execution backends, provider state, native model routes and session reuse (free); usage = native event-bridge diagnostics plus this session’s derived token/cost rollup (free, no model call); doctor = full diagnostic report (free); sessions = OMC native-session references (free; clear:true forgets them); migrate = preview the pre-0.4 configuration migration (pass apply:true to write); fleet = plan native role routes from the live DSH model catalog (free; apply:true writes); demo = plan+apply the fleet, seed a demo workspace and return the run prompt (free; no model call); graph = plan/claim/complete a parent work graph (dependencies, acceptance, write-scope); send/inbox/ack/thread = durable parent mailbox; reuse = inspect a durable task for continued work; worktree = create/enter a retained DSH worktree or merge its recorded branch back with a clean-tree preflight (session-wide, not per child); project = show the restrictive .omc/project.json policy that a dispatch in cwd would apply; role = list/add/remove/run a named external read-only role template (enforced read-only harness only); preset = snapshot this session’s effective OMC role config and compare the live config to it (never claims a hot switch); native = bind an existing native child session to a graph node and settle it from its durable execution record; session = record the explainable resume/queue/compact/restart/new-packet decision and list the workers it owns.',
         },
         harness: {
@@ -565,12 +1094,12 @@ function coharnessTool(rt) {
         refresh: { type: 'boolean', description: 'For fleet/demo: re-read the live DSH model catalog instead of using the 15s cache.' },
         graph_action: {
           type: 'string',
-          enum: ['plan', 'status', 'claim', 'complete', 'fail', 'cancel', 'audit'],
-          description: 'For graph: plan nodes, inspect status, claim a ready node, settle it, cancel it, or audit changed files against its write scope.',
+          enum: ['plan', 'status', 'claim', 'verify', 'complete', 'fail', 'cancel', 'reopen', 'audit'],
+          description: 'For graph: plan nodes, inspect status, claim a ready node, verify acceptance against the trusted runner record, settle it, cancel it, reopen a settled node for a new attempt, or audit changed files against its write scope.',
         },
         nodes: {
           type: 'array',
-          description: 'For graph plan: [{id, role, title, deps, write, writeScope, acceptance}].',
+          description: 'For graph plan: [{id, role, title, deps, write, writeScope, acceptance, parentNodeId, ticketId, workstream}]. root/depth lineage is derived from the calling session, never declared here.',
           items: {
             type: 'object',
             properties: {
@@ -581,6 +1110,14 @@ function coharnessTool(rt) {
               write: { type: 'boolean' },
               writeScope: { type: 'array', items: { type: 'string' } },
               acceptance: { type: 'array', items: { type: 'string' } },
+              acceptanceSpec: {
+                type: 'object',
+                additionalProperties: true,
+                description: 'Optional structured acceptance spec ({taskId, split, commands, acceptanceFiles, forbidChanges}); its baseline is frozen before dispatch.',
+              },
+              parentNodeId: { type: 'string', description: 'Optional parent ticket/node in the same root; depth is derived from it.' },
+              ticketId: { type: 'string', description: 'Optional ticket id; defaults to the node id. It is a label, not lineage.' },
+              workstream: { type: 'string', description: 'Optional workstream id (never required to equal the role).' },
             },
             required: ['id'],
             additionalProperties: false,
@@ -589,10 +1126,53 @@ function coharnessTool(rt) {
         node_id: { type: 'string', description: 'For graph claim/complete/fail/cancel/audit: node id. On dispatch: binds the run to the managed path (claim → attempt → events → acceptance → settle; failure releases the claim).' },
         evidence: { type: 'array', items: { type: 'string' }, description: 'For graph complete: acceptance evidence; required when the node declares acceptance.' },
         changed_files: { type: 'array', items: { type: 'string' }, description: 'For graph complete/audit on a write node: workspace-relative changed paths.' },
+        ticket_id: { type: 'string', description: 'For graph claim: the ticket being presented; a ticket from another graph/root is refused. Lineage itself is never accepted from arguments.' },
+        workstream: { type: 'string', description: 'For graph plan/claim: workstream id. Consistency is checked; it is never required to equal the role.' },
+        acceptance_verdict: {
+          type: 'object',
+          additionalProperties: true,
+          description: 'Optional acceptance verdict reference. It is only a reference: it must exist in the trusted OMC verdict record for this node/task/attempt/spec/baseline, so a self-reported passed object cannot complete a node.',
+        },
+        acceptance_spec: {
+          type: 'object',
+          additionalProperties: true,
+          description: 'Optional structured acceptance spec for verify (commands, acceptanceFiles, forbidChanges). The same runner produces the verdict.',
+        },
         native_action: { type: 'string', enum: ['bind', 'settle', 'coverage'], description: 'For native: bind = attach an existing native child session to a graph node (claim + single-writer scope); settle = apply the durable execution verdict, completing the node only with acceptance evidence; coverage = managed vs unmanaged counts.' },
         child_session_id: { type: 'string', description: 'For native bind: the native child session id that the host reported (the session id, not the role tool name).' },
         attempt_id: { type: 'string', description: 'For native settle: the exact execution attempt this evidence belongs to; a stale attempt is refused instead of settling the current one.' },
         session_action: { type: 'string', enum: ['decide', 'log', 'workers'], description: 'For session: decide = run the explainable resume/queue/compact/restart/new-packet rule table and record it; log = this session’s recorded decisions; workers = the logical workers (and their physical children/generations) this session owns.' },
+        council_action: {
+          type: 'string',
+          enum: ['plan', 'seat', 'synthesize', 'settle', 'status'],
+          description: 'For council: the explicit managed path for the prompt-only Council Mode. plan = one graph node per seat plus a native synthesizer node; seat/synthesize = bind/claim a native councillor/synthesizer session; settle = apply the durable execution verdict; status. Legacy prompt-only councils stay unmanaged.',
+        },
+        council_seats: {
+          type: 'array',
+          description: 'For council plan: [{id, role, title?, acceptance?}] seat nodes. Two or more seats are required.',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              role: { type: 'string' },
+              title: { type: 'string' },
+              acceptance: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['id'],
+            additionalProperties: true,
+          },
+        },
+        synthesis_node_id: { type: 'string', description: 'For council plan: id of the native synthesizer node (default council-decision).' },
+        trial_action: {
+          type: 'string',
+          enum: ['plan', 'execute', 'status'],
+          description: 'For trial: plan = freeze/read the session-strategy allocation and write nothing; execute = call executePlan() through the real Host Executor (needs confirm_paid_experiment, max_usd, a real frozen model/harness, a checkout and a receipt path); status = read the receipt or plan summary.',
+        },
+        trial_manifest: { type: 'string', description: 'For trial plan/execute/status: path to a frozen manifest document (manifest/spec + budget + concurrency + deadline).' },
+        trial_receipt: { type: 'string', description: 'For trial execute/status: explicit receipt path INSIDE the workspace; an existing file is never overwritten. Required for execute.' },
+        confirm_paid_experiment: { type: 'boolean', description: 'For trial execute: must be true. A paid run is never started implicitly.' },
+        max_usd: { type: 'number', description: 'For trial: the operator USD ceiling; execute needs a finite value > 0 and it is clamped by the configured budget cap.' },
+        trial_repo: { type: 'string', description: 'For trial execute: absolute checkout at the frozen commits, used for tasks that do not freeze their own repo.' },
         features: { type: 'object', description: 'For session decide: the observable facts (sameModule, independentReview, constraintsMatch, routeMatch, permissionMatch, workspaceMatch, factsStale, failureUnclear, childBusy, contextOverLimit, hasPriorWorker).', additionalProperties: true },
         capabilities: { type: 'object', description: 'For session decide: what the host supports today, e.g. {"compactAvailable": false}. A missing capability never justifies claiming it.', additionalProperties: true },
         to: { type: 'string', description: 'For send: target agent id, external task id, or * for a broadcast.' },
@@ -760,6 +1340,7 @@ function coharnessTool(rt) {
             const skipped = requestedFallbacks.filter((harness) => !fallbacks.includes(harness))
             const payload = await dispatchTasks(rt, {
               harness: role.harness,
+              roleId: role.id,
               ...(role.model ? { model: role.model } : {}),
               ...(fallbacks.length ? { fallbacks } : {}),
               prompt: buildRolePrompt(role, args.text),
@@ -821,8 +1402,129 @@ function coharnessTool(rt) {
         }
       }
 
+      if (action === 'trial') {
+        try {
+          const service = rt.trialService ?? (rt.trialService = createTrialService(rt))
+          const result = await service(args, exec)
+          return { text: JSON.stringify(result, null, 2) }
+        } catch (error) {
+          return { text: `${error?.code ?? 'OMC/TRIAL-FAILED'}: ${String(error?.message ?? error)}` }
+        }
+      }
+
+      if (action === 'council') {
+        const shard = callingShard(rt, exec)
+        const parentId = shard.parentId
+        if (!parentId) return { text: 'OMC/COUNCIL-PARENT-REQUIRED: council actions need a calling agent' }
+        const subaction = String(args.council_action ?? 'status')
+        const workdir = exec?.agent?.session?.header?.cwd ?? args.cwd ?? null
+        const runner = workdir ? rt.acceptanceRunnerFor(workdir) : null
+        try {
+          if (subaction === 'plan') {
+            const seats = Array.isArray(args.council_seats) ? args.council_seats : []
+            if (seats.length < 2) return { text: 'OMC/COUNCIL-SEATS: council plan needs at least two seat nodes' }
+            const seatIds = []
+            const nodes = []
+            for (const [index, seat] of seats.entries()) {
+              const id = String(seat?.id ?? '').trim()
+              if (!id) return { text: `OMC/COUNCIL-SEATS: seat ${index + 1} needs an id` }
+              seatIds.push(id)
+              nodes.push({
+                id,
+                role: String(seat?.role ?? 'councillor'),
+                title: String(seat?.title ?? `council seat ${id}`),
+                deps: [],
+                acceptance: Array.isArray(seat?.acceptance) && seat.acceptance.length
+                  ? seat.acceptance
+                  : ['the seat returns a closing reply or an explicit failure status'],
+              })
+            }
+            const synthesisId = String(args.synthesis_node_id ?? 'council-decision')
+            nodes.push({
+              id: synthesisId,
+              role: 'council',
+              title: 'council synthesis (native, no tools)',
+              deps: seatIds,
+              acceptance: ['the synthesizer reports every seat reply or failure; it never invents consensus'],
+            })
+            const planned = rt.graph.plan(parentId, nodes, {
+              rootTaskId: shard.rootTaskId,
+              parentTaskId: shard.binding?.taskId ?? null,
+              lineage: shard.lineage,
+            })
+            return {
+              text: JSON.stringify({
+                ...planned,
+                managed: true,
+                note: 'council seats and the synthesizer are now explicit graph nodes; prompt-only councils remain unmanaged until bound here',
+              }, null, 2),
+            }
+          }
+          if (subaction === 'status') {
+            const coverage = rt.nativeManaged.coverage(parentId)
+            return {
+              text: JSON.stringify({
+                graph: rt.graph.status(parentId),
+                coverage,
+                managed: true,
+                note: 'only seats/synthesizer bound through action native or council are covered; the legacy prompt-only Council Mode is not intercepted by the host',
+              }, null, 2),
+            }
+          }
+          if (subaction === 'seat' || subaction === 'synthesize') {
+            if (!args.node_id) return { text: 'OMC/COUNCIL-NODE: seat/synthesize need node_id (the graph node)' }
+            if (!args.child_session_id) return { text: 'OMC/COUNCIL-CHILD: seat/synthesize need child_session_id' }
+            const node = rt.graph.status(parentId).nodes.find((row) => row.id === args.node_id)
+            if (!node) return { text: `OMC/COUNCIL-NODE: no graph node ${args.node_id}` }
+            const role = args.role_id ?? node.roleId ?? null
+            if (subaction === 'synthesize' && role !== 'council') {
+              return { text: 'OMC/COUNCIL-SYNTH-NATIVE: the synthesizer must be the native "council" role and has no tools' }
+            }
+            const bound = rt.nativeManaged.bind({
+              parentId,
+              nodeId: args.node_id,
+              sessionId: args.child_session_id,
+              role,
+              acceptanceSpec: args.acceptance_spec ?? null,
+              workdir,
+              runner,
+            })
+            if (bound?.acceptanceReady) {
+              try {
+                bound.baseline = await bound.acceptanceReady
+                delete bound.acceptanceReady
+              } catch (error) {
+                bound.acceptanceError = String(error?.message ?? error)
+                delete bound.acceptanceReady
+              }
+            }
+            return { text: JSON.stringify({ ...bound, council: subaction }, null, 2) }
+          }
+          if (subaction === 'settle') {
+            if (!args.node_id) return { text: 'OMC/COUNCIL-NODE: settle needs node_id' }
+            return {
+              text: JSON.stringify(await rt.nativeManaged.settle({
+                parentId,
+                nodeId: args.node_id,
+                evidence: Array.isArray(args.evidence) ? args.evidence : null,
+                changedFiles: Array.isArray(args.changed_files) ? args.changed_files : null,
+                attemptId: args.attempt_id ?? null,
+                workdir,
+                runner,
+                verdict: args.acceptance_verdict ?? null,
+                spec: args.acceptance_spec ?? null,
+              }), null, 2),
+            }
+          }
+          return { text: `unknown council_action "${subaction}"; use plan, seat, synthesize, settle, or status` }
+        } catch (error) {
+          return { text: `${error.code ?? 'OMC/COUNCIL-FAILED'}: ${error.message}` }
+        }
+      }
+
       if (action === 'graph' || action === 'send' || action === 'inbox' || action === 'ack' || action === 'thread' || action === 'reuse') {
-        const parentId = exec?.agent?.id
+        const shard = callingShard(rt, exec)
+        const parentId = shard.parentId
         try {
           if (action === 'send') {
             const record = rt.mailbox.send({
@@ -900,14 +1602,50 @@ function coharnessTool(rt) {
 
           const subaction = String(args.graph_action ?? 'status')
           if (!parentId) return { text: 'OMC/GRAPH-PARENT-REQUIRED: graph actions require a calling agent' }
+          const workspace = exec?.agent?.session?.header?.cwd ?? args.cwd ?? null
+          const acceptanceRunner = workspace ? rt.acceptanceRunnerFor(workspace) : null
           if (subaction === 'plan') {
-            return { text: JSON.stringify(rt.graph.plan(parentId, args.nodes), null, 2) }
+            return {
+              text: JSON.stringify(rt.graph.plan(parentId, args.nodes, {
+                rootTaskId: shard.rootTaskId,
+                parentTaskId: shard.binding?.taskId ?? null,
+                lineage: shard.lineage,
+              }), null, 2),
+            }
           }
           if (subaction === 'status') return { text: JSON.stringify(rt.graph.status(parentId), null, 2) }
           if (subaction === 'claim') {
             return {
-              text: JSON.stringify(rt.graph.claim(parentId, args.node_id, { taskId: args.task_id }), null, 2),
+              text: JSON.stringify(rt.graph.claim(parentId, args.node_id, {
+                taskId: args.task_id,
+                rootTaskId: shard.rootTaskId,
+                lineage: shard.lineage,
+                workspace,
+                ...(typeof args.ticket_id === 'string' ? { ticketId: args.ticket_id } : {}),
+                ...(typeof args.workstream === 'string' ? { workstream: args.workstream } : {}),
+              }), null, 2),
             }
+          }
+          if (subaction === 'verify') {
+            if (!args.node_id) return { text: 'OMC/GRAPH-NODE: verify needs node_id' }
+            const result = await rt.graph.verify(parentId, args.node_id, {
+              taskId: args.task_id,
+              spec: args.acceptance_spec,
+              workdir: workspace,
+              verdict: args.acceptance_verdict,
+              attemptId: args.attempt_id ?? null,
+              runner: acceptanceRunner,
+              timeoutMs: args.timeoutMs,
+            })
+            return { text: JSON.stringify(result, null, 2) }
+          }
+          if (subaction === 'reopen') {
+            if (!args.node_id) return { text: 'OMC/GRAPH-NODE: reopen needs node_id' }
+            const result = rt.graph.reopen(parentId, args.node_id, {
+              reason: args.text,
+              attemptId: args.attempt_id ?? null,
+            })
+            return { text: JSON.stringify(result, null, 2) }
           }
           if (subaction === 'complete' || subaction === 'fail' || subaction === 'cancel') {
             if (subaction === 'cancel') {
@@ -919,6 +1657,11 @@ function coharnessTool(rt) {
                 evidence: args.evidence,
                 changedFiles: args.changed_files,
                 taskId: args.task_id,
+                ...(args.acceptance_verdict ? { verdict: args.acceptance_verdict } : {}),
+                ...(args.acceptance_spec ? { spec: args.acceptance_spec } : {}),
+                ...(args.attempt_id ? { attemptId: args.attempt_id } : {}),
+                workdir: workspace,
+                treeCheck: true,
               }), null, 2),
             }
           }
@@ -934,7 +1677,7 @@ function coharnessTool(rt) {
       }
 
       if (action === 'tasks' || action === 'result' || action === 'cancel') {
-        const parentId = exec?.agent?.id
+        const parentId = callingShard(rt, exec).parentId
         if (action === 'result') {
           const task = rt.tasks.read(parentId, args.task_id)
           const roleResult = externalRoleResult(task)
@@ -961,13 +1704,14 @@ function coharnessTool(rt) {
       }
 
       if (action === 'status') {
-        // The footnote section needs the calling parent to show its own budget.
-        rt.statusParentId = exec?.agent?.id ?? null
+        // The footnote section needs the calling parent (its root shard) to show
+        // its own budget.
+        rt.statusParentId = callingShard(rt, exec).parentId ?? null
         return { text: await executionStatusText(rt) }
       }
 
       if (action === 'native') {
-        const parentId = exec?.agent?.id
+        const parentId = callingShard(rt, exec).parentId
         if (!parentId) return { text: 'OMC/NATIVE-PARENT-REQUIRED: native actions need a calling agent' }
         const subaction = String(args.native_action ?? 'coverage')
         try {
@@ -979,27 +1723,45 @@ function coharnessTool(rt) {
             if (!args.child_session_id) {
               return { text: 'OMC/NATIVE-CHILD: bind needs child_session_id — the native child session id, not the role tool name' }
             }
-            return {
-              text: JSON.stringify(rt.nativeManaged.bind({
-                parentId,
-                nodeId: args.node_id,
-                sessionId: args.child_session_id,
-                role: args.role_id ?? args.role ?? null,
-              }), null, 2),
+            const workdir = args.cwd ?? exec?.agent?.session?.header?.cwd ?? null
+            const bound = rt.nativeManaged.bind({
+              parentId,
+              nodeId: args.node_id,
+              sessionId: args.child_session_id,
+              role: args.role_id ?? args.role ?? null,
+              acceptanceSpec: args.acceptance_spec ?? null,
+              workdir,
+              runner: workdir ? rt.acceptanceRunnerFor(workdir) : null,
+            })
+            if (bound && bound.acceptanceReady) {
+              try {
+                bound.baseline = await bound.acceptanceReady
+                bound.acceptance = { ...(bound.acceptance ?? {}), baseline: 'frozen', baselineId: bound.baseline?.id ?? null }
+              } catch (error) {
+                bound.acceptanceError = String(error?.message ?? error)
+                bound.acceptance = { ...(bound.acceptance ?? {}), baseline: 'failed' }
+              }
+              delete bound.acceptanceReady
             }
+            return { text: JSON.stringify(bound, null, 2) }
           }
           if (subaction === 'settle') {
             if (!args.node_id) return { text: 'OMC/NATIVE-NODE: settle needs node_id' }
             const evidence = Array.isArray(args.evidence)
               ? args.evidence
               : typeof args.evidence === 'string' ? [args.evidence] : null
+            const workdir = args.cwd ?? exec?.agent?.session?.header?.cwd ?? null
             return {
-              text: JSON.stringify(rt.nativeManaged.settle({
+              text: JSON.stringify(await rt.nativeManaged.settle({
                 parentId,
                 nodeId: args.node_id,
                 evidence,
                 changedFiles: Array.isArray(args.changed_files) ? args.changed_files : null,
                 attemptId: args.attempt_id ?? null,
+                workdir,
+                runner: workdir ? rt.acceptanceRunnerFor(workdir) : null,
+                verdict: args.acceptance_verdict ?? null,
+                spec: args.acceptance_spec ?? null,
               }), null, 2),
             }
           }
@@ -1010,7 +1772,7 @@ function coharnessTool(rt) {
       }
 
       if (action === 'session') {
-        const parentId = exec?.agent?.id
+        const parentId = callingShard(rt, exec).parentId
         if (!parentId) return { text: 'OMC/SESSION-PARENT-REQUIRED: session actions need a calling agent' }
         const subaction = String(args.session_action ?? 'log')
         try {
@@ -1036,7 +1798,7 @@ function coharnessTool(rt) {
       }
 
       if (action === 'usage') {
-        const parentId = exec?.agent?.id ?? null
+        const parentId = callingShard(rt, exec).parentId ?? null
         const diagnostics = rt.native.diagnostics()
         const summary = parentId ? rt.native.summary({ parentId }) : null
         const limits = budgetLimits(rt.cfg)
@@ -1279,18 +2041,32 @@ export function apply(ctx, config) {
     dir: stateDir ? join(stateDir, 'tasks') : statePath('tasks'),
     maxRetained: 100,
   })
-  const graph = createGraphStore({ dir: stateDir ? join(stateDir, 'graph') : statePath('graph') })
+  // 0.5.0-alpha.2 batch 1: the efficiency stores. They are wired in now so
+  // later work packages (context view, managed graph, budget) share one
+  // instance per host process instead of inventing their own roots.
+  const usageLedger = createUsageLedger({ dir: stateDir ? join(stateDir, 'usage') : statePath('usage') })
+  // The execution/verdict record is created BEFORE the graph: the graph's
+  // acceptance authority reads it, and startup reconciliation needs it.
+  const executionStore = createExecutionStore({ dir: stateDir ? join(stateDir, 'execution') : statePath('execution') })
+  const acceptance = createAcceptanceAuthority({ executionStore })
+  const acceptanceRunnerFor = (cwd) => createAcceptanceRunner({
+    cwd,
+    subprocess: ctx.get?.('subprocess') ?? null,
+  })
+  const writerStateRoot = stateDir || statePath()
+  const graph = createGraphStore({
+    dir: stateDir ? join(stateDir, 'graph') : statePath('graph'),
+    acceptance,
+    // Project writer lease: one writer per realpath(workspace), across graphs
+    // and host processes. The graph lock is always taken before this lease.
+    writerLeaseFactory: (workspaceRoot) => createWriterLease({ stateRoot: writerStateRoot, workspaceRoot }),
+  })
   const mailbox = createMailbox({ dir: stateDir ? join(stateDir, 'mailbox') : statePath('mailbox') })
   const worktrees = createWorktreeStore({ dir: stateDir ? join(stateDir, 'worktrees') : statePath('worktrees') })
   const customRoles = createCustomRoles({ dir: stateDir ? join(stateDir, 'roles') : statePath('roles') })
   const presetSnapshots = createPresetSnapshotStore({
     dir: stateDir ? join(stateDir, 'presets') : statePath('presets'),
   })
-  // 0.5.0-alpha.2 batch 1: the efficiency stores. They are wired in now so
-  // later work packages (context view, managed graph, budget) share one
-  // instance per host process instead of inventing their own roots.
-  const usageLedger = createUsageLedger({ dir: stateDir ? join(stateDir, 'usage') : statePath('usage') })
-  const executionStore = createExecutionStore({ dir: stateDir ? join(stateDir, 'execution') : statePath('execution') })
   const artifacts = createArtifactStore({ dir: stateDir ? join(stateDir, 'artifacts') : statePath('artifacts') })
   // WP04–WP06 surfaces. The context view and retrieval cache shape OMC's own
   // echo in every mode; the budget/progress trackers start in observe: they
@@ -1299,7 +2075,9 @@ export function apply(ctx, config) {
   const retrievalCache = createRetrievalCache({ dir: stateDir ? join(stateDir, 'retrieval') : statePath('retrieval') })
   const budget = createBudgetTracker({ usageLedger, executionStore, maxCalls: cfg.efficiency.budget.maxCalls, maxUsd: cfg.efficiency.budget.maxUsd })
   const progress = createProgressTracker({ repeatWindow: cfg.efficiency.progress.repeatWindow, repeatThreshold: cfg.efficiency.progress.repeatThreshold })
-  const managed = createManagedExecution({ graph, mailbox, tasks, executionStore, usageLedger })
+  const managed = createManagedExecution({
+    graph, mailbox, tasks, executionStore, usageLedger, acceptance, acceptanceRunnerFor, artifactStore: artifacts,
+  })
   // R01: the native runtime bridge. It puts real host children into the same
   // task/usage records as everything else, from host events only — there is no
   // second agent runtime and no session-file rewriting. Installed below with
@@ -1330,9 +2108,18 @@ export function apply(ctx, config) {
 
   // R03: binding a native child to a graph node. R04: the rotatable worker
   // registry and the explainable action log behind the session choice.
-  const nativeManaged = createNativeManaged({ graph, native, executionStore })
+  const nativeManaged = createNativeManaged({ graph, native, executionStore, acceptance })
   const workerRegistry = createWorkerRegistry({ dir: stateDir ? join(stateDir, 'workers') : statePath('workers') })
   const decisionLog = createDecisionLog({ dir: stateDir ? join(stateDir, 'decisions') : statePath('decisions') })
+
+  // Restart reconciliation: an attempt that was running/launching when the
+  // previous host died is unknown (never failed/completed) and is NEVER
+  // replayed automatically. A failure here must not stop the plugin.
+  try {
+    executionStore.reconcileAfterRestart(null)
+  } catch (error) {
+    try { ctx.logger?.warn?.(`oh-my-coharness: execution reconciliation skipped: ${String(error?.message ?? error)}`) } catch { /* torn down */ }
+  }
 
   /** @type {Set<string>} */
   const registered = new Set()
@@ -1362,6 +2149,8 @@ export function apply(ctx, config) {
     progress,
     managed,
     native,
+    acceptance,
+    acceptanceRunnerFor,
     requestGate,
     nativeManaged,
     workerRegistry,
@@ -1409,7 +2198,10 @@ export function apply(ctx, config) {
       const name = `omc:${def.id}`
       if (existing.has(name)) continue // another plugin already owns this name; never shadow it
       try {
-        const provider = makeProvider(ctx, def, cfg, { readOnly: true, registry: sessions, tasks, usageLedger })
+        const provider = makeProvider(ctx, def, cfg, {
+          readOnly: true, registry: sessions, tasks, usageLedger, native, executionStore, requestGate,
+          workerRegistry, decisionLog,
+        })
         ctx.effect(() => subagents.registerProvider(provider))
         registered.add(def.id)
       } catch (error) {
@@ -1445,6 +2237,13 @@ export function apply(ctx, config) {
     } catch {
       // torn-down logger
     }
+  }
+
+  // A unloaded plugin must not keep writer-lease heartbeats alive.
+  try {
+    ctx.effect(() => () => { try { graph.dispose() } catch { /* torn down */ } })
+  } catch {
+    // A host without ctx.effect keeps the process-lifetime timers (unref'd).
   }
 
   // ── per-request budget gate (R02) ───────────────────────────────────────────

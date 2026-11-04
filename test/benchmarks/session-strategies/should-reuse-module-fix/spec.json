@@ -1,23 +1,103 @@
 {
-  "taskId": "should-reuse-module-fix",
-  "kind": "should-reuse",
-  "split": "development",
-  "family": "module-followup",
-  "goal": "Fix the truncate() length bug in a module whose slugify() already works, without regressing slugify.",
-  "commands": [
-    {
-      "name": "behaviour",
-      "run": ["node", "acceptance/check.mjs"],
-      "expect": { "exitCode": 0, "stdoutContains": ["ok 6/6"], "stdoutNotContains": ["fail "] }
-    }
-  ],
-  "acceptanceFiles": ["acceptance/check.mjs", "spec.json"],
-  "forbidChanges": ["acceptance/", "spec.json"],
-  "writeScope": ["src/"],
-  "rubric": [
-    "truncate never returns more than max characters",
-    "short text is returned unchanged",
-    "slugify still collapses separators the same way",
-    "the fix is behavioural, not a rewrite of the grader"
-  ]
+    "taskId": "should-reuse-module-fix",
+    "kind": "should-reuse",
+    "split": "development",
+    "family": "module-followup",
+    "goal": "Fix the truncate() length bug in a module whose slugify() already works, without regressing slugify.",
+    "commands": [
+        {
+            "name": "behaviour",
+            "run": [
+                "node",
+                "acceptance/check.mjs"
+            ],
+            "expect": {
+                "exitCode": 0,
+                "stdoutContains": [
+                    "ok 6/6"
+                ],
+                "stdoutNotContains": [
+                    "fail "
+                ]
+            }
+        }
+    ],
+    "acceptanceFiles": [
+        "acceptance/check.mjs",
+        "spec.json"
+    ],
+    "forbidChanges": [
+        "acceptance/",
+        "spec.json"
+    ],
+    "writeScope": [
+        "src/"
+    ],
+    "rubric": [
+        "truncate never returns more than max characters",
+        "short text is returned unchanged",
+        "slugify still collapses separators the same way",
+        "the fix is behavioural, not a rewrite of the grader"
+    ],
+    "provenance": {
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "taskId": "should-reuse-module-fix",
+        "authoredBy": "OMC",
+        "license": {
+            "spdx": "MIT",
+            "path": "LICENSE",
+            "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "verifiedOn": {
+            "at": "2026-11-04T05:10:07Z",
+            "node": "24.21.0",
+            "python": "3.12.14"
+        },
+        "note": "OMC-authored local task: there is no upstream dataset, no upstream commit and no upstream digest for this fixture. baseCommit is the OMC checkout HEAD at the time the fixture was registered; localDigests are computed from the fixture files on disk.",
+        "upstreamDigests": {},
+        "localDigests": {
+            "start/src/text-utils.mjs": "91d3b84b2deb60025b0e792a92c412f6ed6acc7670bd7ec7bc9a66dc513ab29d",
+            "reference/src/text-utils.mjs": "ad683d612a12d6a654ee72e468b5264eadbb075cc8ba4a010bb46d9c142eeb84",
+            "acceptance/check.mjs": "36a07dd7f1bda4288f6ba3cd40bf284f207916a9a37f1932088f933d5a5156d1"
+        },
+        "grading": {
+            "method": "external-node-check",
+            "argv": [
+                "node",
+                "acceptance/check.mjs"
+            ],
+            "sha256": "36a07dd7f1bda4288f6ba3cd40bf284f207916a9a37f1932088f933d5a5156d1",
+            "frozenFile": "acceptance/check.mjs",
+            "officialScore": "functional-pass-fail"
+        },
+        "startState": {
+            "origin": "omc-authored",
+            "path": "start/"
+        },
+        "reference": {
+            "origin": "omc-authored",
+            "path": "reference/src/text-utils.mjs"
+        },
+        "status": "verified",
+        "quarantined": []
+    },
+    "reference": "reference/src/text-utils.mjs",
+    "startState": {
+        "from": "start/",
+        "knownFailure": "node acceptance/check.mjs exits 1 on the unmodified start state (verified both ways by test/integration/benchmark-tasks.test.mjs).",
+        "origin": "omc-authored"
+    },
+    "chain": [
+        {
+            "id": "audit-slugify",
+            "goal": "Confirm the existing slugify() assertions pass on the start tree before touching truncate()."
+        },
+        {
+            "id": "fix-truncate-length",
+            "goal": "Fix only truncate() so the 6-case suite passes without regressing slugify()."
+        }
+    ]
 }

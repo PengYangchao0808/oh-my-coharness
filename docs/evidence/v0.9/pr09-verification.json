@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-pr09-freeze-verification",
+  "recordedAt": "2026-11-04T13:20:25+08:00",
+  "scope": "PR-09 independent freeze verification tooling",
+  "environment": {
+    "platform": "win32-x64",
+    "node": "v24.21.0",
+    "nodeSource": "DSH bundled runtime (C:\\Users\\<user>\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\node\\bin\\node.exe)",
+    "npm": null,
+    "npmNote": "not installed on this machine; DSH runtime ships Node and pnpm only"
+  },
+  "commands": [
+    {
+      "command": "node scripts/check.mjs",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "manifest, patch, locales, icon, 15 modules, 5 skills, licence/provenance",
+      "evidence": "docs/evidence/v0.9/check.txt"
+    },
+    {
+      "command": "node scripts/pack-check.mjs",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "171 files, private=true, vendored licence/provenance shipped, forbidden trees absent",
+      "evidence": "docs/evidence/v0.9/pack-check.txt"
+    },
+    {
+      "command": "node scripts/license-check.mjs --out docs/evidence/v0.9/license-check.json",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "pinned omd 0.8.6 at 537d4c7f5dc316c449de4ccfff8ab15d15901fa6; 22 PATCHES.md paths resolve; attribution and files coverage intact; offline",
+      "evidence": [
+        "docs/evidence/v0.9/license-check.txt",
+        "docs/evidence/v0.9/license-check.json"
+      ]
+    },
+    {
+      "command": "node test/integration/registration-surface.test.mjs",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "3 passed, 0 failed, 1 explicit skip (real host RPC transport/settings card needs a DSH host)",
+      "evidence": "docs/evidence/v0.9/registration-surface.txt"
+    },
+    {
+      "command": "node scripts/install-check.mjs --json --out docs/evidence/v0.9/install-check.json",
+      "status": "blocked",
+      "exitCode": 3,
+      "reason": "npm executable not found. install-check needs the real npm CLI (not pnpm) to run npm pack, npm init and npm install.",
+      "note": "blocked is the required honest result; pack-check was not used as a substitute and no install was claimed",
+      "evidence": [
+        "docs/evidence/v0.9/install-check.txt",
+        "docs/evidence/v0.9/install-check.json"
+      ]
+    }
+  ],
+  "boundaries": [
+    "GitHub Actions CI was not executed locally; workflow changes are unverified until a runner runs them.",
+    "No real npm on this machine; the CI package-and-install job must execute scripts/install-check.mjs for a real pack/install proof.",
+    "No DSH Desktop or real Cordis host was exercised; registration-surface uses a host mock and dsh-runtime-smoke remains an explicit placeholder.",
+    "The working tree also contained other lanes' in-progress changes; this evidence covers only the PR-09 verification scope.",
+    "No npm publish, no network access, no real user npm profile access."
+  ],
+  "files": [
+    ".github/workflows/ci.yml",
+    "scripts/check.mjs",
+    "scripts/pack-check.mjs",
+    "scripts/license-check.mjs",
+    "scripts/install-check.mjs",
+    "test/integration/registration-surface.test.mjs",
+    "docs/evidence/v0.9/README.md",
+    "docs/evidence/v0.9/check.txt",
+    "docs/evidence/v0.9/pack-check.txt",
+    "docs/evidence/v0.9/license-check.txt",
+    "docs/evidence/v0.9/license-check.json",
+    "docs/evidence/v0.9/registration-surface.txt",
+    "docs/evidence/v0.9/install-check.txt",
+    "docs/evidence/v0.9/install-check.json",
+    "docs/evidence/v0.9/pr09-verification.json"
+  ],
+  "ci": {
+    "verifiedLocally": false,
+    "staticAndContracts": [
+      "ubuntu-latest / Node 20.x",
+      "ubuntu-latest / Node 22.x",
+      "windows-latest / Node 22.x"
+    ],
+    "packaging": "ubuntu-latest / Node 20.x",
+    "artifacts": [
+      "test-run-<os>-node<version>.json from scripts/run-tests.mjs",
+      "install-check result JSON"
+    ],
+    "dirtyTreeGate": "allows only docs/evidence/v0.9/** in the test lane; packaging lane requires a clean tree",
+    "dshRuntimeSmoke": "unchanged explicit placeholder; manual dispatch only"
+  }
+}

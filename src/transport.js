@@ -243,18 +243,25 @@ export async function launch(ctx, def, options) {
     : def.argv(task, { model, mode, json })
   const { argv, cwd: spawnCwd } = buildArgv(def, plan, args, cwd, env)
 
-  const handle = ctx.subprocess.spawn({
-    argv,
-    cwd: spawnCwd,
-    stdio: stdio(maxOutputBytes),
-    // Short grace: a deadline must feel like a deadline. The provider still escalates
-    // to a hard kill after this window, so no orphan survives.
-    graceMs: 1500,
-    signal: deadline.signal,
-    // The seam applies no defaults, so a native child needs the base environment we
-    // want it to inherit; the harness variables overlay it.
-    ...(env && plan.transport === 'native' ? { env: { ...process.env, ...env } } : {}),
-  })
+  let handle
+  try {
+    handle = ctx.subprocess.spawn({
+      argv,
+      cwd: spawnCwd,
+      stdio: stdio(maxOutputBytes),
+      // Short grace: a deadline must feel like a deadline. The provider still escalates
+      // to a hard kill after this window, so no orphan survives.
+      graceMs: 1500,
+      signal: deadline.signal,
+      // The seam applies no defaults, so a native child needs the base environment we
+      // want it to inherit; the harness variables overlay it.
+      ...(env && plan.transport === 'native' ? { env: { ...process.env, ...env } } : {}),
+    })
+  } catch (error) {
+    // The deadline timer must not outlive a spawn that never started.
+    deadline.dispose()
+    throw error
+  }
 
   return { handle, argv, cwd: spawnCwd, deadline }
 }

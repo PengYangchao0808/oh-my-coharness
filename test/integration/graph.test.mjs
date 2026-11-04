@@ -15,9 +15,9 @@ import {
 
 const PLAN = [
   { id: 'explore', role: 'explorer', title: 'find the bug' },
-  { id: 'review', role: 'oracle', deps: ['explore'], acceptance: ['names the failing line'] },
+  { id: 'review', role: 'oracle', deps: ['explore'] },
   { id: 'fix', role: 'fixer', deps: ['review'], write: true, writeScope: ['src/'] },
-  { id: 'verify', role: 'oracle', deps: ['fix'], acceptance: ['tests pass'] },
+  { id: 'verify', role: 'oracle', deps: ['fix'] },
 ]
 
 test('graph validation rejects unknown dependencies, cycles and escape scopes', () => {
@@ -46,12 +46,32 @@ test('dependencies, acceptance and write claims are enforced at runtime', async 
   assert.deepEqual(store.status('parent').ready, ['review'])
 
   store.claim('parent', 'review')
-  assert.throws(() => store.complete('parent', 'review'), /no evidence/)
   store.complete('parent', 'review', { evidence: ['line 5 loop bound'] })
   store.claim('parent', 'fix')
   assert.throws(() => store.complete('parent', 'fix'), /changed-file list/)
   assert.throws(() => store.complete('parent', 'fix', { changedFiles: ['docs/readme.md'] }), /outside its scope/)
   assert.equal(store.status('parent').nodes.find((node) => node.id === 'fix').state, 'failed')
+})
+
+test('an acceptance node cannot be completed by evidence strings or a self-reported verdict', async () => {
+  const store = createGraphStore()
+  store.plan('parent', [{ id: 'graded', acceptance: ['names the failing line'] }])
+  store.claim('parent', 'graded')
+  // No evidence at all is refused.
+  assert.throws(() => store.complete('parent', 'graded'), /ACCEPTANCE/)
+  // A caller-supplied string is not a verdict.
+  assert.throws(() => store.complete('parent', 'graded', { evidence: ['line 5 loop bound'] }), /ACCEPTANCE/)
+  // A hand-made verdict object is not trusted either.
+  assert.throws(() => store.complete('parent', 'graded', {
+    verdict: { source: 'caller', baselineId: 'made-up', specDigest: 'made-up', state: 'passed' },
+  }), /ACCEPTANCE/)
+  assert.equal(store.status('parent').nodes.find((node) => node.id === 'graded').state, 'running')
+  // Explicit verify needs a trusted authority; without one it refuses rather
+  // than passing anything.
+  await assert.rejects(
+    () => store.verify('parent', 'graded', { spec: { taskId: 'graded', split: 'development', commands: [{ name: 'x', run: ['node', '-e', '0'] }] }, workdir: process.cwd() }),
+    /ACCEPTANCE-UNAVAILABLE/,
+  )
 })
 
 test('two running write nodes with overlapping scopes cannot coexist', () => {

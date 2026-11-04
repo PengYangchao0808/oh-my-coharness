@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "kind": "efficiency-capability-matrix",
+  "wp": "WP00",
+  "targetVersion": "0.5.0-alpha.2",
+  "generatedAt": "2026-11-04T07:45:53.941Z",
+  "probe": {
+    "script": "scripts/efficiency-capability-check.mjs",
+    "modesRun": [
+      "static"
+    ],
+    "modelCalls": 0
+  },
+  "host": {
+    "version": "0.2.1-rc.5",
+    "asar": "C:\\Users\\彭扬超\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\app.asar",
+    "source": "installed archive, read directly"
+  },
+  "capabilities": {
+    "perStepUsage": {
+      "native": {
+        "status": "supported",
+        "evidence": [
+          "agent-loop settles the usage chunk on each assistant/message; request/header (initial|resume|change|series) + message.source make the route attributable [line 1110]",
+          "live probe not run in this pass"
+        ],
+        "boundary": "failed/aborted attempts log assistant/attempt without usage — those rows stay coverage:\"partial\", never zero-filled; built-in adapter inputTokens is the uncached bucket"
+      },
+      "externalProvider": {
+        "status": "partial",
+        "evidence": [
+          "codex-jsonl turn.completed and claude-json result expose per-dispatch usage via src/session-adapters.js normalizeUsage; internal steps are not visible"
+        ],
+        "boundary": "per-dispatch only; missing numbers stay null — WP02 maps them to the four buckets without inventing values"
+      },
+      "direct": {
+        "status": "unsupported",
+        "evidence": [
+          "the direct surface is one spawned process; a usage summary exists only when the CLI prints one"
+        ],
+        "boundary": "usage unknown unless parseSessionOutput finds numbers"
+      }
+    },
+    "requestGate": {
+      "native": {
+        "status": "supported",
+        "evidence": [
+          "agent/request runs inside prepareRequest before llm.stream on every attempt; agent/request-error kind:\"retry\" re-enters it; agent/pre-step can reject a step before any send",
+          "live probe not run in this pass"
+        ],
+        "boundary": "the waterfall is per-agent; cross-agent atomic slot reservation is OMC-owned (its own lock), not a host guarantee"
+      },
+      "externalProvider": {
+        "status": "unsupported",
+        "evidence": [
+          "no pre-send gate exists inside an external CLI process"
+        ],
+        "boundary": "OMC can gate between dispatches only; per-call maxCalls guarantees are refused for external lanes"
+      },
+      "direct": {
+        "status": "partial",
+        "evidence": [
+          "OMC spawns the process itself; the gate runs before spawn and retries re-enter it"
+        ],
+        "boundary": "one dispatch = one call attempt; no per-request control inside the run"
+      }
+    },
+    "resultTextView": {
+      "native": {
+        "status": "partial",
+        "evidence": [
+          "dsh-session registerMessageProjection re-derives model-visible messages for plugin-owned events without rewriting logged events"
+        ],
+        "boundary": "core tool/result projection is owned by the host; OMC may only shape its own echo and artifact references this release"
+      },
+      "externalProvider": {
+        "status": "partial",
+        "evidence": [
+          "OMC owns the brief/handoff text it hands to the CLI and the echo it returns to the parent (integration/external-brief.js, integration/handoff.js)"
+        ],
+        "boundary": "CLI-internal context cannot be rewritten"
+      },
+      "direct": {
+        "status": "partial",
+        "evidence": [
+          "OMC owns its own echo of the captured output"
+        ]
+      }
+    },
+    "historyViewTransform": {
+      "native": {
+        "status": "partial",
+        "evidence": [
+          "session.deriveMessages() rebuilds the request boundary from the event log, so projections are replayable"
+        ],
+        "boundary": "kept experimental per plan §4.4: view reduction ships only after tool-call/result pairing and replay checks pass"
+      },
+      "externalProvider": {
+        "status": "unsupported",
+        "evidence": [
+          "external CLI history is not host-replayable"
+        ]
+      },
+      "direct": {
+        "status": "unsupported",
+        "evidence": []
+      }
+    },
+    "subtaskSettlement": {
+      "native": {
+        "status": "supported",
+        "evidence": [
+          "child agents are ordinary sessions: identity from the session header, settlement from durable turn/end reasons (completed|blocked|aborted|error|max-tokens)",
+          "live probe not run in this pass"
+        ],
+        "boundary": "OMC keeps \"unknown\" when no terminal event is reachable; the latest message never implies completion"
+      },
+      "externalProvider": {
+        "status": "partial",
+        "evidence": [
+          "integration/cli-result.js classifies exit-zero-but-unproved outcomes (truncated, semantic, empty, idChanged, unconfirmed) instead of trusting exit 0"
+        ],
+        "boundary": "mid-run settlement events are unavailable; settlement is per completed process"
+      },
+      "direct": {
+        "status": "partial",
+        "evidence": [
+          "same classifier as external lanes (integration/cli-result.js)"
+        ],
+        "boundary": "settlement is per completed process"
+      }
+    },
+    "dynamicSessionHead": {
+      "native": {
+        "status": "partial",
+        "evidence": [
+          "GenerateOptions carries the real sessionId to the adapter stream boundary [line 1286]; ctx.llm.registerAdapter allows a custom adapter; no built-in adapter sends a per-session header (verified absent)",
+          "live probe not run in this pass"
+        ],
+        "boundary": "seam exists and is verified; shipping a session-affinity adapter is WP07 work and must re-probe after host upgrades"
+      },
+      "externalProvider": {
+        "status": "partial",
+        "evidence": [
+          "codex native session resume is \"verified\" confidence in src/harnesses.js; the CLI keeps its own session files"
+        ],
+        "boundary": "no header control; other CLIs keep their documented/unverified confidence and must not be listed as cache-optimised"
+      },
+      "direct": {
+        "status": "partial",
+        "evidence": [
+          "same CLI session resume mechanics as the external lane when the harness reports a session format"
+        ]
+      }
+    }
+  },
+  "contractDecisions": {
+    "attemptId": "native retries share the host attempt identity (sessionId:attempt, assistant/attempt events); an OMC retry or model switch after failure opens a new attempt under the same task, never a new task",
+    "acceptanceState": "new field pending|passed|failed|unknown kept separate from execution status; only execution completed AND acceptance passed may be claimed as delivered",
+    "usageBuckets": "four mutually exclusive buckets (uncachedInputTokens, cacheReadTokens, cacheWriteTokens, outputTokens) plus costUsd with its own source/price version; absent numbers are null, never 0",
+    "ledgerKey": "idempotent by (source, session, event seq/id); restart replay must not double-count; child rollups are not re-booked as parent calls",
+    "cancelRequested": "a cancellation request does not change execution status while the process still runs; cancelRequested is its own flag"
+  },
+  "staticChecks": [
+    {
+      "id": "gate:pre-step-waterfall",
+      "ok": true,
+      "line": 909,
+      "note": "agent/pre-step runs once per proposed step and a listener may return kind:\"reject\""
+    },
+    {
+      "id": "gate:request-per-attempt",
+      "ok": true,
+      "line": 1191,
+      "note": "agent/request resolves the config inside prepareRequest, which the attempt loop re-runs on every retry"
+    },
+    {
+      "id": "gate:retry-reenters-prepare",
+      "ok": true,
+      "line": 1145,
+      "note": "agent/request-error with kind:\"retry\" continues the attempt loop; the next attempt re-enters agent/request before llm.stream"
+    },
+    {
+      "id": "usage:settled-per-step",
+      "ok": true,
+      "line": 1110,
+      "note": "assistant/message settles the usage chunk per completed step; usage===undefined is omitted, never zero-filled"
+    },
+    {
+      "id": "usage:failed-attempt-recorded",
+      "ok": true,
+      "line": 1113,
+      "note": "failed/aborted attempts append assistant/attempt (attempt identity without usage) — coverage must stay partial for those"
+    },
+    {
+      "id": "usage:attempt-id-format",
+      "ok": true,
+      "line": 383,
+      "note": "host attempt identity is sessionId:attempt — OMC attemptId must not renumber retries as new tasks"
+    },
+    {
+      "id": "view:message-projection-registration",
+      "ok": true,
+      "line": 1729,
+      "note": "plugin-owned message projections re-derive model-visible messages without rewriting logged events"
+    },
+    {
+      "id": "view:derive-messages",
+      "ok": true,
+      "line": 1672,
+      "note": "request boundaries derive messages from the event log, so projections are replayable"
+    },
+    {
+      "id": "view:request-header-reasons",
+      "ok": true,
+      "line": 1234,
+      "note": "request/header events carry initial|resume|change|series reasons plus the full config — route changes are attributable"
+    },
+    {
+      "id": "settle:child-lifecycle-events",
+      "ok": true,
+      "line": 605,
+      "note": "tool-subagent observes agent/created + agent/disposed; settlement facts live in each session log (turn/end reason)"
+    },
+    {
+      "id": "head:adapter-registration",
+      "ok": true,
+      "line": 1666,
+      "note": "custom provider adapters can be registered at runtime — the seam a session-affinity adapter could use"
+    },
+    {
+      "id": "head:session-id-at-boundary",
+      "ok": true,
+      "line": 1286,
+      "note": "GenerateOptions carries the real session id to the adapter stream boundary"
+    },
+    {
+      "id": "head:no-opencode-session-header",
+      "ok": true,
+      "line": null,
+      "note": "built-in adapters send no per-session identity header today; affinity work must not assume one exists"
+    },
+    {
+      "id": "usage:chunk-shape",
+      "ok": true,
+      "line": 997,
+      "note": "usage arrives as a stream chunk; adapters without a usage chunk leave usage undefined (unknown, not zero)"
+    }
+  ],
+  "liveProbe": null
+}

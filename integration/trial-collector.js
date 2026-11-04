@@ -58,6 +58,17 @@
  *   / costVersion         ledger stores a computed amount plus its price source,
  *                         not a provider invoice; a missing price source makes
  *                         the amount unknown rather than assumed
+ *   prerequisite          the arm's shared E2 prerequisite run from the runner
+ *                         receipt (`prerequisite`/`prerequisites[]`), attached
+ *                         ONCE to the arm's first frozen assignment — never
+ *                         folded into each trial's costUsd and never given its
+ *                         own trialId; unknown cost/calls stay null
+ *
+ * Shared prerequisites: pass the receipt's `prerequisites[]` (or a single run
+ * block) to every collectTrial() call. The collector validates it for each
+ * trial of the arm (duplicate / wrong arm / policy or revision drift / chain
+ * order / non-terminal all become problems) and attributes the one execution
+ * to the arm, not to each task.
  *
  * Known limits, stated rather than hidden:
  *   - `calls` counts bookings, so a request that failed before producing a
@@ -156,6 +167,227 @@ function contradictionsFor(strategy, actions) {
   return []
 }
 
+/* ------------------------------------------------------------------------- *
+ * Shared prerequisite (E2) wiring.
+ *
+ * The runner executes one shared prerequisite task once per arm before that
+ * arm's first trial and records it under `receipt.prerequisites[]` (one row per
+ * arm, `countedAsTrial: false`). It is NOT an independent trial: it has no
+ * frozen assignment and must never receive a trialId of its own. The evaluator
+ * consumes it as `run.prerequisite` and folds its cost/calls into the arm.
+ *
+ * This module only maps what the runner/receipt reports. It does not re-run,
+ * re-price or re-allocate the prerequisite, and it never adds its cost to the
+ * trial's own `costUsd` (that would charge the shared prerequisite once per
+ * task). An unobserved prerequisite cost/call stays null — the evaluator then
+ * refuses to report a settled arm total.
+ * ------------------------------------------------------------------------- */
+
+function isPrerequisiteRunRow(row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return false
+  if (row.role === 'prerequisite' || row.countedAsTrial === false) return true
+  // A run row is the only kind of prerequisite block that carries a verdict;
+  // `receipt.prerequisite` (the frozen task declaration) does not.
+  return typeof row.execution === 'string' && row.execution.trim() !== ''
+}
+
+function prerequisiteChainIds(task) {
+  if (!Array.isArray(task?.chain)) return null
+  return task.chain.map((step) => (typeof step === 'string' ? step : step?.id ?? step?.name ?? null))
+}
+
+function recordedChainIds(row) {
+  if (!Array.isArray(row?.chainSteps)) return null
+  return row.chainSteps.map((step) => (typeof step === 'string' ? step : step?.stepId ?? step?.id ?? step?.name ?? null))
+}
+
+function sameOrder(left, right) {
+  if (left.length !== right.length) return false
+  return left.every((value, index) => value === right[index])
+}
+
+function normalizePrerequisiteUsage(raw) {
+  const usage = Object.fromEntries(BUCKETS.map((key) => [key, null]))
+  for (const key of BUCKETS) {
+    const value = raw?.[key]
+    if (Number.isSafeInteger(value) && value >= 0) usage[key] = value
+  }
+  return usage
+}
+
+function buildPrerequisiteBlock(row, arm) {
+  const costUsd = Number.isFinite(row?.costUsd) && row.costUsd >= 0 ? row.costUsd : null
+  const basis = row?.costBasis === 'billed' || row?.costBasis === 'estimated' ? row.costBasis : null
+  const knownCost = costUsd !== null && basis !== null
+  const calls = Number.isSafeInteger(row?.calls) && row.calls >= 0 ? row.calls : null
+  const startMs = parseInstant(row?.startedAt)
+  const endMs = parseInstant(row?.endedAt)
+  const elapsedMs = Number.isFinite(row?.elapsedMs) && row.elapsedMs >= 0
+    ? row.elapsedMs
+    : (startMs !== null && endMs !== null && endMs >= startMs ? endMs - startMs : null)
+  return {
+    execution: row.execution,
+    // Unknown is exported as null, never 0: a client-less prerequisite run has
+    // an unobserved cost/call count, not a free one.
+    calls,
+    costUsd: knownCost ? costUsd : null,
+    costBasis: knownCost ? basis : 'unknown',
+    costVersion: knownCost && typeof row?.costVersion === 'string' && row.costVersion.trim() !== ''
+      ? row.costVersion
+      : null,
+    usage: normalizePrerequisiteUsage(row?.usage),
+    ...(elapsedMs !== null ? { elapsedMs } : {}),
+    // Audit provenance (ignored by the evaluator's prerequisite validation).
+    taskId: typeof row?.taskId === 'string' ? row.taskId : null,
+    trialId: typeof row?.trialId === 'string' ? row.trialId : null,
+    repeat: null,
+    role: 'prerequisite',
+    countedAsTrial: false,
+    arm,
+  }
+}
+
+/**
+ * Resolve the arm's shared prerequisite run from whatever the caller has:
+ * a single `prerequisite` block, the receipt's `prerequisites[]`, or a whole
+ * `receipt`. Every inconsistency is returned as a problem string instead of
+ * being absorbed — a prerequisite attributed to the wrong arm or run in the
+ * wrong order must not silently become arm cost.
+ */
+function resolvePrerequisite({ manifest, assignedStrategy, assignmentTrialId, prerequisite, prerequisites, receipt }) {
+  const frozen = manifest?.prerequisite && typeof manifest.prerequisite === 'object' && !Array.isArray(manifest.prerequisite)
+    ? manifest.prerequisite
+    : null
+  const rows = []
+  const problems = []
+  const notes = []
+  const incomplete = []
+
+  if (prerequisite !== null && prerequisite !== undefined) {
+    if (typeof prerequisite !== 'object' || Array.isArray(prerequisite)) {
+      problems.push('the supplied prerequisite block is not an object, so its cost/calls cannot be read')
+    } else if (isPrerequisiteRunRow(prerequisite)) {
+      rows.push(prerequisite)
+    } else if (frozen) {
+      problems.push('the supplied prerequisite block is a task declaration with no execution record; pass the receipt.prerequisites[] run row so its cost/calls stay attributable')
+    } else {
+      problems.push('the runner reports a prerequisite task but the frozen manifest declares none')
+    }
+  }
+  const arraySource = Array.isArray(prerequisites)
+    ? prerequisites
+    : (Array.isArray(receipt?.prerequisites) ? receipt.prerequisites : null)
+  if (arraySource) rows.push(...arraySource)
+  if (receipt?.prerequisite && typeof receipt.prerequisite === 'object' && frozen
+    && typeof receipt.prerequisite.id === 'string' && receipt.prerequisite.id !== frozen.id) {
+    problems.push(`the receipt's prerequisite task "${receipt.prerequisite.id}" is not the frozen prerequisite "${frozen.id}"`)
+  }
+  if (!frozen && receipt?.prerequisite && typeof receipt.prerequisite === 'object'
+    && typeof receipt.prerequisite.id === 'string') {
+    problems.push(`the receipt declares a shared prerequisite task "${receipt.prerequisite.id}", but the frozen manifest declares none`)
+  }
+
+  if (!frozen) {
+    if (rows.length) {
+      problems.push('the runner/receipt reports prerequisite run(s) but the frozen manifest declares no prerequisite; the cost cannot be attributed to a frozen arm')
+    }
+    return { relevant: rows.length > 0 || problems.length > 0, block: null, problems, notes, incomplete }
+  }
+
+  // One shared prerequisite execution belongs to the arm, not to every task.
+  // It is attached once, to the arm's first frozen assignment in allocation
+  // order, so a rollup cannot charge it again for each later task.
+  const assignments = Array.isArray(manifest?.assignments) ? manifest.assignments : []
+  const carrier = assignedStrategy
+    ? assignments.find((row) => row?.strategy === assignedStrategy) ?? null
+    : null
+  const carrierTrialId = typeof carrier?.trialId === 'string' ? carrier.trialId : null
+  const isCarrier = !carrierTrialId || !assignmentTrialId || carrierTrialId === assignmentTrialId
+
+  if (!rows.length) {
+    if (isCarrier) {
+      problems.push(`the frozen manifest declares the shared prerequisite "${frozen.id}", but no prerequisite run was collected; its cost/calls stay unknown and cannot be attributed to any arm`)
+    } else {
+      notes.push(`the shared prerequisite for arm ${assignedStrategy} is recorded on the arm's first trial ${carrierTrialId}; this trial neither repeats nor prices it`)
+    }
+    return { relevant: true, block: null, problems, notes, incomplete }
+  }
+
+  const armOf = (row) => (typeof row?.arm === 'string' && row.arm.trim() !== '' ? row.arm : (typeof row?.strategy === 'string' && row.strategy.trim() !== '' ? row.strategy : null))
+  const labelledArms = unique(rows.map((row) => armOf(row)).filter(Boolean))
+  const matching = rows.filter((row) => {
+    const arm = armOf(row)
+    return arm === null || arm === assignedStrategy
+  })
+  if (!matching.length) {
+    problems.push(`prerequisite run(s) exist for arm(s) ${labelledArms.join(', ') || 'unknown'}, but not for this trial's arm ${assignedStrategy ?? 'unknown'}; a prerequisite may not be borrowed from another arm`)
+    return { relevant: true, block: null, problems, notes, incomplete }
+  }
+  const keys = matching.map((row) => `${row?.trialId ?? ''}|${row?.taskId ?? ''}|${armOf(row) ?? ''}`)
+  if (matching.length > 1 || new Set(keys).size !== keys.length) {
+    problems.push(`the shared prerequisite for arm ${assignedStrategy} was recorded ${matching.length} times; aggregate one run per arm instead of summing duplicates`)
+    return { relevant: true, block: null, problems, notes, incomplete }
+  }
+
+  const row = matching[0]
+  if (row.countedAsTrial === true) {
+    problems.push('the prerequisite run is marked countedAsTrial: true; a shared prerequisite is never an independent trial')
+  }
+  if (typeof row.taskId === 'string' && row.taskId !== frozen.id) {
+    problems.push(`the prerequisite run is for task ${row.taskId}, but the frozen prerequisite is ${frozen.id}`)
+  }
+  if (typeof row.taskRevision === 'string' && row.taskRevision !== frozen.revision) {
+    problems.push(`the prerequisite run used revision ${row.taskRevision}, but the frozen prerequisite is ${frozen.revision}; a strategy drift cannot be priced into the arm`)
+  }
+  const frozenPolicy = manifest?.policyVersions?.[assignedStrategy] ?? null
+  if (typeof row.policyVersion === 'string' && frozenPolicy !== null && row.policyVersion !== frozenPolicy) {
+    problems.push(`the prerequisite run reports policyVersion ${row.policyVersion}, but the frozen arm policy is ${frozenPolicy}; the prerequisite drifted from the arm`)
+  }
+  const observedModel = typeof row.observedModel === 'string' ? row.observedModel : null
+  const frozenModel = typeof manifest?.conditions?.model === 'string' ? manifest.conditions.model : null
+  if (observedModel && frozenModel && observedModel !== frozenModel) {
+    problems.push(`the prerequisite run observed model ${observedModel}, but the frozen condition is ${frozenModel}; a mixed-condition prerequisite cannot be priced into the arm`)
+  }
+  if (!TERMINAL.includes(row.execution)) {
+    problems.push(`the prerequisite execution "${row.execution ?? 'unknown'}" is not a terminal state; a prerequisite that did not finish cannot supply cost/calls`)
+  }
+  const expectedChain = prerequisiteChainIds(frozen)
+  const actualChain = recordedChainIds(row)
+  if (expectedChain && actualChain) {
+    if (actualChain.includes(null) || !sameOrder(actualChain, expectedChain)) {
+      problems.push(`the prerequisite chain order [${actualChain.join(' -> ')}] does not match the frozen order [${expectedChain.join(' -> ')}]`)
+    }
+  } else if (expectedChain && !actualChain) {
+    notes.push(`the frozen prerequisite declares a chain [${expectedChain.join(' -> ')}] but the run recorded no chainSteps; the executed order is unverified`)
+    incomplete.push('prerequisite.chain')
+  }
+
+  if (problems.length) return { relevant: true, block: null, problems, notes, incomplete }
+
+  if (!isCarrier) {
+    notes.push(`the shared prerequisite for arm ${assignedStrategy} is a single execution (trial ${carrierTrialId}); this trial does not repeat it or its cost`)
+    return { relevant: true, block: null, problems, notes, incomplete }
+  }
+
+  const block = buildPrerequisiteBlock(row, assignedStrategy)
+  if (block.costUsd === null) {
+    incomplete.push('prerequisite.costUsd')
+    notes.push(Number.isFinite(row?.costUsd) && row.costUsd >= 0
+      ? 'the prerequisite run reports a cost amount without a billed/estimated basis; the amount is not exported because its basis cannot be identified'
+      : 'the prerequisite cost is unknown (no settled price on the run); it stays null and the evaluator will treat the arm total as incomplete rather than $0')
+  } else if (block.costVersion === null) {
+    notes.push('the prerequisite cost is known but carries no price source/version; the amount is kept and labelled by its basis')
+  }
+  if (block.calls === null) {
+    incomplete.push('prerequisite.calls')
+    notes.push('the prerequisite call count is unknown; calls stay null and are not filled with 0')
+  }
+  for (const key of BUCKETS) {
+    if (block.usage[key] === null) incomplete.push(`prerequisite.usage.${key}`)
+  }
+  return { relevant: true, block, problems, notes, incomplete }
+}
+
 /**
  * Collect one finished parent task into a trial record.
  *
@@ -178,6 +410,9 @@ export function collectTrial({
   acceptance = null,
   actualActions = [],
   manifest = null,
+  prerequisite = null,
+  prerequisites = null,
+  receipt = null,
 } = {}) {
   const incomplete = []
   const notes = []
@@ -209,6 +444,23 @@ export function collectTrial({
   } else if (strategy && frozen?.strategy && strategy !== frozen.strategy) {
     notes.push(`the caller passed strategy "${strategy}" but the frozen assignment is "${frozen.strategy}"; the frozen assignment wins`)
   }
+
+  // A shared prerequisite belongs to the arm, not to any single task: it keeps
+  // its own arm-level record here and is never folded into `costUsd` below.
+  const sharedPrerequisite = resolvePrerequisite({
+    manifest,
+    assignedStrategy,
+    assignmentTrialId: frozen?.trialId ?? null,
+    prerequisite,
+    prerequisites,
+    receipt,
+  })
+  for (const problem of sharedPrerequisite.problems) {
+    incomplete.push('prerequisite')
+    notes.push(problem)
+  }
+  notes.push(...sharedPrerequisite.notes)
+  incomplete.push(...sharedPrerequisite.incomplete)
 
   const trialId = typeof frozen?.trialId === 'string' ? frozen.trialId : null
   const repeat = Number.isSafeInteger(frozen?.repeat) ? frozen.repeat : null
@@ -516,6 +768,15 @@ export function collectTrial({
     costUsd,
     costBasis,
     costVersion,
+    // The arm-level shared prerequisite, in the evaluator's `run.prerequisite`
+    // shape, only when the manifest declares one (or a run was supplied).
+    // Old prerequisite-free manifests keep exactly their previous record shape.
+    ...(sharedPrerequisite.relevant ? {
+      prerequisite: sharedPrerequisite.block,
+      ...(sharedPrerequisite.problems.length
+        ? { prerequisiteProblems: [...sharedPrerequisite.problems] }
+        : {}),
+    } : {}),
     // Collector provenance (ignored by the evaluator, kept for audit).
     status,
     observedAcceptance: String(observedAcceptance),
@@ -660,6 +921,79 @@ function shapeProblems(trial, trialId) {
 }
 
 /**
+ * Structural checks for the arm-level shared prerequisite. A prerequisite is
+ * never an independent trial, so this only verifies that the record is
+ * attributable to this arm, belongs to the frozen prerequisite task, is
+ * terminal, and carries unknown-or-valid cost/call/usage fields.
+ */
+function prerequisiteProblems(trial, trialId, frozen) {
+  const problems = []
+  const bad = (message) => problems.push(`trial ${trialId}: ${message}`)
+  if (Array.isArray(trial.prerequisiteProblems) && trial.prerequisiteProblems.length) {
+    // The collector already rejected the supplied prerequisite block (missing,
+    // duplicated, wrong arm, policy drift, chain order, non-terminal run); the
+    // exact reason is more useful than a generic "no record" message.
+    for (const message of trial.prerequisiteProblems) bad(message)
+    return problems
+  }
+  const declared = Boolean(frozen.prerequisite)
+  const record = trial.prerequisite
+  // The shared prerequisite is one arm-level execution, attached to the arm's
+  // first frozen assignment. Any other trial repeating it would charge the arm
+  // again for a run that already happened.
+  const carrier = Array.isArray(frozen.assignments)
+    ? frozen.assignments.find((assignment) => assignment?.strategy === trial.strategy) ?? null
+    : null
+  const isCarrier = carrier === null || carrier.trialId === trialId
+  if (!declared) {
+    if (record) bad('carries a prerequisite attribution, but the frozen manifest declares no shared prerequisite')
+    return problems
+  }
+  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+    if (isCarrier) {
+      bad(`has no record for the declared shared prerequisite "${frozen.prerequisite.id}"; its cost/calls stay unknown and no arm may claim them`)
+    }
+    return problems
+  }
+  if (!isCarrier) {
+    bad(`repeats the arm-level shared prerequisite; it is attributed once to the arm's first trial ${carrier?.trialId}`)
+  }
+  if (typeof record.taskId === 'string' && record.taskId !== frozen.prerequisite.id) {
+    bad(`prerequisite was run for task ${record.taskId}, the frozen prerequisite is ${frozen.prerequisite.id}`)
+  }
+  if (typeof record.arm === 'string' && record.arm !== trial.strategy) {
+    bad(`carries the prerequisite run for arm ${record.arm}, but this trial is in arm ${trial.strategy}; a prerequisite may not be borrowed from another arm`)
+  }
+  if (record.countedAsTrial === true) bad('prerequisite is marked countedAsTrial:true; a shared prerequisite is never an independent trial')
+  if (!TERMINAL.includes(record.execution)) bad(`prerequisite execution "${record.execution ?? 'unknown'}" is not terminal`)
+  if (record.calls !== null && record.calls !== undefined
+    && !(Number.isSafeInteger(record.calls) && record.calls >= 0)) {
+    bad('prerequisite calls must be a non-negative integer or null')
+  }
+  if (record.costUsd === null || record.costUsd === undefined) {
+    if (record.costBasis !== undefined && record.costBasis !== null && record.costBasis !== 'unknown') {
+      bad('an unknown prerequisite cost requires costBasis "unknown"')
+    }
+  } else {
+    if (!Number.isFinite(record.costUsd) || record.costUsd < 0) bad('prerequisite costUsd must be a non-negative number or null')
+    if (!['billed', 'estimated'].includes(record.costBasis)) bad('a known prerequisite cost needs costBasis "billed" or "estimated"')
+  }
+  if (record.usage !== undefined && record.usage !== null) {
+    if (typeof record.usage !== 'object' || Array.isArray(record.usage)) {
+      bad('prerequisite usage must be an object with explicit nulls for unknown buckets')
+    } else {
+      for (const key of BUCKETS) {
+        const value = record.usage[key]
+        if (value !== undefined && value !== null && !(Number.isSafeInteger(value) && value >= 0)) {
+          bad(`prerequisite usage.${key} must be a non-negative integer or null`)
+        }
+      }
+    }
+  }
+  return problems
+}
+
+/**
  * Verify a collected set against the frozen manifest and order it for the
  * evaluator. Never throws on bad input: every mismatch becomes a problem, so
  * the caller can print exactly why a promotion run is refused.
@@ -760,6 +1094,7 @@ export function exportTrials({ manifest = null, collected = [] } = {}) {
     }
 
     problems.push(...shapeProblems(trial, trialId))
+    problems.push(...prerequisiteProblems(trial, trialId, frozen))
   }
 
   for (const assignment of frozen.assignments) {

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "practice-native-runtime-probe",
-  "task": "R01+R02",
-  "at": "2026-11-03T14:31:42.106Z",
+  "task": "R01+R02+R03",
+  "at": "2026-11-04T07:48:18.628Z",
   "host": {
     "version": "0.2.1-rc.5",
     "preset": "oh-my-coharness",
@@ -13,54 +13,54 @@
   "facts": {
     "sessions": {
       "parent": {
-        "id": "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221",
+        "id": "omc-native-probe-parent-4aefec2b-b6bf-4c7c-b04d-7f121f672b4c",
         "parentSession": null,
         "events": 16
       },
       "child": {
-        "id": "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd",
-        "parentSession": "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221",
+        "id": "omc-native-probe-child-4f32d9c7-d03d-49bd-a464-8a1f0d2f642b",
+        "parentSession": "omc-native-probe-parent-4aefec2b-b6bf-4c7c-b04d-7f121f672b4c",
         "events": 16
       },
       "nested": {
-        "id": "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8",
-        "parentSession": "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd",
+        "id": "omc-native-probe-nested-846b0c51-0ceb-4783-b871-3abd97a51f2e",
+        "parentSession": "omc-native-probe-child-4f32d9c7-d03d-49bd-a464-8a1f0d2f642b",
         "events": 20
       }
     },
     "children": [],
     "adapterCalls": [
       {
-        "sessionId": "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221",
+        "sessionId": "omc-native-probe-parent-4aefec2b-b6bf-4c7c-b04d-7f121f672b4c",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd",
+        "sessionId": "omc-native-probe-child-4f32d9c7-d03d-49bd-a464-8a1f0d2f642b",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8",
+        "sessionId": "omc-native-probe-nested-846b0c51-0ceb-4783-b871-3abd97a51f2e",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-budget-d4f8bc0e-1c60-4193-91d1-77f358c7361d",
+        "sessionId": "omc-native-probe-budget-78604b59-25c1-4632-b825-8bc58e53a968",
         "call": 1
       },
       {
-        "sessionId": "omc-native-probe-managed-child-ccb7f760-1503-4db8-871f-0bff2a5975d2",
+        "sessionId": "omc-native-probe-managed-child-30b66273-09cf-436d-bdd6-cfefe41497f7",
         "call": 1
       }
     ],
     "preSteps": [
       {
-        "agent": "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8",
+        "agent": "omc-native-probe-nested-846b0c51-0ceb-4783-b871-3abd97a51f2e",
         "turn": 1,
         "decision": "reject"
       }
     ],
     "hostVersion": "0.2.1-rc.5",
     "events": {
-      "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221": [
+      "omc-native-probe-parent-4aefec2b-b6bf-4c7c-b04d-7f121f672b4c": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -158,7 +158,7 @@
           "reason": "error"
         }
       ],
-      "omc-native-probe-child-1e40088d-46a3-4c75-96f1-acbf745c91cd": [
+      "omc-native-probe-child-4f32d9c7-d03d-49bd-a464-8a1f0d2f642b": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -261,7 +261,7 @@
           "reason": "completed"
         }
       ],
-      "omc-native-probe-nested-9258a63d-046c-4ad7-9e1b-9e1fb9272af8": [
+      "omc-native-probe-nested-846b0c51-0ceb-4783-b871-3abd97a51f2e": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -388,7 +388,7 @@
           "reason": "completed"
         }
       ],
-      "omc-native-probe-budget-d4f8bc0e-1c60-4193-91d1-77f358c7361d": [
+      "omc-native-probe-budget-78604b59-25c1-4632-b825-8bc58e53a968": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -527,7 +527,7 @@
           "reason": "error"
         }
       ],
-      "omc-native-probe-managed-0a93b409-4bf7-42a6-acc9-8c2b66b64c00": [
+      "omc-native-probe-managed-982f0a29-d78e-4fe8-ad4c-e5f98fecfa0c": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -547,7 +547,7 @@
           "reason": null
         }
       ],
-      "omc-native-probe-managed-child-ccb7f760-1503-4db8-871f-0bff2a5975d2": [
+      "omc-native-probe-managed-child-30b66273-09cf-436d-bdd6-cfefe41497f7": [
         {
           "type": "permission/preset",
           "seq": 0,
@@ -691,7 +691,7 @@
         "autoRoots": 0,
         "handlerErrors": 0,
         "replayRuns": 3,
-        "lastEventAt": "2026-11-03T14:31:41.954Z"
+        "lastEventAt": "2026-11-04T07:48:15.511Z"
       }
     }
   },
@@ -711,7 +711,7 @@
     "sessions": 3,
     "bindings": 3,
     "parents": [
-      "omc-native-probe-parent-feaf2b74-c3df-4778-afc7-35240b9ba221"
+      "omc-native-probe-parent-4aefec2b-b6bf-4c7c-b04d-7f121f672b4c"
     ],
     "roles": {
       "orchestrator": 1,
@@ -729,9 +729,9 @@
       "autoRoots": 1,
       "handlerErrors": 0,
       "replayRuns": 0,
-      "lastEventAt": "2026-11-03T14:31:41.947Z"
+      "lastEventAt": "2026-11-04T07:48:15.503Z"
     },
-    "lastEventAt": "2026-11-03T14:31:41.947Z"
+    "lastEventAt": "2026-11-04T07:48:15.503Z"
   },
   "budgetGate": {
     "parent": "probe-budget-parent",
@@ -763,7 +763,7 @@
       "hard": true,
       "checkpoint": {
         "action": "stop-partial",
-        "at": "2026-11-03T14:31:42.021Z",
+        "at": "2026-11-04T07:48:16.733Z",
         "reasons": [
           "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
         ],
@@ -782,7 +782,7 @@
     },
     "checkpoint": {
       "action": "stop-partial",
-      "at": "2026-11-03T14:31:42.021Z",
+      "at": "2026-11-04T07:48:16.733Z",
       "reasons": [
         "call budget: 0 booked + 1 in flight + 1 would exceed maxCalls=1"
       ],
@@ -850,7 +850,7 @@
     },
     "nativeManagedClosureViaTool": {
       "pass": true,
-      "detail": "bind=true; pending=pending; delivered=true; node=completed; boundNative=1"
+      "detail": "bind=true; baseline=accbase:1740c54668b462656b006e33; pending=pending; delivered=true; verdict=passed; verdictBaseline=accbase:1740c54668b462656b006e33; node=completed; nodeAcceptance=passed; boundNative=1"
     }
   },
   "limits": [

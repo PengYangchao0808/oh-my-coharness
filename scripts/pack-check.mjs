@@ -18,6 +18,11 @@ const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 const problems = []
 const collected = new Set()
 
+// 0.X is an internal foundation line: it must never be publishable. A missing
+// `private: true` is how an accidental `npm publish` would happen, so it is part
+// of the packaging contract, not a style preference.
+if (pkg.private !== true) problems.push('package.json must set "private": true (0.X must never be published)')
+
 const toPosix = (value) => value.split(sep).join('/')
 
 async function walk(dir) {
@@ -113,6 +118,7 @@ const required = [
   'src/skills.js',
   'src/config.js',
   'src/ids.js',
+  'scripts/strategy-runner.mjs',
   'integration/compatibility.js',
   'integration/execution.js',
   'integration/external-brief.js',
@@ -120,6 +126,7 @@ const required = [
   'integration/status.js',
   'vendor/omd/LICENSE',
   'vendor/omd/UPSTREAM.json',
+  'vendor/omd/PATCHES.md',
   'vendor/omd/npm-package/preset/preset.js',
   'vendor/omd/npm-package/preset/roles.js',
   'vendor/omd/npm-package/preset/config.js',
@@ -142,6 +149,15 @@ for (const entry of entries) {
   if (!collected.has(clean)) problems.push(`export target not shipped: ${entry}`)
 }
 
+// Repository-only trees must never ship. `files` deliberately lists `docs`, so a
+// stray docs/archive directory would otherwise ride into the tarball; `.github`
+// and `.ops` are CI/local state; node_modules and tarballs are build residue.
+const forbidden = [...collected].filter(
+  (file) =>
+    /^(?:\.github|\.ops|node_modules|docs\/archive)(?:\/|$)/.test(file) || /\.tgz$/i.test(file),
+)
+for (const file of forbidden) problems.push(`forbidden path would ship: ${file}`)
+
 const files = [...collected].sort()
 let bytes = 0
 for (const file of files) bytes += (await stat(join(root, file))).size
@@ -158,7 +174,8 @@ if (problems.length) {
   process.exit(1)
 }
 
-console.log(`pack check ok: ${pkg.name}@${pkg.version}`)
+console.log(`pack check ok: ${pkg.name}@${pkg.version}${pkg.private === true ? ' (private)' : ''}`)
 console.log(`  files: ${files.length} · ${(bytes / 1024).toFixed(1)} KiB unpacked`)
 console.log(`  groups: ${[...byTop].map(([top, n]) => `${top}(${n})`).join(' ')}`)
+console.log('  contract: vendored licence/provenance shipped; no docs/archive, .github, .ops, node_modules or .tgz')
 for (const file of files) console.log(`    ${file}`)

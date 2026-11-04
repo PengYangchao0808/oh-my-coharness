@@ -1,23 +1,104 @@
 {
-  "taskId": "should-restart-stale-api",
-  "kind": "should-restart",
-  "split": "development",
-  "family": "api-migration",
-  "goal": "Migrate a caller that still uses the removed synchronous settings loader to the current async contract, without resurrecting the old API.",
-  "commands": [
-    {
-      "name": "behaviour",
-      "run": ["node", "acceptance/check.mjs"],
-      "expect": { "exitCode": 0, "stdoutContains": ["ok 5/5"], "stdoutNotContains": ["fail "] }
-    }
-  ],
-  "acceptanceFiles": ["acceptance/check.mjs", "spec.json"],
-  "forbidChanges": ["acceptance/", "spec.json"],
-  "writeScope": ["src/"],
-  "rubric": [
-    "the caller works against the async loader that exists today",
-    "the removed synchronous name does not survive anywhere in src/",
-    "defaults still apply when the file is missing",
-    "the fix is a migration, not a reimplementation of the loader"
-  ]
+    "taskId": "should-restart-stale-api",
+    "kind": "should-restart",
+    "split": "development",
+    "family": "api-migration",
+    "goal": "Migrate a caller that still uses the removed synchronous settings loader to the current async contract, without resurrecting the old API.",
+    "commands": [
+        {
+            "name": "behaviour",
+            "run": [
+                "node",
+                "acceptance/check.mjs"
+            ],
+            "expect": {
+                "exitCode": 0,
+                "stdoutContains": [
+                    "ok 5/5"
+                ],
+                "stdoutNotContains": [
+                    "fail "
+                ]
+            }
+        }
+    ],
+    "acceptanceFiles": [
+        "acceptance/check.mjs",
+        "spec.json"
+    ],
+    "forbidChanges": [
+        "acceptance/",
+        "spec.json"
+    ],
+    "writeScope": [
+        "src/"
+    ],
+    "rubric": [
+        "the caller works against the async loader that exists today",
+        "the removed synchronous name does not survive anywhere in src/",
+        "defaults still apply when the file is missing",
+        "the fix is a migration, not a reimplementation of the loader"
+    ],
+    "provenance": {
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "taskId": "should-restart-stale-api",
+        "authoredBy": "OMC",
+        "license": {
+            "spdx": "MIT",
+            "path": "LICENSE",
+            "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "verifiedOn": {
+            "at": "2026-11-04T05:10:07Z",
+            "node": "24.21.0",
+            "python": "3.12.14"
+        },
+        "note": "OMC-authored local task: there is no upstream dataset, no upstream commit and no upstream digest for this fixture. baseCommit is the OMC checkout HEAD at the time the fixture was registered; localDigests are computed from the fixture files on disk.",
+        "upstreamDigests": {},
+        "localDigests": {
+            "start/src/config.mjs": "60e2e75f65c053665b8c2a00ae93676f7875ac86df1832a8ecf5bcd2c594dfec",
+            "start/src/read-settings.mjs": "8e324a83579bd0109cc092ccd00dfa20a4862e33d35dfcce96ae6bf019786b06",
+            "reference/src/read-settings.mjs": "cea3862e1588523dd224faf1dcc5a782a5e95e18a3d2fba664dbbcd67709b711",
+            "acceptance/check.mjs": "85ba2b90af07443b0ee36d1cd8f1e1acbdbaa494d4e9294de2d4e91e1b5710ac"
+        },
+        "grading": {
+            "method": "external-node-check",
+            "argv": [
+                "node",
+                "acceptance/check.mjs"
+            ],
+            "sha256": "85ba2b90af07443b0ee36d1cd8f1e1acbdbaa494d4e9294de2d4e91e1b5710ac",
+            "frozenFile": "acceptance/check.mjs",
+            "officialScore": "functional-pass-fail"
+        },
+        "startState": {
+            "origin": "omc-authored",
+            "path": "start/"
+        },
+        "reference": {
+            "origin": "omc-authored",
+            "path": "reference/src/read-settings.mjs"
+        },
+        "status": "verified",
+        "quarantined": []
+    },
+    "reference": "reference/src/read-settings.mjs",
+    "startState": {
+        "from": "start/",
+        "knownFailure": "node acceptance/check.mjs exits 1 on the unmodified start state (verified both ways by test/integration/benchmark-tasks.test.mjs).",
+        "origin": "omc-authored"
+    },
+    "chain": [
+        {
+            "id": "detect-removed-sync-loader",
+            "goal": "Run the suite against start/ and confirm the synchronous settings loader no longer exists."
+        },
+        {
+            "id": "migrate-caller-to-async",
+            "goal": "Rewrite only the caller against the current async loader; do not resurrect the removed name."
+        }
+    ]
 }

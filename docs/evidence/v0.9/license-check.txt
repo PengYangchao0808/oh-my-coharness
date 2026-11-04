@@ -1,0 +1,16 @@
+﻿license check result: E:\Calculations\Plugins\Oh-My-CoHarness\docs\evidence\v0.9\license-check.json
+license check (E:/Calculations/Plugins/Oh-My-CoHarness)
+  ok   upstream-json — vendor/omd/UPSTREAM.json parses
+  ok   upstream-pin — pinned oh-my-dsh-slim@0.8.6 at 537d4c7f5dc316c449de4ccfff8ab15d15901fa6
+  ok   upstream-path — vendor/omd exists
+  ok   patches-exists — vendor/omd/PATCHES.md exists
+  ok   patches-pin — PATCHES.md names the pinned commit 537d4c7f5dc316c449de4ccfff8ab15d15901fa6
+  ok   patches-paths — PATCHES.md names 22 existing repository paths
+  ok   omd-license — vendor/omd/LICENSE carries the MIT grant and the OMD copyright
+  ok   notices — THIRD_PARTY_NOTICES.md carries OMD and OMO attribution and the MIT grant
+  ok   root-license — root LICENSE is MIT and keeps the vendored-code attribution
+  ok   package-files — package.json files cover the vendored licence/provenance documents
+  note: bare name(s) not treated as repository paths: oh-my-coharness.json
+  note: offline check: no network access; a branch or HEAD is never accepted as the upstream pin
+  note: static import reachability is not analysed; Cordis registers plugins dynamically through the host loader
+license check ok: pinned upstream, patch paths, attribution and packaged licence files are intact

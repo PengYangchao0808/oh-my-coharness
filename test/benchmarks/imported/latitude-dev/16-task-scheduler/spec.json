@@ -1,0 +1,142 @@
+{
+  "taskId": "upstream-latitude-16-task-scheduler",
+  "kind": "upstream-single-agent",
+  "split": "development",
+  "family": "latitude-task-scheduler",
+  "goal": "Fix the scheduler ordering in src/order.js so a newly ready high-priority task runs as soon as its dependency finishes, and the frozen upstream suite passes.",
+  "startState": {
+    "from": "start/",
+    "knownFailure": "node --test --test-reporter=tap exits 1 because the unmodified upstream start workspace runs low-priority tasks before a newly unblocked high-priority one.",
+    "origin": "upstream-workspace"
+  },
+  "reference": "reference/src/order.js",
+  "writeScope": [
+    "src/"
+  ],
+  "commands": [
+    {
+      "name": "upstream-suite",
+      "run": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "# pass 11",
+          "# fail 0"
+        ],
+        "stdoutNotContains": [
+          "not ok"
+        ]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "scheduler.test.js",
+    "package.json"
+  ],
+  "forbidChanges": [
+    "scheduler.test.js",
+    "package.json"
+  ],
+  "rubric": [
+    "The frozen upstream suite (scheduler.test.js) passes unmodified: # pass 11, # fail 0.",
+    "Only files under src/ differ from the upstream start workspace.",
+    "The worker may add tests but may not weaken or edit the frozen upstream test file.",
+    "The fix addresses the reported bug instead of rewriting the module from scratch."
+  ],
+  "provenance": {
+    "dataset": "latitude-dev/coding-agent-benchmark",
+    "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+    "taskId": "16-task-scheduler",
+    "upstreamTaskPath": "tasks/16-task-scheduler",
+    "license": {
+      "spdx": "MIT",
+      "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+      "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+    },
+    "importedAt": "2026-11-04T05:10:07Z",
+    "verifiedOn": {
+      "at": "2026-11-04T05:10:07Z",
+      "node": "24.21.0",
+      "python": "3.12.14"
+    },
+    "runtime": {
+      "node": ">=24",
+      "note": "upstream package.json engines.node is >=24; the repo harness uses Node type stripping"
+    },
+    "upstreamDigests": {
+      "tasks/16-task-scheduler/prompt.md": {
+        "sha256": "c79fa0b073ed2343cdae784143592198d0317bef6e4f4dfe4993ba3ef4d8cbea",
+        "gitBlobSha1": "21576757898897750cc7ddf6858b4dedb1784be9",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/prompt.md"
+      },
+      "tasks/16-task-scheduler/solution/src/order.js": {
+        "sha256": "5a067b397c6ef7f8235bbc82c7e117fd41ef5761247f9d5b7a66b34452f51292",
+        "gitBlobSha1": "becba18c3e5da2a93a1ac6b07afa4cf0b906a61f",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/solution/src/order.js"
+      },
+      "tasks/16-task-scheduler/workspace/package.json": {
+        "sha256": "7dbae9208116e1c9d04b73fb3a13dcc45e191dc296aa6ba27491200b102a8311",
+        "gitBlobSha1": "723800c04afd24ff50b92e1f4e96d1b586f6d8e8",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/package.json"
+      },
+      "tasks/16-task-scheduler/workspace/scheduler.test.js": {
+        "sha256": "ed98b935153a5d0278835b977dab97e17b4afbad8e18c8235c4cacadbd956ca5",
+        "gitBlobSha1": "9a7676da362b116c8a3c3ba5c8a4426e9d25fb04",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/scheduler.test.js"
+      },
+      "tasks/16-task-scheduler/workspace/src/graph.js": {
+        "sha256": "9cef2665394c27b7b2156ba37979e9f2ff15464b419e100b7a87f0e4a99f038d",
+        "gitBlobSha1": "db9804072edf24a8e4700078d1935d8e726f1368",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/src/graph.js"
+      },
+      "tasks/16-task-scheduler/workspace/src/order.js": {
+        "sha256": "a5aad9fffb7c3ee16844eda73dad9e339a3179a8276b58b133e5e77b18038a4d",
+        "gitBlobSha1": "3fb7501441414d1fffcf1288c035b5f9194790d5",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/src/order.js"
+      },
+      "tasks/16-task-scheduler/workspace/src/runner.js": {
+        "sha256": "cf2010df9ca93ef7a366c60c566cc71a31dec118c97aa287077dbe11f1c8f0df",
+        "gitBlobSha1": "652bc3573902b1daa1d540b005c30120139019e2",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/src/runner.js"
+      }
+    },
+    "fixtureDigests": {
+      "acceptance/scheduler.test.js": "ed98b935153a5d0278835b977dab97e17b4afbad8e18c8235c4cacadbd956ca5",
+      "reference/src/order.js": "5a067b397c6ef7f8235bbc82c7e117fd41ef5761247f9d5b7a66b34452f51292",
+      "start/package.json": "7dbae9208116e1c9d04b73fb3a13dcc45e191dc296aa6ba27491200b102a8311",
+      "start/scheduler.test.js": "ed98b935153a5d0278835b977dab97e17b4afbad8e18c8235c4cacadbd956ca5",
+      "start/src/graph.js": "9cef2665394c27b7b2156ba37979e9f2ff15464b419e100b7a87f0e4a99f038d",
+      "start/src/order.js": "a5aad9fffb7c3ee16844eda73dad9e339a3179a8276b58b133e5e77b18038a4d",
+      "start/src/runner.js": "cf2010df9ca93ef7a366c60c566cc71a31dec118c97aa287077dbe11f1c8f0df"
+    },
+    "grading": {
+      "method": "node-test-pristine-restore",
+      "argv": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "sha256": "ed98b935153a5d0278835b977dab97e17b4afbad8e18c8235c4cacadbd956ca5",
+      "frozenFile": "acceptance/scheduler.test.js",
+      "workdirFile": "scheduler.test.js",
+      "note": "upstream restores pristine test files before scoring; OMC materialises start/ then restores acceptance/<test> over it and digests it before/after the run",
+      "officialScore": "functional-pass-fail"
+    },
+    "startState": {
+      "origin": "upstream-workspace",
+      "upstreamPath": "tasks/16-task-scheduler/workspace"
+    },
+    "reference": {
+      "origin": "upstream-solution",
+      "upstreamPath": "tasks/16-task-scheduler/solution/src/order.js",
+      "sha256": "5a067b397c6ef7f8235bbc82c7e117fd41ef5761247f9d5b7a66b34452f51292"
+    },
+    "status": "verified",
+    "quarantined": []
+  }
+}

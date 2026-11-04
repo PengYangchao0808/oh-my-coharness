@@ -1,0 +1,140 @@
+{
+  "taskId": "upstream-sipratt-08-orchestrator",
+  "kind": "upstream-collaboration",
+  "split": "development",
+  "family": "sipratt-orchestrator",
+  "goal": "Implement the upstream async DAG Orchestrator (real concurrency, failure->skip, per-task timeout cancellation, cycle/unknown-dep/duplicate validation) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
+  "startState": {
+    "from": "start/",
+    "knownFailure": "python acceptance/check.py exits 1: the OMC-authored stub does not implement the upstream contract.",
+    "origin": "omc-authored-stub"
+  },
+  "reference": "reference/solution.py",
+  "writeScope": [
+    "solution.py"
+  ],
+  "commands": [
+    {
+      "name": "upstream-hidden-tests",
+      "run": [
+        "python",
+        "acceptance/check.py"
+      ],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "ok 5/5"
+        ],
+        "stdoutNotContains": [
+          "fail "
+        ]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "acceptance/check.py",
+    "acceptance/hidden-test.py"
+  ],
+  "forbidChanges": [
+    "acceptance/"
+  ],
+  "rubric": [
+    "The frozen upstream hidden test program prints ALL_TESTS_PASSED and every graded group (basic_dag, true_concurrency, failure_skip, timeout_cancel, validation) is ok.",
+    "Only solution.py differs from the start state.",
+    "The upstream hidden test program is not edited; it is digested before and after the run.",
+    "The implementation uses the Python standard library only, as the upstream prompt requires."
+  ],
+  "provenance": {
+    "dataset": "sipratt-p/coding-agent-bench",
+    "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+    "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+    "taskId": "08-orchestrator",
+    "upstreamTaskPath": "bench/coding_benchmark_v4.py",
+    "upstreamTaskName": "Async DAG Orchestrator (cancellation semantics)",
+    "license": {
+      "spdx": "MIT",
+      "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+      "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+    },
+    "importedAt": "2026-11-04T05:10:07Z",
+    "verifiedOn": {
+      "at": "2026-11-04T05:10:07Z",
+      "node": "24.21.0",
+      "python": "3.12.14"
+    },
+    "runtime": {
+      "python": ">=3.10",
+      "note": "the upstream suite is pure stdlib; verified locally on Python 3.12"
+    },
+    "upstreamDigests": {
+      "tasks/refs/ref_orchestrator.py": {
+        "sha256": "ea3eb5a7be5bda6f44d7b3d100cc7f81ce2512d5350c6029a5cc21246f5a29a9",
+        "gitBlobSha1": "01b45846e84e0bc4fe3b7a880e087be6ce072d67",
+        "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/tasks/refs/ref_orchestrator.py"
+      },
+      "LICENSE": {
+        "sha256": "2da3a4df66a91c8db98b349d9d74fe662c4237f0e88802d16dfad6820f52729d",
+        "gitBlobSha1": "0c28cc31baf7a3499bd2cbf23ac4a8c2cc20f930",
+        "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE"
+      },
+      "bench/coding_benchmark_v4.py": {
+        "sha256": "b356ed42369e4eaf8233bd22f64bf828bfdc839f28cacb41d9b1021fa19a74a9",
+        "gitBlobSha1": "d60599e74937e929bd70a2cec1f37b8c83adc710",
+        "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/bench/coding_benchmark_v4.py"
+      }
+    },
+    "fixtureDigests": {
+      "acceptance/check.py": "6c40ea4eb4cbe2dd8973a3aea149260260e9b71e2b336fd487da7d286645c5cd",
+      "acceptance/hidden-test.py": "8bbbeef3ece89797e59a70d960907709a44b7b33ed88718fb0c1faa2d1612db3",
+      "reference/solution.py": "ea3eb5a7be5bda6f44d7b3d100cc7f81ce2512d5350c6029a5cc21246f5a29a9",
+      "start/solution.py": "d5fbba7bd3d72b91c59d8cb13e5593449d26fd3875dfc33b170ecaf292cfd4db"
+    },
+    "grading": {
+      "method": "python-hidden-test-concatenation",
+      "argv": [
+        "python",
+        "acceptance/check.py"
+      ],
+      "sha256": "8bbbeef3ece89797e59a70d960907709a44b7b33ed88718fb0c1faa2d1612db3",
+      "frozenFile": "acceptance/hidden-test.py",
+      "upstreamModule": "bench/coding_benchmark_v4.py",
+      "upstreamModuleSha256": "b356ed42369e4eaf8233bd22f64bf828bfdc839f28cacb41d9b1021fa19a74a9",
+      "extraction": "ORCH_TASK[\"test_code\"] raw string literal, byte-extracted from the frozen module",
+      "testCodeMarker": "ORCH_TASK = {",
+      "wrapperSha256": "6c40ea4eb4cbe2dd8973a3aea149260260e9b71e2b336fd487da7d286645c5cd",
+      "groups": [
+        "basic_dag",
+        "true_concurrency",
+        "failure_skip",
+        "timeout_cancel",
+        "validation"
+      ],
+      "officialScore": "unknown",
+      "partialCredit": "not-reproduced",
+      "codeQuality": "unknown",
+      "note": "upstream grants 15-25 points from a code_quality text heuristic and maps test groups to criteria for partial credit; this wrapper asserts only that every functional group passed, so the official 0-100 score is not claimed and the quarantined components are excluded from benchmark results"
+    },
+    "startState": {
+      "origin": "omc-authored-stub",
+      "upstreamPath": null,
+      "note": "the upstream dataset ships prompt + hidden tests + reference solution but no start workspace; this stub is OMC-authored and is not an upstream artifact",
+      "sha256": "d5fbba7bd3d72b91c59d8cb13e5593449d26fd3875dfc33b170ecaf292cfd4db"
+    },
+    "reference": {
+      "origin": "upstream-solution",
+      "upstreamPath": "tasks/refs/ref_orchestrator.py",
+      "sha256": "ea3eb5a7be5bda6f44d7b3d100cc7f81ce2512d5350c6029a5cc21246f5a29a9"
+    },
+    "status": "verified-functional",
+    "quarantined": [
+      {
+        "component": "code_quality",
+        "reason": "upstream code_quality is a 15-25 point text heuristic (score_result) not reproduced here; excluded from benchmark results"
+      },
+      {
+        "component": "official_score",
+        "reason": "partial-credit group mapping and the 0-100 official score are not reproduced; only the all-functional-groups pass/fail is verified"
+      }
+    ]
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "taskId": "upstream-latitude-04-rate-limiter",
+  "kind": "upstream-single-agent",
+  "split": "development",
+  "family": "latitude-rate-limiter",
+  "goal": "Fix the sliding-window rate limiter in src/rate-limiter.js so that a request at exactly timestampMs - windowMs no longer occupies a slot and the frozen upstream suite passes.",
+  "startState": {
+    "from": "start/",
+    "knownFailure": "node --test --test-reporter=tap exits 1 because the unmodified upstream start workspace rejects the window-edge request.",
+    "origin": "upstream-workspace"
+  },
+  "reference": "reference/src/rate-limiter.js",
+  "writeScope": [
+    "src/"
+  ],
+  "commands": [
+    {
+      "name": "upstream-suite",
+      "run": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "# pass 7",
+          "# fail 0"
+        ],
+        "stdoutNotContains": [
+          "not ok"
+        ]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "rate-limiter.test.js",
+    "package.json"
+  ],
+  "forbidChanges": [
+    "rate-limiter.test.js",
+    "package.json"
+  ],
+  "rubric": [
+    "The frozen upstream suite (rate-limiter.test.js) passes unmodified: # pass 7, # fail 0.",
+    "Only files under src/ differ from the upstream start workspace.",
+    "The worker may add tests but may not weaken or edit the frozen upstream test file.",
+    "The fix addresses the reported bug instead of rewriting the module from scratch."
+  ],
+  "provenance": {
+    "dataset": "latitude-dev/coding-agent-benchmark",
+    "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+    "taskId": "04-rate-limiter",
+    "upstreamTaskPath": "tasks/04-rate-limiter",
+    "license": {
+      "spdx": "MIT",
+      "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+      "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+    },
+    "importedAt": "2026-11-04T05:10:07Z",
+    "verifiedOn": {
+      "at": "2026-11-04T05:10:07Z",
+      "node": "24.21.0",
+      "python": "3.12.14"
+    },
+    "runtime": {
+      "node": ">=24",
+      "note": "upstream package.json engines.node is >=24; the repo harness uses Node type stripping"
+    },
+    "upstreamDigests": {
+      "tasks/04-rate-limiter/prompt.md": {
+        "sha256": "8ef0627f922d066023cbe5fc564389037bcc74f4023b1b35e69de1b7dd179ef4",
+        "gitBlobSha1": "b620aa2643b6507aa98b197b8e3ba1644994e123",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/prompt.md"
+      },
+      "tasks/04-rate-limiter/solution/src/rate-limiter.js": {
+        "sha256": "8e549e63d0a9c1a06efd11673efa1a6c21af914b42025a79b993fa1e1a70696d",
+        "gitBlobSha1": "25627de34725dd9dd0ea95c000edf423c495d53a",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/solution/src/rate-limiter.js"
+      },
+      "tasks/04-rate-limiter/workspace/package.json": {
+        "sha256": "e4f28d99a20aa8feb0dafb17127ca6591cb93b9aa1b79a2d04679331e173e7f9",
+        "gitBlobSha1": "20dcb2f45b7a313b5c1bb3f7096c3ba311cc3533",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/workspace/package.json"
+      },
+      "tasks/04-rate-limiter/workspace/rate-limiter.test.js": {
+        "sha256": "05bdb43861fbcb28869beed9d039318173e7fa0ec288cf80d3a3138f560c0c5d",
+        "gitBlobSha1": "4368c59d765c79c6669c54be303483b77e1d5a6e",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/workspace/rate-limiter.test.js"
+      },
+      "tasks/04-rate-limiter/workspace/src/rate-limiter.js": {
+        "sha256": "1fadb89dbc8db8356dc927a31e85ed875d9f88ec12e2167724e3fddaf5008c6a",
+        "gitBlobSha1": "0e52646402a16f0e1b23abd6738be2a7a7f33417",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+      }
+    },
+    "fixtureDigests": {
+      "acceptance/rate-limiter.test.js": "05bdb43861fbcb28869beed9d039318173e7fa0ec288cf80d3a3138f560c0c5d",
+      "reference/src/rate-limiter.js": "8e549e63d0a9c1a06efd11673efa1a6c21af914b42025a79b993fa1e1a70696d",
+      "start/package.json": "e4f28d99a20aa8feb0dafb17127ca6591cb93b9aa1b79a2d04679331e173e7f9",
+      "start/rate-limiter.test.js": "05bdb43861fbcb28869beed9d039318173e7fa0ec288cf80d3a3138f560c0c5d",
+      "start/src/rate-limiter.js": "1fadb89dbc8db8356dc927a31e85ed875d9f88ec12e2167724e3fddaf5008c6a"
+    },
+    "grading": {
+      "method": "node-test-pristine-restore",
+      "argv": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "sha256": "05bdb43861fbcb28869beed9d039318173e7fa0ec288cf80d3a3138f560c0c5d",
+      "frozenFile": "acceptance/rate-limiter.test.js",
+      "workdirFile": "rate-limiter.test.js",
+      "note": "upstream restores pristine test files before scoring; OMC materialises start/ then restores acceptance/<test> over it and digests it before/after the run",
+      "officialScore": "functional-pass-fail"
+    },
+    "startState": {
+      "origin": "upstream-workspace",
+      "upstreamPath": "tasks/04-rate-limiter/workspace"
+    },
+    "reference": {
+      "origin": "upstream-solution",
+      "upstreamPath": "tasks/04-rate-limiter/solution/src/rate-limiter.js",
+      "sha256": "8e549e63d0a9c1a06efd11673efa1a6c21af914b42025a79b993fa1e1a70696d"
+    },
+    "status": "verified",
+    "quarantined": []
+  }
+}

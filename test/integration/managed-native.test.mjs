@@ -20,21 +20,64 @@ import { createExecutionStore } from '../../integration/execution-events.js'
 import { createUsageLedger } from '../../integration/usage-ledger.js'
 import { createNativeRuntime } from '../../integration/native-runtime.js'
 import { createNativeManaged } from '../../integration/native-managed.js'
+import { createAcceptanceAuthority } from '../../integration/acceptance-verdict.js'
 
 const PARENT = 'parent-r03'
+
+/** A deterministic judge: no external process, same shape as the real runner. */
+function fakeRunner({ passed = true } = {}) {
+  return {
+    async baseline() {
+      return { fingerprint: 'tree-baseline', acceptanceDigest: 'acc-baseline', files: {}, acceptanceFiles: {}, at: new Date().toISOString() }
+    },
+    async run() {
+      return {
+        passed,
+        fingerprint: 'tree-baseline',
+        acceptanceDigest: 'acc-baseline',
+        checks: [{ name: 'ok', passed }],
+        problems: passed ? [] : ['the check failed'],
+        reason: passed ? null : 'OMC/ACCEPTANCE-CHECK: the check failed',
+        at: new Date().toISOString(),
+      }
+    },
+    verifyDelivered() { return { passed: true, problems: [] } },
+  }
+}
+
+function gradedSpec() {
+  return {
+    taskId: 'graded-task',
+    split: 'development',
+    commands: [{ name: 'ok', run: ['node', '-e', '0'], expect: { exitCode: 0 } }],
+    acceptanceFiles: [],
+    forbidChanges: [],
+  }
+}
 
 function fixture() {
   const graph = createGraphStore()
   const executionStore = createExecutionStore()
   const usageLedger = createUsageLedger()
   const native = createNativeRuntime({ usageLedger, executionStore })
-  const managed = createNativeManaged({ graph, native, executionStore })
+  const acceptance = createAcceptanceAuthority({ executionStore })
+  const managed = createNativeManaged({ graph, native, executionStore, acceptance })
   graph.plan(PARENT, [
-    { id: 'explore', roleId: 'explorer', write: false, deps: [], acceptance: ['files located'] },
-    { id: 'fix', roleId: 'fixer', write: true, writeScope: ['src/'], deps: ['explore'], acceptance: ['tests pass'] },
-    { id: 'review', roleId: 'oracle', write: false, deps: ['fix'], acceptance: ['no regression'] },
+    { id: 'explore', roleId: 'explorer', write: false, deps: [], acceptance: ['files located'], acceptanceSpec: gradedSpec() },
+    { id: 'fix', roleId: 'fixer', write: true, writeScope: ['src/'], deps: ['explore'], acceptance: ['tests pass'], acceptanceSpec: gradedSpec() },
+    { id: 'review', roleId: 'oracle', write: false, deps: ['fix'], acceptance: ['no regression'], acceptanceSpec: gradedSpec() },
   ])
-  return { graph, executionStore, usageLedger, native, managed }
+  return { graph, executionStore, usageLedger, native, managed, acceptance }
+}
+
+/** Bind a graded node and wait for its pre-dispatch baseline to be frozen. */
+async function bindGraded(managed, { nodeId = 'explore', sessionId = 's-explore', role = 'explorer', runner = fakeRunner() } = {}) {
+  const bound = managed.bind({
+    parentId: PARENT, nodeId, sessionId, role,
+    acceptanceSpec: gradedSpec(), runner,
+  })
+  if (bound.acceptanceReady) await bound.acceptanceReady
+  return bound
 }
 
 /** Drive one native turn that succeeds, exactly as the host would persist it. */
@@ -68,33 +111,42 @@ test('R03: bind claims the node and records the owning child', () => {
   assert.equal(again.taskId, bound.taskId)
 })
 
-test('R03: execution completion alone does not deliver; evidence unlocks dependants', () => {
-  const { graph, native, managed } = fixture()
-  const bound = managed.bind({ parentId: PARENT, nodeId: 'explore', sessionId: 's-explore', role: 'explorer' })
-  completedTurn(native, 's-explore')
-
-  const pending = managed.settle({ parentId: PARENT, nodeId: 'explore' })
+test('R03: execution completion alone does not deliver; a trusted verdict unlocks dependants', async () => {
+  // (a) A completed execution with no frozen baseline and no trusted verdict
+  // stays pending even when the caller supplies evidence strings.
+  const noBaseline = fixture()
+  noBaseline.managed.bind({ parentId: PARENT, nodeId: 'explore', sessionId: 's-explore', role: 'explorer' })
+  completedTurn(noBaseline.native, 's-explore')
+  const pending = await noBaseline.managed.settle({
+    parentId: PARENT, nodeId: 'explore', evidence: ['src/usage-ledger.js located'],
+  })
   assert.equal(pending.execution, 'completed')
   assert.equal(pending.acceptance, 'pending')
   assert.equal(pending.delivered, false)
-  const stillRunning = graph.status(PARENT).nodes.find((row) => row.id === 'explore')
-  assert.equal(stillRunning.state, 'running', 'no evidence means the node stays claimed')
-  assert.equal(graph.status(PARENT).ready.length, 0, 'dependants stay locked')
+  assert.equal(noBaseline.graph.status(PARENT).nodes.find((row) => row.id === 'explore').state, 'running')
+  assert.equal(noBaseline.graph.status(PARENT).ready.length, 0, 'dependants stay locked')
 
-  const delivered = managed.settle({ parentId: PARENT, nodeId: 'explore', evidence: ['src/usage-ledger.js located'] })
+  // (b) A baseline frozen before the first turn plus the same judge path
+  // produces the verdict; only then does the node complete.
+  const graded = fixture()
+  const bound = await bindGraded(graded.managed)
+  completedTurn(graded.native, 's-explore')
+  const delivered = await graded.managed.settle({ parentId: PARENT, nodeId: 'explore', runner: fakeRunner() })
   assert.equal(delivered.acceptance, 'passed')
   assert.equal(delivered.delivered, true)
-  const status = graph.status(PARENT)
+  const status = graded.graph.status(PARENT)
   assert.equal(status.nodes.find((row) => row.id === 'explore').state, 'completed')
+  assert.equal(status.nodes.find((row) => row.id === 'explore').acceptanceState, 'passed')
+  assert.equal(status.nodes.find((row) => row.id === 'explore').acceptanceAttemptId !== null, true)
   assert.deepEqual(status.ready, ['fix'], 'the dependent becomes ready only now')
 
-  const view = managed.coverage(PARENT)
+  const view = graded.managed.coverage(PARENT)
   assert.equal(view.settled, 1)
   assert.match(view.note, /unmanaged/)
   assert.equal(bound.taskId, view.claims ?? bound.taskId)
 })
 
-test('R03: a failed execution releases the claim and never delivers', () => {
+test('R03: a failed execution releases the claim and never delivers', async () => {
   const { graph, native, managed } = fixture()
   managed.bind({ parentId: PARENT, nodeId: 'explore', sessionId: 's-explore', role: 'explorer' })
   const session = { id: 's-explore', header: { parentSession: 's-root' } }
@@ -102,7 +154,7 @@ test('R03: a failed execution releases the claim and never delivers', () => {
   native.observe(session, { type: 'assistant/attempt', seq: 2, data: { turn: 1, step: 1 } })
   native.observe(session, { type: 'turn/end', seq: 3, data: { turn: 1, reason: { kind: 'blocked' } } })
 
-  const result = managed.settle({ parentId: PARENT, nodeId: 'explore', evidence: ['ignored: execution failed'] })
+  const result = await managed.settle({ parentId: PARENT, nodeId: 'explore', evidence: ['ignored: execution failed'] })
   assert.equal(result.execution, 'failed')
   assert.equal(result.acceptance, 'failed')
   assert.equal(result.delivered, false)
@@ -110,14 +162,14 @@ test('R03: a failed execution releases the claim and never delivers', () => {
   assert.equal(node.state, 'failed')
 })
 
-test('R03: settle refuses a running task and a stale attempt', () => {
+test('R03: settle refuses a running task and a stale attempt', async () => {
   const { executionStore, managed } = fixture()
   managed.bind({ parentId: PARENT, nodeId: 'explore', sessionId: 's-explore', role: 'explorer' })
   // executionStore has no record yet for this task in this scenario: open one.
   const binding = managed.bind({ parentId: PARENT, nodeId: 'explore', sessionId: 's-explore' })
   executionStore.open({ taskId: binding.taskId, parentId: PARENT, backend: 'native' })
 
-  assert.throws(
+  await assert.rejects(
     () => managed.settle({ parentId: PARENT, nodeId: 'explore' }),
     /OMC\/NATIVE-MANAGED-RUNNING/,
   )
@@ -125,7 +177,7 @@ test('R03: settle refuses a running task and a stale attempt', () => {
   executionStore.settle(binding.taskId, null, { execution: 'completed' })
   const second = executionStore.retry(binding.taskId, { reason: 'retest' })
   assert.notEqual(second.currentAttemptId, binding.taskId + '#a1')
-  assert.throws(
+  await assert.rejects(
     () => managed.settle({ parentId: PARENT, nodeId: 'explore', attemptId: `${binding.taskId}#a1`, evidence: ['x'] }),
     /OMC\/NATIVE-MANAGED-STALE-ATTEMPT/,
   )

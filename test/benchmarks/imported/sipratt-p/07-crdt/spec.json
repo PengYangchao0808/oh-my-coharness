@@ -1,0 +1,140 @@
+{
+  "taskId": "upstream-sipratt-07-crdt",
+  "kind": "upstream-collaboration",
+  "split": "development",
+  "family": "sipratt-crdt",
+  "goal": "Implement the upstream CRDT Replica (RGA insert-after, tombstones, Lamport ids, out-of-order/duplicate delivery, deterministic concurrent order) so the frozen upstream hidden test program prints ALL_TESTS_PASSED.",
+  "startState": {
+    "from": "start/",
+    "knownFailure": "python acceptance/check.py exits 1: the OMC-authored stub does not implement the upstream contract.",
+    "origin": "omc-authored-stub"
+  },
+  "reference": "reference/solution.py",
+  "writeScope": [
+    "solution.py"
+  ],
+  "commands": [
+    {
+      "name": "upstream-hidden-tests",
+      "run": [
+        "python",
+        "acceptance/check.py"
+      ],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "ok 5/5"
+        ],
+        "stdoutNotContains": [
+          "fail "
+        ]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "acceptance/check.py",
+    "acceptance/hidden-test.py"
+  ],
+  "forbidChanges": [
+    "acceptance/"
+  ],
+  "rubric": [
+    "The frozen upstream hidden test program prints ALL_TESTS_PASSED and every graded group (basic, serializable, concurrent_order, out_of_order, convergence_fuzz) is ok.",
+    "Only solution.py differs from the start state.",
+    "The upstream hidden test program is not edited; it is digested before and after the run.",
+    "The implementation uses the Python standard library only, as the upstream prompt requires."
+  ],
+  "provenance": {
+    "dataset": "sipratt-p/coding-agent-bench",
+    "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+    "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+    "taskId": "07-crdt",
+    "upstreamTaskPath": "bench/coding_benchmark_v3.py",
+    "upstreamTaskName": "Convergent Replicated Text (CRDT)",
+    "license": {
+      "spdx": "MIT",
+      "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+      "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+    },
+    "importedAt": "2026-11-04T05:10:07Z",
+    "verifiedOn": {
+      "at": "2026-11-04T05:10:07Z",
+      "node": "24.21.0",
+      "python": "3.12.14"
+    },
+    "runtime": {
+      "python": ">=3.10",
+      "note": "the upstream suite is pure stdlib; verified locally on Python 3.12"
+    },
+    "upstreamDigests": {
+      "tasks/refs/ref_crdt.py": {
+        "sha256": "172f183974482872955d71220f799efa4dc77acd87c1cc87986501e6fca46376",
+        "gitBlobSha1": "37b059abb4a958f65ce21acf8a3bd7cff2750481",
+        "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/tasks/refs/ref_crdt.py"
+      },
+      "LICENSE": {
+        "sha256": "2da3a4df66a91c8db98b349d9d74fe662c4237f0e88802d16dfad6820f52729d",
+        "gitBlobSha1": "0c28cc31baf7a3499bd2cbf23ac4a8c2cc20f930",
+        "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE"
+      },
+      "bench/coding_benchmark_v3.py": {
+        "sha256": "2525a4def2080876e6d86c972eda999cbebeefba3772ebe63a7d114ae1896f10",
+        "gitBlobSha1": "94384c745a9d6b18549ff96ae5ac240644cacd75",
+        "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/bench/coding_benchmark_v3.py"
+      }
+    },
+    "fixtureDigests": {
+      "acceptance/check.py": "3e77eef851b0ebda87c8be4e3af54b4afb3d28e3da2ab7d7bde2ac91cf2186fa",
+      "acceptance/hidden-test.py": "2a2277a3e489a4014047390f7776837b6b617a912893f015de4ae11e1b12418d",
+      "reference/solution.py": "172f183974482872955d71220f799efa4dc77acd87c1cc87986501e6fca46376",
+      "start/solution.py": "81d3e494eb012c4df42e3fe18bb9fcfc6b7dbfbe9327f802da70d3ccd4b60a62"
+    },
+    "grading": {
+      "method": "python-hidden-test-concatenation",
+      "argv": [
+        "python",
+        "acceptance/check.py"
+      ],
+      "sha256": "2a2277a3e489a4014047390f7776837b6b617a912893f015de4ae11e1b12418d",
+      "frozenFile": "acceptance/hidden-test.py",
+      "upstreamModule": "bench/coding_benchmark_v3.py",
+      "upstreamModuleSha256": "2525a4def2080876e6d86c972eda999cbebeefba3772ebe63a7d114ae1896f10",
+      "extraction": "CRDT_TASK[\"test_code\"] raw string literal, byte-extracted from the frozen module",
+      "testCodeMarker": "CRDT_TASK = {",
+      "wrapperSha256": "3e77eef851b0ebda87c8be4e3af54b4afb3d28e3da2ab7d7bde2ac91cf2186fa",
+      "groups": [
+        "basic",
+        "serializable",
+        "concurrent_order",
+        "out_of_order",
+        "convergence_fuzz"
+      ],
+      "officialScore": "unknown",
+      "partialCredit": "not-reproduced",
+      "codeQuality": "unknown",
+      "note": "upstream grants 15-25 points from a code_quality text heuristic and maps test groups to criteria for partial credit; this wrapper asserts only that every functional group passed, so the official 0-100 score is not claimed and the quarantined components are excluded from benchmark results"
+    },
+    "startState": {
+      "origin": "omc-authored-stub",
+      "upstreamPath": null,
+      "note": "the upstream dataset ships prompt + hidden tests + reference solution but no start workspace; this stub is OMC-authored and is not an upstream artifact",
+      "sha256": "81d3e494eb012c4df42e3fe18bb9fcfc6b7dbfbe9327f802da70d3ccd4b60a62"
+    },
+    "reference": {
+      "origin": "upstream-solution",
+      "upstreamPath": "tasks/refs/ref_crdt.py",
+      "sha256": "172f183974482872955d71220f799efa4dc77acd87c1cc87986501e6fca46376"
+    },
+    "status": "verified-functional",
+    "quarantined": [
+      {
+        "component": "code_quality",
+        "reason": "upstream code_quality is a 15-25 point text heuristic (score_result) not reproduced here; excluded from benchmark results"
+      },
+      {
+        "component": "official_score",
+        "reason": "partial-credit group mapping and the 0-100 official score are not reproduced; only the all-functional-groups pass/fail is verified"
+      }
+    ]
+  }
+}

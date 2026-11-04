@@ -11,8 +11,10 @@
  * the one that was asked for 閳?and, when it had to degrade, why.
  */
 
-import { harnessDef, normalizeId } from './harnesses.js'
+import { harnessDef, normalizeId, HARNESSES } from './harnesses.js'
 import { harnessConfig, isEnabled } from './config.js'
+import { connectionTable, isRoutable } from './connection.js'
+import { recommendRoute } from '../integration/model-policy.js'
 import { adapterFor } from './adapters.js'
 import { harnessEnv, planTransport, withTimeout } from './transport.js'
 import { blocksToText } from './provider.js'
@@ -104,9 +106,15 @@ function providerUnavailable(def, started, reason, notes = []) {
 }
 
 /**
- * @returns {Promise<{ def: import('./harnesses.js').HarnessDef, warning?: string }>}
+ * Resolve one dispatch target.
+ *
+ * `routing.enabled` gates AUTOMATIC selection only. An explicit harness id is
+ * still the user's call and follows the existing enabled/permission rules. Auto
+ * never treats registration as routability: it reads the six-state connection
+ * table and may only pick `routable` (authenticated + field-verified + billing
+ * authorized), so a signed-out or unknown-billing CLI is never auto-consumed.
  */
-async function resolveTarget(rt, raw) {
+async function resolveTarget(rt, raw, request = {}) {
   const id = normalizeId(raw)
 
   if (id && id !== 'auto') {
@@ -120,18 +128,93 @@ async function resolveTarget(rt, raw) {
       row?.auth === 'signed-out'
         ? `OMC/AUTH-SIGNED-OUT: ${def.id} reports signed-out; the run is attempted anyway`
         : undefined
-    return { def, warning }
+    const table = row
+      ? connectionTable({ harnesses: HARNESSES, cfg: rt.cfg, rows: rt.peekReport()?.rows ?? [] })
+      : null
+    return {
+      def,
+      warning,
+      route: {
+        source: 'explicit',
+        harness: def.id,
+        state: table?.[def.id]?.state ?? 'unknown',
+        authorization: table?.[def.id]?.authorization ?? 'unknown',
+      },
+    }
+  }
+
+  if (rt.cfg.routing?.enabled !== true) {
+    throw omcError(
+      'OMC/ROUTING-DISABLED',
+      'automatic routing is disabled; set routing.enabled=true to let OMC pick an authorized connection, or name a harness explicitly',
+    )
   }
 
   const report = await rt.detect()
   const rows = report.rows ?? []
-  const eligible = rows.filter((row) => row.auth !== 'missing' && row.auth !== 'signed-out')
-  if (!eligible.length) {
-    const detail = rows.length ? rows.map(unusableReason).join('; ') : 'no harness is enabled in config'
-    throw omcError('OMC/CLI-MISSING', `no usable harness for auto 閳?${detail}; run /coharness doctor`)
+  const connections = connectionTable({ harnesses: HARNESSES, cfg: rt.cfg, rows })
+  const registered = rt.registered ?? new Set()
+  const routable = Object.entries(connections)
+    .filter(([harnessId, connection]) => isEnabled(rt.cfg, harnessId) && isRoutable(connection))
+    .map(([harnessId, connection]) => ({ id: harnessId, connection }))
+  // Registration is about the provider surface. The direct surface has no
+  // provider to register, so a routable connection is enough there.
+  const requireRegistration = rt.cfg.surface !== 'direct'
+  const candidates = routable.filter((row) => !requireRegistration || registered.has(row.id))
+  if (!candidates.length) {
+    const reasons = Object.values(connections)
+      .filter((connection) => connection.state !== 'disabled')
+      .map((connection) => `${connection.id}: ${connection.state} — ${connection.reason}`)
+    const registrationNote = routable.length && !candidates.length
+      ? `; routable but not registered as omc:<id>: ${routable.map((row) => row.id).join(', ')}`
+      : ''
+    throw omcError(
+      'OMC/NO-ROUTABLE-PROVIDER',
+      `auto routing found no routable connection (native priority is unchanged; an explicit external run is still possible)${registrationNote}${reasons.length ? ` — ${reasons.join(' | ')}` : '; run /coharness doctor'}`,
+    )
   }
-  const [best] = [...eligible].sort((a, b) => autoRank(a) - autoRank(b))
-  return { def: harnessDef(best.id) }
+
+  const roleId = typeof request.roleId === 'string' && request.roleId.trim() !== ''
+    ? request.roleId.trim()
+    : typeof request.role === 'string' && request.role.trim() !== '' ? request.role.trim() : null
+  let picked = null
+  let recommendation = null
+  if (roleId) {
+    recommendation = recommendRoute(roleId, rt.cfg.routing, [...registered].map((name) => `omc:${name}`), { connections })
+    if (recommendation?.backend === 'native') {
+      throw omcError(
+        'OMC/ROUTE-NATIVE',
+        `routing keeps role "${roleId}" native: ${recommendation.reason}; use the native role tool instead of an external auto dispatch`,
+      )
+    }
+    if (recommendation?.backend === 'omc') {
+      picked = candidates.find((row) => row.id === recommendation.harness) ?? null
+    }
+    if (!picked) {
+      throw omcError(
+        'OMC/NO-ROUTABLE-PROVIDER',
+        `auto routing has no authorized connection for role "${roleId}"${recommendation?.blocked?.length
+          ? ` — ${recommendation.blocked.map((row) => `${row.harness}: ${row.reason}`).join(' | ')}`
+          : ''}`,
+      )
+    }
+  } else {
+    const rank = (row) => autoRank(rows.find((entry) => entry.id === row.id) ?? {}) + (HARNESSES.findIndex((def) => def.id === row.id) < 0 ? 100 : 0)
+    picked = [...candidates].sort((a, b) => rank(a) - rank(b))[0]
+  }
+
+  return {
+    def: harnessDef(picked.id),
+    route: {
+      source: 'auto',
+      harness: picked.id,
+      state: picked.connection.state,
+      billing: picked.connection.authorization,
+      authorization: picked.connection.authorization,
+      ...(roleId ? { roleId } : {}),
+      ...(recommendation ? { preset: recommendation.source } : {}),
+    },
+  }
 }
 
 async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, notes = []) {
@@ -208,6 +291,8 @@ async function directRun(rt, def, prompt, cwd, shared, exec, started, reason, no
         retryable: classification.retryable,
         spillPath: captured.spillPath,
         elapsedMs: Date.now() - started,
+        modelSource: 'configured',
+        configuredModel: hcfg.model || shared.model || null,
         ...(parsed?.sessionId
           ? { nativeSession: { id: maskSessionId(parsed.sessionId), format: harnessAdapter.session?.format } }
           : {}),
@@ -285,6 +370,14 @@ async function runOne(rt, def, task, shared, exec, warning) {
           prompt: [{ type: 'text', text: task.prompt }],
           parent: exec.agent,
           ...(cwd ? { cwd } : {}),
+          // The provider must run under the same bounds the policy gate just
+          // materialized, not under whatever a role prompt happens to ask for.
+          mode: shared.mode,
+          timeoutMs: shared.timeoutMs,
+          constraints: shared.constraints,
+          ...(typeof shared.ledgerTaskId === 'string' && shared.ledgerTaskId !== ''
+            ? { ledgerTaskId: shared.ledgerTaskId }
+            : {}),
         },
         signal: deadline?.signal ?? exec.signal,
         delivery: shared.delivery === 'background' ? 'parent' : 'caller',
@@ -343,6 +436,10 @@ async function runOne(rt, def, task, shared, exec, warning) {
           code,
           retryable,
           elapsedMs: Date.now() - started,
+          ...(settled.sessionDecision ? { sessionDecision: settled.sessionDecision } : {}),
+          ...(settled.worker ? { worker: settled.worker } : {}),
+          modelSource: 'configured',
+          configuredModel: harnessConfig(rt.cfg, def.id).model || task.model || null,
         },
         [...notes, diagnostic,
         ],
@@ -523,7 +620,26 @@ export async function dispatchTasks(rt, request, exec) {
     // The project timeout also bounds harness-level timeouts on the direct
     // surface, where hcfg.timeoutMs would otherwise override the ceiling.
     projectTimeoutMs: Number.isSafeInteger(projectTimeoutMs) ? projectTimeoutMs : null,
+    // PR-07: the caller may pin the usage-ledger task identity (the collector
+    // reads the same id). The child run id stays this provider run.
+    ledgerTaskId: typeof request.ledgerTaskId === 'string' && request.ledgerTaskId !== '' ? request.ledgerTaskId : null,
   }
+  // Materialize the bounds this call actually runs under. A provider/session
+  // path gets the same object, so it cannot widen mode/timeout/fallback through
+  // its own arguments.
+  shared.constraints = Object.freeze({
+    mode: shared.mode,
+    timeoutMs: shared.timeoutMs,
+    maxParallel: effectiveCfg.dispatch.maxParallel,
+    allowDirectFallback: effectiveCfg.dispatch.allowDirectFallback === true,
+    project: {
+      exists: project.exists === true,
+      path: project.path ?? null,
+      usable: project.usable !== false,
+      timeoutMs: Number.isSafeInteger(projectTimeoutMs) ? projectTimeoutMs : null,
+      defaultMode: projectMode ?? null,
+    },
+  })
 
   // 0.2.0 never runs parallel writes: a single writer per stage is the whole reason
   // the write path has no isolation yet (V0.2-PLAN 鎼?, R3). Sequential calls still work.
@@ -578,13 +694,19 @@ export async function dispatchTasks(rt, request, exec) {
       }
       const attempts = []
       let last = null
+      let lastRoute = null
       for (const candidate of candidates) {
         try {
-          const target = await resolveTarget(callRt, candidate)
+          const target = await resolveTarget(callRt, candidate, {
+            roleId: task.roleId ?? request.roleId,
+            role: task.role ?? request.role,
+          })
+          lastRoute = target.route ?? null
           last = await runOne(callRt, target.def, task, taskShared, exec, target.warning)
           attempts.push({
             harness: target.def.id,
             status: last.status,
+            ...(target.route ? { route: target.route } : {}),
             ...(last.code ? { code: last.code } : {}),
             retryable: last.retryable === true,
           })
@@ -624,7 +746,13 @@ export async function dispatchTasks(rt, request, exec) {
         }
       }
       return last
-        ? { ...last, ...(attempts.length > 1 ? { attempts } : {}) }
+        ? {
+            ...last,
+            ...(lastRoute ? { route: lastRoute } : {}),
+            modelSource: last.modelSource ?? 'configured',
+            packetCoverage: last.packetCoverage ?? 'unmanaged',
+            ...(attempts.length > 1 ? { attempts } : {}),
+          }
         : {
             status: 'failed',
             harnessId: 'auto',
@@ -632,6 +760,7 @@ export async function dispatchTasks(rt, request, exec) {
             elapsedMs: 0,
             diagnostics: ['no harness candidate was provided'],
             retryable: false,
+            packetCoverage: 'unmanaged',
           }
     }),
   )

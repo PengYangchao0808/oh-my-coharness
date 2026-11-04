@@ -286,8 +286,23 @@ async function main() {
     .map((event) => event.data?.reason?.kind ?? null)
 
   // ── phase 3: native managed closure through the MOUNTED tool (R03) ─────────
-  // Real tool calls on a real agent: plan → bind a native child → settle with
-  // and without acceptance evidence. Zero model calls (synthetic adapter).
+  // Real tool calls on a real agent: plan → bind a native child with a runnable
+  // acceptance spec (the baseline freezes at bind) → drive the child turn →
+  // settle through the real acceptance runner. Zero model calls.
+  const probeAcceptanceSpec = {
+    taskId: 'native-managed-probe',
+    split: 'development',
+    commands: [{
+      name: 'probe-ok',
+      run: process.platform === 'win32'
+        ? ['cmd.exe', '/d', '/c', 'echo OMC-NATIVE-MANAGED-OK']
+        : ['sh', '-c', 'echo OMC-NATIVE-MANAGED-OK'],
+      expect: { exitCode: 0, stdoutContains: ['OMC-NATIVE-MANAGED-OK'], stdoutNotContains: [] },
+    }],
+    acceptanceFiles: [],
+    forbidChanges: [],
+    rubric: ['the fixed probe command exits 0 and prints its marker'],
+  }
   const managedParent = await mk({ suffix: 'managed' })
   await managedParent.whenIdle()
   const managedTools = managedParent.ctx.get('tools')
@@ -300,20 +315,31 @@ async function main() {
   await callCoharness({
     action: 'graph',
     graph_action: 'plan',
-    nodes: [{ id: 'probe-node', title: 'probe node', roleId: 'fixer', write: false, deps: [], acceptance: ['probe evidence'] }],
+    nodes: [{
+      id: 'probe-node',
+      title: 'probe node',
+      roleId: 'fixer',
+      write: false,
+      deps: [],
+      acceptance: ['probe command passes'],
+      acceptanceSpec: probeAcceptanceSpec,
+    }],
   })
   const managedChild = await mk({ parentAgent: managedParent, parentSession: managedParent.session.id, suffix: 'managed-child' })
   await managedChild.whenIdle()
-  followup(managedChild, 'always-succeed managed child turn')
-  await managedChild.whenIdle()
-  const managedFacts = { bind: null, pending: null, delivered: null, coverage: null }
+  const managedFacts = { bind: null, pendingNode: null, delivered: null, coverage: null }
+  // Bind BEFORE the child turn: this is the only truthful place to freeze the
+  // acceptance baseline (the host owns the child's first request).
   managedFacts.bind = await callCoharness({
     action: 'native', native_action: 'bind', node_id: 'probe-node', child_session_id: managedChild.session.id,
+    acceptance_spec: probeAcceptanceSpec,
   })
-  managedFacts.pending = await callCoharness({ action: 'native', native_action: 'settle', node_id: 'probe-node' })
-  managedFacts.delivered = await callCoharness({
-    action: 'native', native_action: 'settle', node_id: 'probe-node', evidence: ['probe evidence: child turn completed'],
-  })
+  followup(managedChild, 'always-succeed managed child turn')
+  await managedChild.whenIdle()
+  const pendingStatus = await callCoharness({ action: 'graph', graph_action: 'status' })
+  managedFacts.pendingNode = (pendingStatus.nodes ?? []).find((node) => node.id === 'probe-node') ?? null
+  // No caller evidence: the trusted runner verdict is the only way to complete.
+  managedFacts.delivered = await callCoharness({ action: 'native', native_action: 'settle', node_id: 'probe-node' })
   managedFacts.coverage = await callCoharness({ action: 'native', native_action: 'coverage' })
   const probeNode = (managedFacts.delivered?.graph?.nodes ?? []).find((node) => node.id === 'probe-node')
 
@@ -380,16 +406,22 @@ async function main() {
       detail: `consumed=${budgetView.consumed}; unknown=${budgetView.unknownReservations}; settled=${budgetFacts.settled}; turnEnds=${JSON.stringify(budgetTurnEnds)}`,
     },
     nativeManagedClosureViaTool: {
-      // Through the mounted tool only: a native child is bound to a graph node,
-      // a completed execution without evidence stays pending, and evidence is
-      // what actually completes the node and unlocks dependants.
+      // Through the mounted tool only, with the real acceptance runner:
+      // baseline freezes at bind, the child's completed turn leaves the node
+      // pending until settle produces a trusted verdict, and that verdict (not
+      // caller evidence) completes the node.
       pass: managedFacts.bind?.managed === true
-        && managedFacts.pending?.acceptance === 'pending'
-        && managedFacts.pending?.delivered === false
+        && typeof managedFacts.bind?.baseline?.id === 'string'
+        && managedFacts.pendingNode?.acceptanceState === 'pending'
+        && managedFacts.pendingNode?.state === 'running'
         && managedFacts.delivered?.delivered === true
+        && managedFacts.delivered?.acceptance === 'passed'
+        && managedFacts.delivered?.verdict?.baselineId === managedFacts.bind.baseline.id
+        && managedFacts.delivered?.verdict?.attemptId === managedFacts.bind.attemptId
         && probeNode?.state === 'completed'
+        && probeNode?.acceptanceState === 'passed'
         && (managedFacts.coverage?.coverage?.boundNative ?? 0) >= 1,
-      detail: `bind=${managedFacts.bind?.managed}; pending=${managedFacts.pending?.acceptance}; delivered=${managedFacts.delivered?.delivered}; node=${probeNode?.state ?? 'none'}; boundNative=${managedFacts.coverage?.coverage?.boundNative ?? 0}`,
+      detail: `bind=${managedFacts.bind?.managed}; baseline=${managedFacts.bind?.baseline?.id ?? 'none'}; pending=${managedFacts.pendingNode?.acceptanceState ?? 'none'}; delivered=${managedFacts.delivered?.delivered}; verdict=${managedFacts.delivered?.acceptance}; verdictBaseline=${managedFacts.delivered?.verdict?.baselineId ?? 'none'}; node=${probeNode?.state ?? 'none'}; nodeAcceptance=${probeNode?.acceptanceState ?? 'none'}; boundNative=${managedFacts.coverage?.coverage?.boundNative ?? 0}`,
     },
   }
 

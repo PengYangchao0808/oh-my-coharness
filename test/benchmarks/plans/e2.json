@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "planId": "omc-0.8-e2-session-9",
+  "experimentGroup": "E2",
+  "status": "not-executed",
+  "description": "E2: 3 real OMC continuous tasks x 3 session strategies = 9 trials, plus one shared prerequisite run once per arm (not a trial). Plan only.",
+  "frozenAt": "2026-11-04T05:10:07Z",
+  "manifest": {
+    "schemaVersion": 1,
+    "experimentId": "omc-0.8-e2-session-9",
+    "experimentGroup": "E2",
+    "dataKind": "live",
+    "split": "development",
+    "allocation": "blocked-task-repeat/fisher-yates-xorshift32@1",
+    "seed": "omc-0.8-e2-pilot-2026-11-04",
+    "repeats": 1,
+    "arms": [
+      "reuse_compact",
+      "fresh_handoff",
+      "adaptive"
+    ],
+    "tasks": [
+      {
+        "id": "example-local-fix",
+        "revision": "fixture@d3d4b9c177614ab8",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "harness": "placeholder-harness-not-selected",
+        "provenance": {
+          "experiment": "E2",
+          "dataset": "omc-authored",
+          "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+          "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+          "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+          "fixture": "test/benchmarks/session-strategies/example-local-fix",
+          "spec": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+          "specSha256": "d3d4b9c177614ab8d1d05f838f518f4f8ba8c86210c9fd07f7e3794bdc87f48c",
+          "license": {
+            "spdx": "MIT",
+            "path": "LICENSE",
+            "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+          },
+          "importedAt": "2026-11-04T05:10:07Z",
+          "status": "verified",
+          "quarantined": [],
+          "origin": "omc-authored",
+          "repoCheckout": "required before --execute: an absolute checkout of repoUrl at baseCommit; this plan does not freeze a machine-specific path"
+        },
+        "acceptance": {
+          "runner": "integration/acceptance-runner.js",
+          "spec": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+          "specSha256": "d3d4b9c177614ab8d1d05f838f518f4f8ba8c86210c9fd07f7e3794bdc87f48c",
+          "command": [
+            "node",
+            "acceptance/check.mjs"
+          ],
+          "gradingSha256": "8bd59f8d994b613594c6f02782ea013af64c8239d843d148f8122c2ff9eb4c06",
+          "frozenFile": "acceptance/check.mjs",
+          "verified": "verified"
+        },
+        "kind": "chain",
+        "chain": [
+          {
+            "id": "reproduce-inclusive-range",
+            "goal": "Run acceptance/check.mjs against start/ and record which of the 7 documented contract cases fail."
+          },
+          {
+            "id": "restore-inclusive-range",
+            "goal": "Change only src/parse-range.mjs so all 7 contract cases pass, keeping the suite untouched."
+          }
+        ]
+      },
+      {
+        "id": "should-reuse-module-fix",
+        "revision": "fixture@5b358b7f3410a514",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "harness": "placeholder-harness-not-selected",
+        "provenance": {
+          "experiment": "E2",
+          "dataset": "omc-authored",
+          "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+          "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+          "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+          "fixture": "test/benchmarks/session-strategies/should-reuse-module-fix",
+          "spec": "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+          "specSha256": "5b358b7f3410a514c722b245ca9d4a1d759383c9164c89adae44e208838e890e",
+          "license": {
+            "spdx": "MIT",
+            "path": "LICENSE",
+            "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+          },
+          "importedAt": "2026-11-04T05:10:07Z",
+          "status": "verified",
+          "quarantined": [],
+          "origin": "omc-authored",
+          "repoCheckout": "required before --execute: an absolute checkout of repoUrl at baseCommit; this plan does not freeze a machine-specific path"
+        },
+        "acceptance": {
+          "runner": "integration/acceptance-runner.js",
+          "spec": "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+          "specSha256": "5b358b7f3410a514c722b245ca9d4a1d759383c9164c89adae44e208838e890e",
+          "command": [
+            "node",
+            "acceptance/check.mjs"
+          ],
+          "gradingSha256": "36a07dd7f1bda4288f6ba3cd40bf284f207916a9a37f1932088f933d5a5156d1",
+          "frozenFile": "acceptance/check.mjs",
+          "verified": "verified"
+        },
+        "kind": "chain",
+        "chain": [
+          {
+            "id": "audit-slugify",
+            "goal": "Confirm the existing slugify() assertions pass on the start tree before touching truncate()."
+          },
+          {
+            "id": "fix-truncate-length",
+            "goal": "Fix only truncate() so the 6-case suite passes without regressing slugify()."
+          }
+        ]
+      },
+      {
+        "id": "should-restart-stale-api",
+        "revision": "fixture@ad3c97518313affe",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "harness": "placeholder-harness-not-selected",
+        "provenance": {
+          "experiment": "E2",
+          "dataset": "omc-authored",
+          "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+          "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+          "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+          "fixture": "test/benchmarks/session-strategies/should-restart-stale-api",
+          "spec": "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+          "specSha256": "ad3c97518313affe2ca082155c4f6b86407a137a8548bff41b34cc62c7a45ac2",
+          "license": {
+            "spdx": "MIT",
+            "path": "LICENSE",
+            "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+          },
+          "importedAt": "2026-11-04T05:10:07Z",
+          "status": "verified",
+          "quarantined": [],
+          "origin": "omc-authored",
+          "repoCheckout": "required before --execute: an absolute checkout of repoUrl at baseCommit; this plan does not freeze a machine-specific path"
+        },
+        "acceptance": {
+          "runner": "integration/acceptance-runner.js",
+          "spec": "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+          "specSha256": "ad3c97518313affe2ca082155c4f6b86407a137a8548bff41b34cc62c7a45ac2",
+          "command": [
+            "node",
+            "acceptance/check.mjs"
+          ],
+          "gradingSha256": "85ba2b90af07443b0ee36d1cd8f1e1acbdbaa494d4e9294de2d4e91e1b5710ac",
+          "frozenFile": "acceptance/check.mjs",
+          "verified": "verified"
+        },
+        "kind": "chain",
+        "chain": [
+          {
+            "id": "detect-removed-sync-loader",
+            "goal": "Run the suite against start/ and confirm the synchronous settings loader no longer exists."
+          },
+          {
+            "id": "migrate-caller-to-async",
+            "goal": "Rewrite only the caller against the current async loader; do not resurrect the removed name."
+          }
+        ]
+      }
+    ],
+    "prerequisite": {
+      "id": "omc-session-primer",
+      "revision": "fixture@359e8b957031e1ab",
+      "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+      "harness": "placeholder-harness-not-selected",
+      "provenance": {
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+        "fixture": "test/benchmarks/prerequisites/session-primer",
+        "spec": "test/benchmarks/prerequisites/session-primer/spec.json",
+        "specSha256": "359e8b957031e1ab4d817690966b819685af60fc6703b032b580ae5ae3d97977",
+        "license": {
+          "spdx": "MIT",
+          "path": "LICENSE",
+          "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "status": "verified",
+        "purpose": "Shared E2 prerequisite: one warm-session primer run once per arm before that arm's first trial. It is real graded work but is not counted as a trial, so it does not change the 4/2/3 task counts.",
+        "countedAsTrial": false,
+        "origin": "omc-authored"
+      },
+      "acceptance": {
+        "runner": "integration/acceptance-runner.js",
+        "spec": "test/benchmarks/prerequisites/session-primer/spec.json",
+        "specSha256": "359e8b957031e1ab4d817690966b819685af60fc6703b032b580ae5ae3d97977",
+        "command": [
+          "node",
+          "acceptance/check.mjs"
+        ],
+        "gradingSha256": "e4cf015004ef69011cfb7edb758d0254ae285884674e6626aa63078fcc5201bf",
+        "frozenFile": "acceptance/check.mjs",
+        "verified": "verified"
+      }
+    },
+    "conditions": {
+      "provider": "placeholder-provider-not-selected",
+      "model": "placeholder-model-not-selected",
+      "harness": "placeholder-harness-not-selected",
+      "toolsetDigest": "322b5ff86982806ac9b63b17aba21a8846472acef106000efb2986e8872fa2be",
+      "budgetDigest": "a8cdd6a674309c23d5f87675a21d6a9f1e08a594329f043c27b6caf7e14d51c0",
+      "evaluatorVersion": "omc-acceptance-runner@1",
+      "environmentDigest": "9a1c269be9db5c7574339c98f0cb0ffc94471fa2fdea1af289e9367561c51851",
+      "promptDigest": "d3479e755390aec16f40ac45e39b6fcdf8a0ab770af45cb9604d8cc3e589df7c",
+      "cacheRegime": "cold",
+      "executionStatus": "not-executed",
+      "modelSelected": false,
+      "harnessSelected": false,
+      "note": "Plan-only placeholders: no provider, model or harness has been selected and no trial has been executed. A paid run needs an explicit selection and a host executor."
+    },
+    "conditionsDigest": "95d25f3b0c9236a6cc23380d8eb6babb2ac6c489a4555a9cfee47053c4f18f2b",
+    "policyVersions": {
+      "reuse_compact": "session=reuse_compact@omc-0.8",
+      "fresh_handoff": "session=fresh_handoff@omc-0.8",
+      "adaptive": "session=adaptive@omc-0.8"
+    },
+    "optimizerCostUsd": {
+      "reuse_compact": null,
+      "fresh_handoff": null,
+      "adaptive": null
+    },
+    "promotion": {
+      "candidate": "adaptive",
+      "reference": "reuse_compact",
+      "minTasks": 30,
+      "minRepeats": 2,
+      "minCostReduction": 0.1,
+      "maxQualityLoss": 0,
+      "maxLatencyIncrease": 0.05
+    },
+    "assignments": [
+      {
+        "trialId": "3713f89c306729c7191f3297",
+        "taskId": "example-local-fix",
+        "repeat": 0,
+        "strategy": "fresh_handoff",
+        "arm": "fresh_handoff"
+      },
+      {
+        "trialId": "bbf70c686a9ecdb3ed3faebc",
+        "taskId": "example-local-fix",
+        "repeat": 0,
+        "strategy": "adaptive",
+        "arm": "adaptive"
+      },
+      {
+        "trialId": "0597f45ffbbf30facbbf4fab",
+        "taskId": "example-local-fix",
+        "repeat": 0,
+        "strategy": "reuse_compact",
+        "arm": "reuse_compact"
+      },
+      {
+        "trialId": "bf24437e347675eed791bec6",
+        "taskId": "should-restart-stale-api",
+        "repeat": 0,
+        "strategy": "fresh_handoff",
+        "arm": "fresh_handoff"
+      },
+      {
+        "trialId": "febd4f847dcf2fd467f7a3dd",
+        "taskId": "should-restart-stale-api",
+        "repeat": 0,
+        "strategy": "reuse_compact",
+        "arm": "reuse_compact"
+      },
+      {
+        "trialId": "7f452e5c7735a57bdaecae16",
+        "taskId": "should-restart-stale-api",
+        "repeat": 0,
+        "strategy": "adaptive",
+        "arm": "adaptive"
+      },
+      {
+        "trialId": "95a785752da5200053b174d0",
+        "taskId": "should-reuse-module-fix",
+        "repeat": 0,
+        "strategy": "fresh_handoff",
+        "arm": "fresh_handoff"
+      },
+      {
+        "trialId": "d88bd24ae41c5e193b94ae00",
+        "taskId": "should-reuse-module-fix",
+        "repeat": 0,
+        "strategy": "adaptive",
+        "arm": "adaptive"
+      },
+      {
+        "trialId": "abe419a397c2b6be33ba816d",
+        "taskId": "should-reuse-module-fix",
+        "repeat": 0,
+        "strategy": "reuse_compact",
+        "arm": "reuse_compact"
+      }
+    ],
+    "prerequisiteTrials": [
+      {
+        "trialId": "de89c099fb7feee915b00e5c",
+        "taskId": "omc-session-primer",
+        "repeat": null,
+        "strategy": "reuse_compact",
+        "arm": "reuse_compact",
+        "role": "prerequisite",
+        "countedAsTrial": false
+      },
+      {
+        "trialId": "e422e97d68949c7feec0f5c0",
+        "taskId": "omc-session-primer",
+        "repeat": null,
+        "strategy": "fresh_handoff",
+        "arm": "fresh_handoff",
+        "role": "prerequisite",
+        "countedAsTrial": false
+      },
+      {
+        "trialId": "b601745a5ebbc4b15ef9a46c",
+        "taskId": "omc-session-primer",
+        "repeat": null,
+        "strategy": "adaptive",
+        "arm": "adaptive",
+        "role": "prerequisite",
+        "countedAsTrial": false
+      }
+    ],
+    "digest": "15b22dc589f2b75ae39fbfa93b87c2b96b5b22bf150a489e15ca48ad14437105"
+  },
+  "budget": {
+    "totalUsd": 12,
+    "perTrialUsd": 2
+  },
+  "concurrency": 1,
+  "deadline": "2026-12-31T23:59:59.000Z",
+  "inputs": {
+    "status": "not-executed",
+    "modelSelection": "not-selected",
+    "harnessSelection": "not-selected",
+    "hostExecutor": "not-installed",
+    "upstreamCheckouts": {
+      "omc-authored": {
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26"
+      }
+    },
+    "blockers": [
+      "model/provider/harness selection is not frozen (placeholders only)",
+      "no host executor implements runTrial() yet (executePlan must be called by a host)",
+      "E2 baseCommit is the pre-fixture OMC baseline; re-freeze this plan at the commit that contains the fixtures (and pass an absolute --repo checkout) before a host calls executePlan()"
+    ]
+  }
+}

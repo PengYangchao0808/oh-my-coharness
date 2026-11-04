@@ -52,10 +52,48 @@ export const TURN_END_MAP = Object.freeze({
 })
 
 const MAX_SESSIONS = 500
-const MAX_LINEAGE_DEPTH = 24
+export const MAX_LINEAGE_DEPTH = 24
+
+/**
+ * How much a piece of lineage can be trusted.
+ *
+ *   host     the host persisted it: a session header's parentSession/origin/
+ *            delegationDepth, or a binding OMC derived from that chain.
+ *   legacy   a pre-0.6 record, or an explicit binding made before the host
+ *            evidence was available; usable, but never presented as proven.
+ *   unknown  somebody supplied an id (a tool argument, another plugin) and no
+ *            host evidence backs it. Never accepted as host lineage.
+ */
+export const LINEAGE_SOURCES = Object.freeze(['host', 'legacy', 'unknown'])
 
 function text(value) {
   return typeof value === 'string' && value.trim() !== ''
+}
+
+function optionalText(value, max = 160) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed.slice(0, max)
+}
+
+/**
+ * Normalize a lineage record. A bare source string is accepted; any unknown
+ * source degrades to `unknown` (never silently to `host`).
+ */
+export function normalizeLineage(raw, { fallback = 'unknown', note = null } = {}) {
+  const value = typeof raw === 'string' ? { source: raw } : (raw && typeof raw === 'object' ? raw : {})
+  const source = LINEAGE_SOURCES.includes(value.source) ? value.source : fallback
+  return {
+    source,
+    parentSessionId: optionalText(value.parentSessionId),
+    rootSessionId: optionalText(value.rootSessionId),
+    ...(optionalText(value.note) ?? note ? { note: optionalText(value.note) ?? note } : {}),
+  }
+}
+
+/** A fresh lineage record from a source and host-observed ids. */
+export function lineageRecord(source, { parentSessionId = null, rootSessionId = null, note = null } = {}) {
+  return normalizeLineage({ source, parentSessionId, rootSessionId, ...(note ? { note } : {}) }, { fallback: 'unknown' })
 }
 
 /** Stable OMC task id for a native session: one task per physical session. */
@@ -167,11 +205,36 @@ export function createNativeRuntime({
       taskId: binding.taskId,
       parentId: binding.parentId,
       parentTaskId: binding.parentTaskId ?? null,
+      rootTaskId: binding.rootTaskId ?? binding.taskId,
+      rootSessionId: binding.rootSessionId ?? binding.sessionId,
+      depth: Number.isInteger(binding.depth) ? binding.depth : 0,
       nodeId: binding.nodeId ?? null,
       role: binding.role ?? null,
       route: binding.route ? { ...binding.route } : null,
       source: binding.source,
+      lineage: binding.lineage ? { ...binding.lineage } : null,
+      proven: binding.lineage?.source === 'host',
       boundAt: binding.boundAt,
+    }
+  }
+
+  /**
+   * Fill the identity of a binding from the lineage map and the ancestor that
+   * was actually bound. Returns only facts that are derivable: every depth is a
+   * counted hop, never a declared number.
+   */
+  function identityFromAncestor(sessionId, ancestor, hops, { immediateParentId = null, source = null } = {}) {
+    return {
+      parentId: ancestor.parentId,
+      parentTaskId: immediateParentId ? nativeTaskIdFor(immediateParentId) : ancestor.taskId,
+      rootTaskId: ancestor.rootTaskId ?? ancestor.taskId,
+      rootSessionId: ancestor.rootSessionId ?? ancestor.sessionId,
+      depth: (Number.isInteger(ancestor.depth) ? ancestor.depth : 0) + Math.max(1, hops),
+      lineage: lineageRecord(source ?? ancestor.lineage?.source ?? 'host', {
+        parentSessionId: immediateParentId ?? lineage.get(sessionId) ?? null,
+        rootSessionId: ancestor.rootSessionId ?? ancestor.sessionId,
+        note: 'derived from the host parentSession chain',
+      }),
     }
   }
 
@@ -195,24 +258,61 @@ export function createNativeRuntime({
         `OMC/NATIVE-BIND-CONFLICT: session ${sessionId} is already bound to parent ${existing.parentId}`,
       )
     }
+    const observedParent = lineage.get(sessionId) ?? null
+    const declaredParent = optionalText(record.parentSessionId)
+    if (declaredParent) lineage.set(sessionId, declaredParent)
+    const parentSessionId = declaredParent ?? observedParent
+    // Host trust requires a parentSession the host actually persisted; an
+    // explicit binding argument alone is kept as legacy, never promoted.
+    const hostObservedParent = Boolean(parentSessionId && observedParent === parentSessionId)
+    const ancestor = parentSessionId ? bindings.get(parentSessionId) ?? null : null
+    const declaredSource = LINEAGE_SOURCES.includes(record.lineage?.source) ? record.lineage.source : null
+    const identitySource = record.source === 'root'
+      ? 'host'
+      : declaredSource && declaredSource !== 'host'
+        ? declaredSource
+        : hostObservedParent && ancestor?.lineage?.source === 'host'
+          ? 'host'
+          : declaredSource === 'legacy' || declaredSource === 'unknown' ? declaredSource : 'legacy'
+    const resolvedTaskId = text(record.taskId) ? record.taskId : existing?.taskId ?? nativeTaskIdFor(sessionId)
+    const derived = !existing && ancestor
+      ? identityFromAncestor(sessionId, ancestor, 1, { immediateParentId: parentSessionId, source: identitySource })
+      : null
     const binding = existing ?? {
       sessionId,
       parentId,
-      taskId: text(record.taskId) ? record.taskId : nativeTaskIdFor(sessionId),
-      parentTaskId: record.parentTaskId ?? null,
+      taskId: resolvedTaskId,
+      parentTaskId: optionalText(record.parentTaskId) ?? derived?.parentTaskId ?? null,
+      rootTaskId: optionalText(record.rootTaskId) ?? derived?.rootTaskId ?? resolvedTaskId,
+      rootSessionId: optionalText(record.rootSessionId) ?? derived?.rootSessionId ?? sessionId,
+      depth: Number.isInteger(record.depth) && record.depth >= 0 ? record.depth : derived?.depth ?? 0,
       nodeId: record.nodeId ?? null,
       role: record.role ?? null,
       route: record.route ? { ...record.route } : null,
       source: NATIVE_SOURCES.includes(record.source) ? record.source : 'tool',
+      lineage: normalizeLineage(record.lineage ?? derived?.lineage ?? { source: identitySource, parentSessionId, rootSessionId: sessionId }, {
+        fallback: identitySource,
+      }),
+      ticketId: optionalText(record.ticketId),
+      workstream: optionalText(record.workstream),
       boundAt: now(),
     }
     if (existing) {
       if (record.nodeId) binding.nodeId = record.nodeId
       if (record.role) binding.role = record.role
       if (record.parentTaskId) binding.parentTaskId = record.parentTaskId
+      if (record.rootTaskId) binding.rootTaskId = record.rootTaskId
+      if (record.rootSessionId) binding.rootSessionId = record.rootSessionId
+      if (Number.isInteger(record.depth) && record.depth >= 0) binding.depth = record.depth
+      if (record.ticketId) binding.ticketId = optionalText(record.ticketId)
+      if (record.workstream) binding.workstream = optionalText(record.workstream)
+      if (record.lineage) {
+        const merged = normalizeLineage(record.lineage, { fallback: binding.lineage?.source ?? 'unknown' })
+        // Never downgrade a host-proven binding through a later explicit record.
+        if (binding.lineage?.source !== 'host' || merged.source === 'host') binding.lineage = merged
+      }
       if (record.route) binding.route = { ...binding.route, ...record.route }
     }
-    if (text(record.parentSessionId)) lineage.set(sessionId, record.parentSessionId)
     bindings.set(sessionId, binding)
     byTask.set(binding.taskId, binding)
     trim()
@@ -221,14 +321,24 @@ export function createNativeRuntime({
 
   /** Bind the calling (root) session; `parentId` defaults to the session itself. */
   function bindRoot({ sessionId, parentId = null, taskId, role = 'orchestrator', route = null, nodeId = null } = {}) {
+    const resolvedTaskId = text(taskId) ? taskId : nativeTaskIdFor(sessionId)
     return bind({
       sessionId,
       parentId: parentId ?? sessionId,
-      ...(taskId ? { taskId } : {}),
+      taskId: resolvedTaskId,
+      parentTaskId: null,
+      rootTaskId: resolvedTaskId,
+      rootSessionId: sessionId,
+      depth: 0,
       ...(nodeId ? { nodeId } : {}),
       role,
       route,
       source: 'root',
+      lineage: lineageRecord('host', {
+        parentSessionId: null,
+        rootSessionId: sessionId,
+        note: 'host session has no parentSession: this is the root of its own lineage',
+      }),
     })
   }
 
@@ -247,28 +357,30 @@ export function createNativeRuntime({
     const explicit = bindings.get(sessionId)
     if (explicit) return explicit
     let cursor = sessionId
-    let depth = 0
+    let hops = 0
     let ancestor = null
-    while (depth < MAX_LINEAGE_DEPTH) {
+    let immediateParentId = null
+    while (hops < MAX_LINEAGE_DEPTH) {
       const parent = lineage.get(cursor)
       if (!parent) break
+      if (hops === 0) immediateParentId = parent
       ancestor = bindings.get(parent) ?? null
       cursor = parent
-      depth += 1
+      hops += 1
       if (ancestor) break
     }
     if (!ancestor) return null
     const state = sessions.get(sessionId)
+    const identity = identityFromAncestor(sessionId, ancestor, hops, { immediateParentId, source: 'host' })
     const binding = {
       sessionId,
-      parentId: ancestor.parentId,
       taskId: nativeTaskIdFor(sessionId),
-      parentTaskId: ancestor.taskId,
       nodeId: null,
       role: state?.role ?? null,
       route: state?.lastHeader ?? null,
       source: 'derived',
       boundAt: now(),
+      ...identity,
     }
     bindings.set(sessionId, binding)
     byTask.set(binding.taskId, binding)
@@ -276,22 +388,138 @@ export function createNativeRuntime({
     return binding
   }
 
+  /**
+   * Resolve the calling session's identity for a tool call.
+   *
+   * A session with a host `parentSession` header is never promoted to a new
+   * root: its binding is derived from the already-bound ancestor, so a child
+   * agent's OMC calls land in its root's shard. Only a session the host says
+   * has no parent may become a root.
+   */
+  function resolveCallingSession({ sessionId, header = null, agentId = null } = {}) {
+    if (!text(sessionId)) return null
+    const observedParent = optionalText(header?.parentSession)
+    if (observedParent) lineage.set(sessionId, observedParent)
+    const explicit = bindings.get(sessionId)
+    if (explicit) return publicBinding(explicit)
+    const parentSessionId = observedParent ?? lineage.get(sessionId) ?? null
+    if (parentSessionId) {
+      const derived = deriveBinding(sessionId)
+      if (derived) return publicBinding(derived)
+      return {
+        sessionId,
+        unresolved: true,
+        proven: false,
+        lineage: lineageRecord('unknown', {
+          parentSessionId,
+          note: 'the host header names a parent session, but no bound ancestor proves the root; lineage stays unknown until the host can supply it',
+        }),
+      }
+    }
+    // A session the host marks as a subagent is never its own root, even when
+    // the parent id is unavailable. Fabricating a root here is the bug PR-01
+    // exists to remove.
+    const origin = optionalText(header?.origin)
+    if (origin === 'subagent') {
+      return {
+        sessionId,
+        unresolved: true,
+        proven: false,
+        lineage: lineageRecord('unknown', {
+          note: 'the host marks this session as a subagent but exposes no parentSession; lineage stays unknown',
+        }),
+      }
+    }
+    if (text(agentId)) return bindRoot({ sessionId, parentId: agentId })
+    return null
+  }
+
+  /**
+   * The host-provable lineage for a session, or null. `trusted` is true only
+   * when every hop of the chain came from the host's own persisted headers.
+   */
+  function trustedLineageFor(sessionId, { header = null } = {}) {
+    if (!text(sessionId)) return null
+    const observedParent = optionalText(header?.parentSession)
+    if (observedParent) lineage.set(sessionId, observedParent)
+    const binding = bindings.get(sessionId) ?? deriveBinding(sessionId)
+    if (!binding) return null
+    return { ...publicBinding(binding), trusted: binding.lineage?.source === 'host' }
+  }
+
+  /**
+   * Identity for one task row started by this session: the caller's own task is
+   * the parent task, and the root task/shard are inherited, never accepted from
+   * a caller-supplied id.
+   */
+  function taskLineage({ sessionId, header = null, agentId = null } = {}) {
+    const resolved = resolveCallingSession({ sessionId, header, agentId })
+    if (!resolved) return null
+    if (resolved.unresolved) {
+      return {
+        source: 'unknown',
+        trusted: false,
+        rootParentId: null,
+        parentSessionId: resolved.lineage?.parentSessionId ?? null,
+        rootSessionId: null,
+        parentTaskId: null,
+        rootTaskId: null,
+        depth: null,
+        lineage: resolved.lineage,
+      }
+    }
+    const binding = resolved
+    const source = binding.lineage?.source ?? 'unknown'
+    return {
+      source,
+      trusted: source === 'host',
+      rootParentId: binding.parentId,
+      parentSessionId: binding.sessionId,
+      rootSessionId: binding.rootSessionId ?? null,
+      parentTaskId: binding.taskId,
+      rootTaskId: binding.rootTaskId ?? binding.taskId,
+      depth: (Number.isInteger(binding.depth) ? binding.depth : 0) + 1,
+      lineage: binding.lineage ?? lineageRecord(source, {
+        parentSessionId: binding.lineage?.parentSessionId ?? null,
+        rootSessionId: binding.rootSessionId ?? null,
+      }),
+    }
+  }
+
   function ensureAttempt(binding, route) {
-    if (!executionStore) return
+    if (!executionStore) return null
     let view = null
     try {
       view = executionStore.read(binding.taskId)
     } catch {
       view = null
     }
-    if (view && view.execution === 'running') return
-    executionStore.open({
+    if (view && view.execution === 'running') return view
+    return executionStore.open({
       taskId: binding.taskId,
       parentId: binding.parentId,
       backend: 'native',
       route: route ?? binding.route ?? null,
       reason: view ? 'native turn' : 'native session',
+      intent: { backend: 'native', sessionId: binding.sessionId, route: route ?? binding.route ?? null },
     })
+  }
+
+  /** The first observed request/turn is the running phase, not a guess. */
+  function markRunning(binding, route) {
+    if (!executionStore) return
+    let view = null
+    try {
+      view = executionStore.read(binding.taskId)
+    } catch {
+      return
+    }
+    if (!view?.currentAttemptId) return
+    try {
+      executionStore.running(binding.taskId, view.currentAttemptId, { route: route ?? null, by: 'native' })
+    } catch {
+      // Lifecycle bookkeeping must not break event ingestion.
+    }
   }
 
   function settleAttempt(binding, reason) {
@@ -396,12 +624,14 @@ export function createNativeRuntime({
       state.lastHeader = route
       binding.route = route
       ensureAttempt(binding, route)
+      markRunning(binding, route)
       return { kind: 'route', route: { ...route }, taskId: binding.taskId }
     }
 
     if (event.type === 'assistant/attempt' || event.type === 'assistant/message') {
       if (event.type === 'assistant/attempt') state.turns += 1
       ensureAttempt(binding, state.lastHeader)
+      markRunning(binding, state.lastHeader)
       const attemptId = `${binding.taskId}#t${event.data?.turn ?? state.turns}`
       const entries = nativeSessionUsageEntries(
         [state.lastHeader ? { type: 'request/header', data: { header: { config: {
@@ -456,6 +686,16 @@ export function createNativeRuntime({
       // keeps a plain conversation's usage from being unrecorded, without
       // adopting anybody else's session: another preset's root stays untracked.
       const presetId = sessionFactsValue.header?.agentPreset ?? agent?.session?.header?.agentPreset ?? null
+      // A session the host says was spawned as a subagent can never be its own
+      // root, even when the parent id is unavailable: an unknown parent is
+      // reported, not replaced by a fabricated root.
+      const origin = sessionFactsValue.header?.origin ?? agent?.session?.header?.origin ?? null
+      if (!parentSessionId && origin === 'subagent') {
+        return {
+          kind: 'unbound',
+          reason: 'host marks this session as a subagent but exposes no parentSession; lineage stays unknown',
+        }
+      }
       if (!parentSessionId && ownPreset && presetId === ownPreset) {
         const parentId = typeof agent?.id === 'string' && agent.id !== '' ? agent.id : sessionFactsValue.sessionId
         const root = bindRoot({ sessionId: sessionFactsValue.sessionId, parentId })
@@ -597,6 +837,10 @@ export function createNativeRuntime({
     bindRoot,
     bindingFor,
     deriveBinding,
+    resolveCallingSession,
+    trustedLineageFor,
+    lineageFor: trustedLineageFor,
+    taskLineage,
     observe,
     ingest,
     summary,

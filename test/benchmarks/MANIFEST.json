@@ -1,0 +1,532 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-04T05:10:07Z",
+  "digest": {
+    "algorithm": "sha256",
+    "normalization": "text-lf",
+    "note": "every digest is computed from the bytes on disk after normalising CRLF to LF, so the same value holds for the upstream git blob regardless of core.autocrlf",
+    "gitBlobSha1": "recomputed as sha1(\"blob <normalised-length>\\0\" + normalised-bytes) and compared with the GitHub tree sha recorded at import"
+  },
+  "omcBaseline": {
+    "repo": "Oh-My-CoHarness",
+    "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+    "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+    "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+    "license": {
+      "spdx": "MIT",
+      "path": "LICENSE",
+      "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+    }
+  },
+  "datasets": {
+    "latitude-dev/coding-agent-benchmark": {
+      "id": "latitude-dev/coding-agent-benchmark",
+      "displayName": "Latitude coding-agent model benchmark",
+      "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+      "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "commitUrl": "https://github.com/latitude-dev/coding-agent-benchmark/commit/cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+      "license": {
+        "spdx": "MIT",
+        "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+        "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+      },
+      "importedAt": "2026-11-04T05:10:07Z",
+      "verification": {
+        "checkedAt": "2026-11-04T05:10:07Z",
+        "node": "24.21.0",
+        "python": "3.12.14",
+        "method": "both directions graded through integration/acceptance-runner.js; upstream git blob shas re-derived from the vendored bytes",
+        "environmentScoped": "Node >=24 is required for the E1 group; an older Node does not verify E1 and must not count it"
+      },
+      "vendoredAt": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark",
+      "runtime": {
+        "node": ">=24"
+      },
+      "grading": {
+        "method": "node-test-pristine-restore",
+        "argv": [
+          "node",
+          "--test",
+          "--test-reporter=tap"
+        ],
+        "officialScore": "functional-pass-fail",
+        "note": "upstream solves are judged by restoring pristine test files and running the suite; no model-graded rubric is involved"
+      },
+      "upstreamDigests": {
+        "LICENSE": {
+          "sha256": "712d5fb92dbaa29e919092e706f1a8dd747f489ae65ef5d99783647116c502f9",
+          "gitBlobSha1": "3cbe492d5075c40fdd0e28f3a56eb73f993e80e3",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE"
+        },
+        "package.json": {
+          "sha256": "0f771f295c26018ac1a9487dcc083f86d618920b94b184339bfe725b54aa03d4",
+          "gitBlobSha1": "9ee8a62acd02df9b21ac7899307936a307c3df4e",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/package.json"
+        },
+        "README.md": {
+          "sha256": "22899f5e4dce4649aaff485811214cd4032e533d7f84f79666cb2bbbf8f437c8",
+          "gitBlobSha1": "1cb7e2cccde315444e4ebc6588e2204cde2d0c25",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/README.md"
+        },
+        "tasks/02-lru-cache/prompt.md": {
+          "sha256": "6cae09b34415e6da232a5672f34fecd90c718310cb3b8a240bebf21da6737a72",
+          "gitBlobSha1": "ee266153eeac9c6eb176d68f52205c44899b6609",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/prompt.md"
+        },
+        "tasks/02-lru-cache/solution/src/lru.js": {
+          "sha256": "89e61cdcfe0ae61ea3ec5be86699f0d7565841a40f30a927882fcc7fdbadbd52",
+          "gitBlobSha1": "ce2eed8705a82ad55da5f61fa769ccdc16ce5ffc",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/solution/src/lru.js"
+        },
+        "tasks/02-lru-cache/workspace/lru.test.js": {
+          "sha256": "8913a62c6af642116cce4a0439db24cbc878eb8fa11842eefa2611421c4944b1",
+          "gitBlobSha1": "07ead836c7613c0b24fa763fa92f8e1be271aa81",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/workspace/lru.test.js"
+        },
+        "tasks/02-lru-cache/workspace/package.json": {
+          "sha256": "c167db8b2dbfbf0c66a0d36d016a25771ec7cb7bc0b061df9b84fda61c120c54",
+          "gitBlobSha1": "c397289544adf91d332fb8afa8c845f6600b2abf",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/workspace/package.json"
+        },
+        "tasks/02-lru-cache/workspace/src/lru.js": {
+          "sha256": "edf9240ca327f9e5bffdb99945b410d68bb216bc2cc5a63778f76d0ea294b3ed",
+          "gitBlobSha1": "9c86914227c82a6018dc01701c885e7b9aecb81f",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/workspace/src/lru.js"
+        },
+        "tasks/04-rate-limiter/prompt.md": {
+          "sha256": "8ef0627f922d066023cbe5fc564389037bcc74f4023b1b35e69de1b7dd179ef4",
+          "gitBlobSha1": "b620aa2643b6507aa98b197b8e3ba1644994e123",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/prompt.md"
+        },
+        "tasks/04-rate-limiter/solution/src/rate-limiter.js": {
+          "sha256": "8e549e63d0a9c1a06efd11673efa1a6c21af914b42025a79b993fa1e1a70696d",
+          "gitBlobSha1": "25627de34725dd9dd0ea95c000edf423c495d53a",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/solution/src/rate-limiter.js"
+        },
+        "tasks/04-rate-limiter/workspace/package.json": {
+          "sha256": "e4f28d99a20aa8feb0dafb17127ca6591cb93b9aa1b79a2d04679331e173e7f9",
+          "gitBlobSha1": "20dcb2f45b7a313b5c1bb3f7096c3ba311cc3533",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/workspace/package.json"
+        },
+        "tasks/04-rate-limiter/workspace/rate-limiter.test.js": {
+          "sha256": "05bdb43861fbcb28869beed9d039318173e7fa0ec288cf80d3a3138f560c0c5d",
+          "gitBlobSha1": "4368c59d765c79c6669c54be303483b77e1d5a6e",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/workspace/rate-limiter.test.js"
+        },
+        "tasks/04-rate-limiter/workspace/src/rate-limiter.js": {
+          "sha256": "1fadb89dbc8db8356dc927a31e85ed875d9f88ec12e2167724e3fddaf5008c6a",
+          "gitBlobSha1": "0e52646402a16f0e1b23abd6738be2a7a7f33417",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/04-rate-limiter/workspace/src/rate-limiter.js"
+        },
+        "tasks/14-event-bus/prompt.md": {
+          "sha256": "a1690dbdbe337621eecfae9f8d4949cc6928ccd8d9f034bca1f8160dacffe83a",
+          "gitBlobSha1": "7600d9145c1e121fe60ef5df80536303ecb2e6c2",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/prompt.md"
+        },
+        "tasks/14-event-bus/solution/src/once.js": {
+          "sha256": "2a58ca82ed20e0cabd5be23b1fdec8cb5fff50fea2672e5380795bf42fcf595b",
+          "gitBlobSha1": "c9dfef140db1664d403523c7e192f11144312049",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/solution/src/once.js"
+        },
+        "tasks/14-event-bus/workspace/event-bus.test.js": {
+          "sha256": "85f7847b4692b2390ee0cb455ae5ffdf2c5e0621e25dc701cb43fd51d8c67458",
+          "gitBlobSha1": "591a1fb5349868b2973d0754dc46d1eaa45f1807",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/event-bus.test.js"
+        },
+        "tasks/14-event-bus/workspace/package.json": {
+          "sha256": "48a92b6fc994ced247c1cd007ba06c597addfb242800b3c25409844d92d54db9",
+          "gitBlobSha1": "cd3393528aafbb11fdd66e03061670d0de85f1f3",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/package.json"
+        },
+        "tasks/14-event-bus/workspace/src/bus.js": {
+          "sha256": "ab779ea38def41b5797230abf6e9a55d19c954d1869354129ff45ed877c79891",
+          "gitBlobSha1": "350348756e1c6a084b541d8006c61725253fbec8",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/src/bus.js"
+        },
+        "tasks/14-event-bus/workspace/src/once.js": {
+          "sha256": "1be2c82f44f053c0ad84defc54d2c772de47ed3501c85fb019b4ed1ff68be97a",
+          "gitBlobSha1": "c5efd5c39ea70259eb74a3d6de5639ddbd7e421d",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/src/once.js"
+        },
+        "tasks/14-event-bus/workspace/src/replay.js": {
+          "sha256": "045aae83d45e2d227827502dd5a3833a74bcdaf02828d134f5eeb90c96119d78",
+          "gitBlobSha1": "889b59de6b1cc55f478b73a77bea55239c360661",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/14-event-bus/workspace/src/replay.js"
+        },
+        "tasks/16-task-scheduler/prompt.md": {
+          "sha256": "c79fa0b073ed2343cdae784143592198d0317bef6e4f4dfe4993ba3ef4d8cbea",
+          "gitBlobSha1": "21576757898897750cc7ddf6858b4dedb1784be9",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/prompt.md"
+        },
+        "tasks/16-task-scheduler/solution/src/order.js": {
+          "sha256": "5a067b397c6ef7f8235bbc82c7e117fd41ef5761247f9d5b7a66b34452f51292",
+          "gitBlobSha1": "becba18c3e5da2a93a1ac6b07afa4cf0b906a61f",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/solution/src/order.js"
+        },
+        "tasks/16-task-scheduler/workspace/package.json": {
+          "sha256": "7dbae9208116e1c9d04b73fb3a13dcc45e191dc296aa6ba27491200b102a8311",
+          "gitBlobSha1": "723800c04afd24ff50b92e1f4e96d1b586f6d8e8",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/package.json"
+        },
+        "tasks/16-task-scheduler/workspace/scheduler.test.js": {
+          "sha256": "ed98b935153a5d0278835b977dab97e17b4afbad8e18c8235c4cacadbd956ca5",
+          "gitBlobSha1": "9a7676da362b116c8a3c3ba5c8a4426e9d25fb04",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/scheduler.test.js"
+        },
+        "tasks/16-task-scheduler/workspace/src/graph.js": {
+          "sha256": "9cef2665394c27b7b2156ba37979e9f2ff15464b419e100b7a87f0e4a99f038d",
+          "gitBlobSha1": "db9804072edf24a8e4700078d1935d8e726f1368",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/src/graph.js"
+        },
+        "tasks/16-task-scheduler/workspace/src/order.js": {
+          "sha256": "a5aad9fffb7c3ee16844eda73dad9e339a3179a8276b58b133e5e77b18038a4d",
+          "gitBlobSha1": "3fb7501441414d1fffcf1288c035b5f9194790d5",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/src/order.js"
+        },
+        "tasks/16-task-scheduler/workspace/src/runner.js": {
+          "sha256": "cf2010df9ca93ef7a366c60c566cc71a31dec118c97aa287077dbe11f1c8f0df",
+          "gitBlobSha1": "652bc3573902b1daa1d540b005c30120139019e2",
+          "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/16-task-scheduler/workspace/src/runner.js"
+        }
+      },
+      "taskIds": [
+        "upstream-latitude-02-lru-cache",
+        "upstream-latitude-04-rate-limiter",
+        "upstream-latitude-14-event-bus",
+        "upstream-latitude-16-task-scheduler"
+      ]
+    },
+    "sipratt-p/coding-agent-bench": {
+      "id": "sipratt-p/coding-agent-bench",
+      "displayName": "sipratt coding agent bench",
+      "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+      "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+      "license": {
+        "spdx": "MIT",
+        "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+        "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+      },
+      "importedAt": "2026-11-04T05:10:07Z",
+      "verification": {
+        "checkedAt": "2026-11-04T05:10:07Z",
+        "node": "24.21.0",
+        "python": "3.12.14",
+        "method": "functional groups only: the reference solution prints ALL_TESTS_PASSED on the frozen hidden test; code_quality/official score are quarantined"
+      },
+      "vendoredAt": "test/benchmarks/upstream/sipratt-p--coding-agent-bench",
+      "runtime": {
+        "python": ">=3.10"
+      },
+      "grading": {
+        "method": "python-hidden-test-concatenation",
+        "argv": [
+          "python",
+          "acceptance/check.py"
+        ],
+        "officialScore": "unknown",
+        "codeQuality": "unknown",
+        "note": "upstream scores 0-100 from grouped functional tests plus a code_quality text heuristic; only the functional all-groups-passed half is reproduced, so no official score is claimed"
+      },
+      "upstreamDigests": {
+        "bench/coding_benchmark_v2.py": {
+          "sha256": "654d191d35ea4a75724c6dd990ffdb384a1f05aac5b56a1d066ee676557bacaf",
+          "gitBlobSha1": "a2f349598390c704af12da884b78b86806120c26",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/bench/coding_benchmark_v2.py"
+        },
+        "bench/coding_benchmark_v3.py": {
+          "sha256": "2525a4def2080876e6d86c972eda999cbebeefba3772ebe63a7d114ae1896f10",
+          "gitBlobSha1": "94384c745a9d6b18549ff96ae5ac240644cacd75",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/bench/coding_benchmark_v3.py"
+        },
+        "bench/coding_benchmark_v4.py": {
+          "sha256": "b356ed42369e4eaf8233bd22f64bf828bfdc839f28cacb41d9b1021fa19a74a9",
+          "gitBlobSha1": "d60599e74937e929bd70a2cec1f37b8c83adc710",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/bench/coding_benchmark_v4.py"
+        },
+        "bench/suites.py": {
+          "sha256": "8b60bc69cbd540e02478f5951fe41c254f6d47cb1d2a96da2f48d3364adc753d",
+          "gitBlobSha1": "abf163ec0daba9361b268cd0791325ee2fe41fe2",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/bench/suites.py"
+        },
+        "LICENSE": {
+          "sha256": "2da3a4df66a91c8db98b349d9d74fe662c4237f0e88802d16dfad6820f52729d",
+          "gitBlobSha1": "0c28cc31baf7a3499bd2cbf23ac4a8c2cc20f930",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE"
+        },
+        "README.md": {
+          "sha256": "e731b27e4d5ab861a054fe91ff99580222c94a4ba7128d55185db2c1efc9d08b",
+          "gitBlobSha1": "d9f3f379bf976d6e3eb95a253cfc59cbebd506f8",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/README.md"
+        },
+        "requirements.txt": {
+          "sha256": "9230376f800e46d7eb92ad49174acc799c9e5b22f52adfbd5dd8b69bccba5774",
+          "gitBlobSha1": "345797c2e9abcb621f3f1a67783fe380a09aa115",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/requirements.txt"
+        },
+        "tasks/README.md": {
+          "sha256": "2eaa4cbf1d2fbc4d859a0206f7e07a6934a68808f2a50fda5b5c936eebbafab1",
+          "gitBlobSha1": "a14c3ade4db4c55a15f06706c4be7893552752d9",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/tasks/README.md"
+        },
+        "tasks/refs/ref_crdt.py": {
+          "sha256": "172f183974482872955d71220f799efa4dc77acd87c1cc87986501e6fca46376",
+          "gitBlobSha1": "37b059abb4a958f65ce21acf8a3bd7cff2750481",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/tasks/refs/ref_crdt.py"
+        },
+        "tasks/refs/ref_orchestrator.py": {
+          "sha256": "ea3eb5a7be5bda6f44d7b3d100cc7f81ce2512d5350c6029a5cc21246f5a29a9",
+          "gitBlobSha1": "01b45846e84e0bc4fe3b7a880e087be6ce072d67",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/tasks/refs/ref_orchestrator.py"
+        },
+        "tasks/validate_refs.py": {
+          "sha256": "df4600cbaad9d395df586481834263dd7c2de9d68081b765678e70668af66952",
+          "gitBlobSha1": "751f0479ec39e78935450a60a9b2e3c91ce250c9",
+          "localPath": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/tasks/validate_refs.py"
+        }
+      },
+      "taskIds": [
+        "upstream-sipratt-07-crdt",
+        "upstream-sipratt-08-orchestrator"
+      ]
+    },
+    "omc-authored": {
+      "id": "omc-authored",
+      "displayName": "OMC-authored local continuous tasks",
+      "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+      "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+      "commitUrl": "https://github.com/PengYangchao0808/oh-my-coharness/commit/37125f494df07f0be30ffeb1883d699fb3633e26",
+      "license": {
+        "spdx": "MIT",
+        "path": "LICENSE",
+        "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+      },
+      "importedAt": "2026-11-04T05:10:07Z",
+      "authoredBy": "OMC",
+      "verification": {
+        "checkedAt": "2026-11-04T05:10:07Z",
+        "node": "24.21.0",
+        "python": "3.12.14",
+        "method": "both directions graded through integration/acceptance-runner.js"
+      },
+      "vendoredAt": "test/benchmarks/session-strategies",
+      "grading": {
+        "method": "external-node-check",
+        "argv": [
+          "node",
+          "acceptance/check.mjs"
+        ],
+        "officialScore": "functional-pass-fail",
+        "note": "OMC-authored fixtures: no upstream dataset, commit or digest exists; provenance records OMC authorship and the OMC checkout baseline instead"
+      },
+      "upstreamDigests": {},
+      "taskIds": [
+        "example-local-fix",
+        "should-reuse-module-fix",
+        "should-restart-stale-api"
+      ],
+      "prerequisiteIds": [
+        "omc-session-primer"
+      ]
+    }
+  },
+  "experiments": {
+    "E1": {
+      "label": "E1 single-agent vs multi-agent (4 JS upstream tasks)",
+      "count": 4,
+      "dataset": "latitude-dev/coding-agent-benchmark",
+      "taskIds": [
+        "upstream-latitude-02-lru-cache",
+        "upstream-latitude-04-rate-limiter",
+        "upstream-latitude-14-event-bus",
+        "upstream-latitude-16-task-scheduler"
+      ]
+    },
+    "E2": {
+      "label": "E2 three session strategies (3 continuous OMC tasks)",
+      "count": 3,
+      "dataset": "omc-authored",
+      "taskIds": [
+        "example-local-fix",
+        "should-reuse-module-fix",
+        "should-restart-stale-api"
+      ]
+    },
+    "E3": {
+      "label": "E3 complex-task collaboration (2 Python upstream tasks)",
+      "count": 2,
+      "dataset": "sipratt-p/coding-agent-bench",
+      "taskIds": [
+        "upstream-sipratt-07-crdt",
+        "upstream-sipratt-08-orchestrator"
+      ]
+    }
+  },
+  "counts": {
+    "A": 4,
+    "B": 2,
+    "C": 3,
+    "total": 9
+  },
+  "prerequisiteCount": 1,
+  "prerequisites": [
+    {
+      "taskId": "omc-session-primer",
+      "dataset": "omc-authored",
+      "fixture": "test/benchmarks/prerequisites/session-primer",
+      "specPath": "test/benchmarks/prerequisites/session-primer/spec.json",
+      "family": "session-primer",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "purpose": "Shared E2 prerequisite: one warm-session primer run once per arm before that arm's first trial. It is real graded work but is not counted as a trial, so it does not change the 4/2/3 task counts.",
+      "specSha256": "359e8b957031e1ab4d817690966b819685af60fc6703b032b580ae5ae3d97977"
+    }
+  ],
+  "tasks": [
+    {
+      "taskId": "upstream-latitude-02-lru-cache",
+      "experiment": "E1",
+      "dataset": "latitude-dev/coding-agent-benchmark",
+      "fixture": "test/benchmarks/imported/latitude-dev/02-lru-cache",
+      "specPath": "test/benchmarks/imported/latitude-dev/02-lru-cache/spec.json",
+      "family": "latitude-lru-cache",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "specSha256": "87ac5eec9fa76dcf599aef896a364ba9092ec28e0c48e4fe2452ff59a570103e"
+    },
+    {
+      "taskId": "upstream-latitude-04-rate-limiter",
+      "experiment": "E1",
+      "dataset": "latitude-dev/coding-agent-benchmark",
+      "fixture": "test/benchmarks/imported/latitude-dev/04-rate-limiter",
+      "specPath": "test/benchmarks/imported/latitude-dev/04-rate-limiter/spec.json",
+      "family": "latitude-rate-limiter",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "specSha256": "f62a165a9201ea3d9b4be328f7483aa2ed98703109c9ed54a679f9041fc71815"
+    },
+    {
+      "taskId": "upstream-latitude-14-event-bus",
+      "experiment": "E1",
+      "dataset": "latitude-dev/coding-agent-benchmark",
+      "fixture": "test/benchmarks/imported/latitude-dev/14-event-bus",
+      "specPath": "test/benchmarks/imported/latitude-dev/14-event-bus/spec.json",
+      "family": "latitude-event-bus",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "specSha256": "3b58b9e18466d622d4124bb528544c1e43782f53182cfc28a9cdcdb323c2083c"
+    },
+    {
+      "taskId": "upstream-latitude-16-task-scheduler",
+      "experiment": "E1",
+      "dataset": "latitude-dev/coding-agent-benchmark",
+      "fixture": "test/benchmarks/imported/latitude-dev/16-task-scheduler",
+      "specPath": "test/benchmarks/imported/latitude-dev/16-task-scheduler/spec.json",
+      "family": "latitude-task-scheduler",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "specSha256": "a96b805e722f4d634670f997af94d26bd3c78468f021eec103c99e385213bf3c"
+    },
+    {
+      "taskId": "upstream-sipratt-07-crdt",
+      "experiment": "E3",
+      "dataset": "sipratt-p/coding-agent-bench",
+      "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+      "specPath": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+      "family": "sipratt-crdt",
+      "split": "development",
+      "status": "verified-functional",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [
+        "code_quality",
+        "official_score"
+      ],
+      "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c"
+    },
+    {
+      "taskId": "upstream-sipratt-08-orchestrator",
+      "experiment": "E3",
+      "dataset": "sipratt-p/coding-agent-bench",
+      "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+      "specPath": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+      "family": "sipratt-orchestrator",
+      "split": "development",
+      "status": "verified-functional",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [
+        "code_quality",
+        "official_score"
+      ],
+      "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a"
+    },
+    {
+      "taskId": "example-local-fix",
+      "experiment": "E2",
+      "dataset": "omc-authored",
+      "fixture": "test/benchmarks/session-strategies/example-local-fix",
+      "specPath": "test/benchmarks/session-strategies/example-local-fix/spec.json",
+      "family": "local-fix",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "specSha256": "d3d4b9c177614ab8d1d05f838f518f4f8ba8c86210c9fd07f7e3794bdc87f48c"
+    },
+    {
+      "taskId": "should-reuse-module-fix",
+      "experiment": "E2",
+      "dataset": "omc-authored",
+      "fixture": "test/benchmarks/session-strategies/should-reuse-module-fix",
+      "specPath": "test/benchmarks/session-strategies/should-reuse-module-fix/spec.json",
+      "family": "module-followup",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "specSha256": "5b358b7f3410a514c722b245ca9d4a1d759383c9164c89adae44e208838e890e"
+    },
+    {
+      "taskId": "should-restart-stale-api",
+      "experiment": "E2",
+      "dataset": "omc-authored",
+      "fixture": "test/benchmarks/session-strategies/should-restart-stale-api",
+      "specPath": "test/benchmarks/session-strategies/should-restart-stale-api/spec.json",
+      "family": "api-migration",
+      "split": "development",
+      "status": "verified",
+      "scoreComponents": [
+        "functional"
+      ],
+      "quarantined": [],
+      "specSha256": "ad3c97518313affe2ca082155c4f6b86407a137a8548bff41b34cc62c7a45ac2"
+    }
+  ]
+}

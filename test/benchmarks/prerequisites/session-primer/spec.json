@@ -1,0 +1,94 @@
+{
+    "taskId": "omc-session-primer",
+    "kind": "should-reuse",
+    "split": "development",
+    "family": "session-primer",
+    "goal": "Make summariseTasks() deterministic: reject non-arrays and missing ids, normalise ids/statuses, sort by id and join with newlines, so the same task list always produces the same brief.",
+    "startState": {
+        "from": "start/",
+        "knownFailure": "node acceptance/check.mjs exits 1: the start state preserves caller order and status spelling, so sorted/normalised rows fail.",
+        "origin": "omc-authored"
+    },
+    "reference": "reference/src/session-brief.mjs",
+    "writeScope": [
+        "src/"
+    ],
+    "commands": [
+        {
+            "name": "brief-contract",
+            "run": [
+                "node",
+                "acceptance/check.mjs"
+            ],
+            "expect": {
+                "exitCode": 0,
+                "stdoutContains": [
+                    "ok 6/6"
+                ],
+                "stdoutNotContains": [
+                    "fail"
+                ]
+            }
+        }
+    ],
+    "acceptanceFiles": [
+        "acceptance/check.mjs",
+        "spec.json"
+    ],
+    "forbidChanges": [
+        "acceptance/",
+        "spec.json"
+    ],
+    "rubric": [
+        "The acceptance command exits 0 and prints ok 6/6, unmodified by the worker.",
+        "Only files under src/ differ from the start state.",
+        "Rows are sorted by id and statuses are normalised, so equal task lists produce equal briefs.",
+        "The fix is behavioural, not a rewrite of the grader."
+    ],
+    "provenance": {
+        "dataset": "omc-authored",
+        "repoUrl": "https://github.com/PengYangchao0808/oh-my-coharness",
+        "baseCommit": "37125f494df07f0be30ffeb1883d699fb3633e26",
+        "taskId": "omc-session-primer",
+        "authoredBy": "OMC",
+        "license": {
+            "spdx": "MIT",
+            "path": "LICENSE",
+            "url": "https://github.com/PengYangchao0808/oh-my-coharness/blob/37125f494df07f0be30ffeb1883d699fb3633e26/LICENSE"
+        },
+        "importedAt": "2026-11-04T05:10:07Z",
+        "verifiedOn": {
+            "at": "2026-11-04T05:10:07Z",
+            "node": "24.21.0",
+            "python": "3.12.14"
+        },
+        "note": "OMC-authored shared prerequisite for experiment E2. It is real graded work, but it is NOT an E2 trial task: each arm runs it once before its first trial and its cost/calls are attributed to that arm.",
+        "upstreamDigests": {},
+        "localDigests": {
+            "start/src/session-brief.mjs": "506a24d6980439b91a250228e7b4ff764fa60f8691d201d291c0f492bc696792",
+            "reference/src/session-brief.mjs": "522c3f4f4d17218559dbe6d8a37c26fe0679020f8170f45f96a0887a87c8cf49",
+            "acceptance/check.mjs": "e4cf015004ef69011cfb7edb758d0254ae285884674e6626aa63078fcc5201bf"
+        },
+        "grading": {
+            "method": "external-node-check",
+            "argv": [
+                "node",
+                "acceptance/check.mjs"
+            ],
+            "sha256": "e4cf015004ef69011cfb7edb758d0254ae285884674e6626aa63078fcc5201bf",
+            "frozenFile": "acceptance/check.mjs",
+            "officialScore": "functional-pass-fail"
+        },
+        "startState": {
+            "origin": "omc-authored",
+            "path": "start/"
+        },
+        "reference": {
+            "origin": "omc-authored",
+            "path": "reference/src/session-brief.mjs"
+        },
+        "status": "verified",
+        "quarantined": []
+    },
+    "notes": "Shared prerequisite for E2: it primes one warm session before an arm's first trial. It is not counted as a trial (see test/benchmarks/MANIFEST.json#prerequisites)."
+}

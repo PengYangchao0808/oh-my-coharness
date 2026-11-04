@@ -1,9 +1,20 @@
 # CI pipeline for oh-my-coharness.
 #
 # The package is pure ESM with no dependencies (only optional @deepseek-ai/*
-# peers that the DeepSeek Harness host supplies), so nothing here needs
-# `npm install` and nothing uses a package-manager cache: there is no lockfile
-# to key one on. Tests are plain `node:test` scripts and need no network.
+# peers that the DeepSeek Harness host supplies), so the static/contract jobs
+# need no `npm install` and no package-manager cache: there is no lockfile to key
+# one on. Tests are plain `node:test` scripts and need no network.
+#
+# Coverage shape:
+#   * static + contracts run on the two supported Node lines (package.json
+#     engines: node >=20) on Ubuntu, plus a Windows lane so path/case/sep
+#     regressions surface before a release.
+#   * the run-tests runner writes a machine-readable JSON result that is
+#     uploaded as an artifact; the dirty-tree gate allows exactly that
+#     explicitly listed evidence directory.
+#   * packaging runs once (Ubuntu/Node 20): manifest check, licence/provenance
+#     check and a real `npm pack` → scratch `npm install` → `require.resolve`
+#     via scripts/install-check.mjs. No duplicate packaging matrix.
 name: CI
 
 on:
@@ -23,16 +34,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Static checks (`npm run check`) plus the node:test contract/integration
-  # suites (`npm test`). The matrix covers both supported runtime lines
-  # (package.json engines: node >=20).
+  # Static checks (`npm run check`, which includes the offline licence/provenance
+  # check) plus the node:test contract/integration suites (`npm test`, recorded
+  # as machine-readable JSON by scripts/run-tests.mjs).
   static-and-contracts:
-    name: Static + contracts (Node ${{ matrix.node }})
-    runs-on: ubuntu-latest
+    name: Static + contracts (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        node: ['20.x', '22.x']
+        include:
+          - os: ubuntu-latest
+            node: '20.x'
+          - os: ubuntu-latest
+            node: '22.x'
+          # One Windows lane is enough: it is about path/case/separator and
+          # child-process behaviour, not about a second packaging run.
+          - os: windows-latest
+            node: '22.x'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,21 +62,73 @@ jobs:
           node-version: ${{ matrix.node }}
           # No `cache:` on purpose — zero dependencies, no lockfile to hash.
 
-      - name: Report Node version
-        run: node --version
+      - name: Report runtime
+        run: |
+          node --version
+          npm --version
+
+      # 0.X is an internal foundation line. A missing `private: true` is exactly
+      # how an accidental `npm publish` would happen, so it is asserted on every
+      # runtime line before any other check can pass.
+      - name: Assert package.json stays private
+        run: |
+          node -e "const p=require('./package.json'); if (p.private !== true) { console.error('::error::package.json must keep private=true so 0.X is never published'); process.exit(1) } console.log('package.json private=true')"
 
       - name: Static checks
         run: npm run check
 
-      - name: Contract and integration tests
-        run: npm test
+      - name: Licence and vendored provenance
+        run: node scripts/license-check.mjs
 
-  # Packaging contract: what `npm publish` would actually ship. First the
-  # repository-side manifest check, then a real `npm pack` whose file list is
-  # asserted, and finally an install of that tarball into a scratch project to
-  # prove the published shape resolves as `oh-my-coharness` for consumers.
+      - name: Contract and integration tests (JSON recorded)
+        run: node scripts/run-tests.mjs --out docs/evidence/v0.9/test-run-${{ matrix.os }}-node${{ matrix.node }}.json
+
+      # The suite list lives in package.json scripts.test, which this lane may not
+      # edit; the registration-surface contract is a separate file, so run it here.
+      - name: Registration surface (dynamic Cordis registrations)
+        run: node test/integration/registration-surface.test.mjs
+
+      - name: Upload test-run result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-${{ matrix.os }}-node${{ matrix.node }}
+          path: docs/evidence/v0.9/test-run-${{ matrix.os }}-node${{ matrix.node }}.json
+          if-no-files-found: warn
+
+      # The only files a test run may leave behind are the machine-readable
+      # evidence files written by scripts/run-tests.mjs into the explicitly
+      # listed directory. Anything else means the tree is dirty (generated
+      # fixtures, caches, accidental edits) and must be fixed at the source.
+      - name: Dirty-tree check (test evidence only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          dirty="$(git status --porcelain --untracked-files=all)"
+          if [ -z "$dirty" ]; then
+            echo "working tree clean after tests"
+            exit 0
+          fi
+          unexpected=0
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            path="${line:3}"
+            case "$path" in
+              docs/evidence/v0.9/*) echo "allowed test evidence: $line" ;;
+              *) echo "::error::unexpected working-tree change: $line"; unexpected=1 ;;
+            esac
+          done <<< "$dirty"
+          exit "$unexpected"
+
+  # Packaging contract: what `npm publish` would actually ship, checked three
+  # ways. First the repository-side manifest/forbidden-path check, then the
+  # offline licence/provenance check, then a REAL `npm pack` whose tarball is
+  # installed into a scratch project and resolved from an independent consumer
+  # anchor (scripts/install-check.mjs; npm publish is never invoked). A real
+  # install cannot be claimed by pack-check, and the runner reports
+  # `status: blocked` (non-zero) instead of pretending when npm is absent.
   package-and-install:
-    name: Package + install tarball (Node 20.x)
+    name: Package + install tarball (Ubuntu, Node 20.x)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -68,69 +139,43 @@ jobs:
         with:
           node-version: '20.x'
 
+      - name: Assert package.json stays private
+        run: |
+          node -e "const p=require('./package.json'); if (p.private !== true) { console.error('::error::package.json must keep private=true so 0.X is never published'); process.exit(1) } console.log('package.json private=true')"
+
       - name: Dry-run pack
         run: npm pack --dry-run
 
-      - name: Tarball manifest check
+      - name: Tarball manifest + forbidden-path check
         run: node scripts/pack-check.mjs
 
-      - name: Pack and assert tarball contents
-        id: pack
+      - name: Licence and vendored provenance
+        run: node scripts/license-check.mjs
+
+      - name: Real pack, scratch install and consumer resolution
+        run: node scripts/install-check.mjs --json --out "$RUNNER_TEMP/omc-install-check.json"
+
+      - name: Upload install-check result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-check
+          path: ${{ runner.temp }}/omc-install-check.json
+          if-no-files-found: warn
+
+      # install-check keeps every artifact (tarball, scratch project, npm cache,
+      # config and HOME) in a temp directory, so the checkout must stay clean.
+      - name: Dirty-tree check (packaging must be isolated)
         shell: bash
         run: |
           set -euo pipefail
-          npm pack --json > pack.json
-          node - <<'NODE'
-          const fs = require('node:fs')
-
-          const [meta] = JSON.parse(fs.readFileSync('pack.json', 'utf8'))
-          const filename = meta.filename
-          // npm may report entries with or without the `package/` prefix.
-          const paths = meta.files.map((file) => file.path.replace(/^package\//, ''))
-
-          const required = [
-            'src/entry.js',
-            'integration/execution.js',
-            'vendor/omd/npm-package/preset/preset.js',
-          ]
-          const forbidden = paths.filter(
-            (path) =>
-              path === 'docs/archive' ||
-              path.startsWith('docs/archive/') ||
-              path === '.github' ||
-              path.startsWith('.github/'),
-          )
-          const missing = required.filter((path) => !paths.includes(path))
-
-          const problems = []
-          if (missing.length) problems.push(`missing required path(s): ${missing.join(', ')}`)
-          if (forbidden.length) problems.push(`forbidden path(s) shipped: ${forbidden.join(', ')}`)
-          if (problems.length) {
-            for (const problem of problems) console.error(`::error::${problem}`)
-            process.exit(1)
-          }
-
-          console.log(
-            `${filename}: ${paths.length} files; required entries present; no docs/archive/**, no .github/**`,
-          )
-          NODE
-          TARBALL="$(node -p "JSON.parse(require('node:fs').readFileSync('pack.json', 'utf8'))[0].filename")"
-          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
-
-      - name: Install tarball into a scratch project
-        shell: bash
-        env:
-          TARBALL: ${{ steps.pack.outputs.tarball }}
-        run: |
-          set -euo pipefail
-          tgz="$PWD/$TARBALL"
-          scratch="$(mktemp -d)"
-          echo "scratch project: $scratch"
-          cd "$scratch"
-          npm init -y > /dev/null
-          npm i --ignore-scripts --no-audit --no-fund "$tgz"
-          test -f node_modules/oh-my-coharness/src/entry.js
-          node -e "const { createRequire } = require('node:module'); const resolved = createRequire(process.cwd() + '/x').resolve('oh-my-coharness/package.json'); console.log('resolved:', resolved); if (!resolved.endsWith('node_modules/oh-my-coharness/package.json')) throw new Error('unexpected resolution: ' + resolved);"
+          dirty="$(git status --porcelain --untracked-files=all)"
+          if [ -n "$dirty" ]; then
+            echo "::error::packaging left the checkout dirty:"
+            printf '%s\n' "$dirty"
+            exit 1
+          fi
+          echo "working tree clean after packaging checks"
 
   # PLACEHOLDER — this job does not exercise DeepSeek Harness and must not be
   # read as a passing DSH check. A real DSH runtime smoke test needs a

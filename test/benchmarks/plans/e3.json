@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "planId": "omc-0.8-e3-sipratt-4",
+  "experimentGroup": "E3",
+  "status": "not-executed",
+  "description": "E3: 2 real sipratt Python tasks x 2 role arms (single / multi-role) = 4 trials. Plan only: no model is selected and nothing is executed.",
+  "frozenAt": "2026-11-04T05:10:07Z",
+  "manifest": {
+    "schemaVersion": 1,
+    "experimentId": "omc-0.8-e3-sipratt-4",
+    "experimentGroup": "E3",
+    "dataKind": "live",
+    "split": "development",
+    "allocation": "blocked-task-repeat/fisher-yates-xorshift32@1",
+    "seed": "omc-0.8-e3-pilot-2026-11-04",
+    "repeats": 1,
+    "arms": [
+      "single",
+      "multi-role"
+    ],
+    "tasks": [
+      {
+        "id": "upstream-sipratt-07-crdt",
+        "revision": "fixture@b689da7353fa757e",
+        "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "harness": "placeholder-harness-not-selected",
+        "provenance": {
+          "experiment": "E3",
+          "dataset": "sipratt-p/coding-agent-bench",
+          "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "fixture": "test/benchmarks/imported/sipratt-p/07-crdt",
+          "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+          "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+          "license": {
+            "spdx": "MIT",
+            "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+            "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+          },
+          "importedAt": "2026-11-04T05:10:07Z",
+          "status": "verified-functional",
+          "quarantined": [
+            "code_quality",
+            "official_score"
+          ],
+          "origin": "upstream",
+          "repoCheckout": "required before --execute: an absolute checkout of repoUrl at baseCommit; this plan does not freeze a machine-specific path"
+        },
+        "acceptance": {
+          "runner": "integration/acceptance-runner.js",
+          "spec": "test/benchmarks/imported/sipratt-p/07-crdt/spec.json",
+          "specSha256": "b689da7353fa757e00363bdfdc393e70d2b2a5158c493f86e39f763502b2c42c",
+          "command": [
+            "python",
+            "acceptance/check.py"
+          ],
+          "gradingSha256": "2a2277a3e489a4014047390f7776837b6b617a912893f015de4ae11e1b12418d",
+          "frozenFile": "acceptance/hidden-test.py",
+          "verified": "verified-functional"
+        }
+      },
+      {
+        "id": "upstream-sipratt-08-orchestrator",
+        "revision": "fixture@f187aa3d1158157d",
+        "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+        "harness": "placeholder-harness-not-selected",
+        "provenance": {
+          "experiment": "E3",
+          "dataset": "sipratt-p/coding-agent-bench",
+          "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+          "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "commitUrl": "https://github.com/sipratt-p/coding-agent-bench/commit/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8",
+          "fixture": "test/benchmarks/imported/sipratt-p/08-orchestrator",
+          "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+          "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+          "license": {
+            "spdx": "MIT",
+            "path": "test/benchmarks/upstream/sipratt-p--coding-agent-bench/LICENSE",
+            "url": "https://github.com/sipratt-p/coding-agent-bench/blob/3e9bca9b78790c0d537a505a4f5850e4c7cb35d8/LICENSE"
+          },
+          "importedAt": "2026-11-04T05:10:07Z",
+          "status": "verified-functional",
+          "quarantined": [
+            "code_quality",
+            "official_score"
+          ],
+          "origin": "upstream",
+          "repoCheckout": "required before --execute: an absolute checkout of repoUrl at baseCommit; this plan does not freeze a machine-specific path"
+        },
+        "acceptance": {
+          "runner": "integration/acceptance-runner.js",
+          "spec": "test/benchmarks/imported/sipratt-p/08-orchestrator/spec.json",
+          "specSha256": "f187aa3d1158157d36691bd55e66e1a50605eb27ab95b86f9be495990992459a",
+          "command": [
+            "python",
+            "acceptance/check.py"
+          ],
+          "gradingSha256": "8bbbeef3ece89797e59a70d960907709a44b7b33ed88718fb0c1faa2d1612db3",
+          "frozenFile": "acceptance/hidden-test.py",
+          "verified": "verified-functional"
+        }
+      }
+    ],
+    "conditions": {
+      "provider": "placeholder-provider-not-selected",
+      "model": "placeholder-model-not-selected",
+      "harness": "placeholder-harness-not-selected",
+      "toolsetDigest": "3052c77dd913f60ebca8963540e52c9a346536cb30528a7db2957353881ddc34",
+      "budgetDigest": "41c345b2981f81b2d92b02249da149260da28fd58fcca059f2b3cbee88433c9c",
+      "evaluatorVersion": "omc-acceptance-runner@1",
+      "environmentDigest": "eb88d3e791a08bc59bbf2b3ea64c7ff8d29e2aa1ebc0409252c015f583aea2af",
+      "promptDigest": "58a9496363d71ad56679c513c41081e24aafb07caeeeba279b14d6f92dfc7a42",
+      "cacheRegime": "cold",
+      "executionStatus": "not-executed",
+      "modelSelected": false,
+      "harnessSelected": false,
+      "note": "Plan-only placeholders: no provider, model or harness has been selected and no trial has been executed. A paid run needs an explicit selection and a host executor."
+    },
+    "conditionsDigest": "a15219fba6d8aec5be92ae143643db6451cf738238a517a9a8c2eb93af398b5f",
+    "policyVersions": {
+      "single": "role=single@omc-0.8",
+      "multi-role": "role=multi@omc-0.8"
+    },
+    "optimizerCostUsd": {
+      "single": null,
+      "multi-role": null
+    },
+    "promotion": {
+      "candidate": "multi-role",
+      "reference": "single",
+      "minTasks": 30,
+      "minRepeats": 2,
+      "minCostReduction": 0.1,
+      "maxQualityLoss": 0,
+      "maxLatencyIncrease": 0.05
+    },
+    "assignments": [
+      {
+        "trialId": "54003f375cfcecf10a29ed09",
+        "taskId": "upstream-sipratt-08-orchestrator",
+        "repeat": 0,
+        "strategy": "multi-role",
+        "arm": "multi-role"
+      },
+      {
+        "trialId": "07277b6e8ccad37234e343db",
+        "taskId": "upstream-sipratt-08-orchestrator",
+        "repeat": 0,
+        "strategy": "single",
+        "arm": "single"
+      },
+      {
+        "trialId": "8e90fcc79cbc31fd23d732a7",
+        "taskId": "upstream-sipratt-07-crdt",
+        "repeat": 0,
+        "strategy": "single",
+        "arm": "single"
+      },
+      {
+        "trialId": "b1fbcfea45f07e8327a076e8",
+        "taskId": "upstream-sipratt-07-crdt",
+        "repeat": 0,
+        "strategy": "multi-role",
+        "arm": "multi-role"
+      }
+    ],
+    "digest": "ee9288581d8cad7dd6532e54b840899d740f698d439f197ecbbe5504b4a9c29f"
+  },
+  "budget": {
+    "totalUsd": 8,
+    "perTrialUsd": 2
+  },
+  "concurrency": 1,
+  "deadline": "2026-12-31T23:59:59.000Z",
+  "inputs": {
+    "status": "not-executed",
+    "modelSelection": "not-selected",
+    "harnessSelection": "not-selected",
+    "hostExecutor": "not-installed",
+    "upstreamCheckouts": {
+      "sipratt-p/coding-agent-bench": {
+        "repoUrl": "https://github.com/sipratt-p/coding-agent-bench",
+        "baseCommit": "3e9bca9b78790c0d537a505a4f5850e4c7cb35d8"
+      }
+    },
+    "blockers": [
+      "model/provider/harness selection is not frozen (placeholders only)",
+      "no host executor implements runTrial() yet (executePlan must be called by a host)",
+      "upstream checkouts at the frozen commits are not present in this plan (machine-specific absolute paths are deliberately not frozen)"
+    ]
+  }
+}

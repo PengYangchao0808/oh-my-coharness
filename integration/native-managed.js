@@ -37,9 +37,9 @@ function managedError(code, message) {
 }
 
 /**
- * @param {{graph: object, native: object, executionStore: object}} stores
+ * @param {{graph: object, native: object, executionStore: object, acceptance?: object|null}} stores
  */
-export function createNativeManaged({ graph, native, executionStore } = {}) {
+export function createNativeManaged({ graph, native, executionStore, acceptance = null } = {}) {
   function requireStores() {
     if (!graph || !native || !executionStore) {
       throw managedError('OMC/NATIVE-MANAGED-UNAVAILABLE', 'the native managed path needs graph, native runtime and execution store')
@@ -51,6 +51,12 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
     return status.nodes.find((node) => node.id === nodeId || node.nodeId === nodeId) ?? null
   }
 
+  function currentNode(parentId, nodeId) {
+    return nodeOf(parentId, nodeId)
+  }
+
+  if (acceptance && typeof graph?.setAcceptance === 'function') graph.setAcceptance(acceptance)
+
   return {
     version: NATIVE_MANAGED_VERSION,
 
@@ -61,7 +67,10 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
      * different session to a node that already has one is refused, because that
      * would re-attribute work already framed under another child.
      */
-    bind({ parentId, nodeId, sessionId, role = null, taskId = null } = {}) {
+    bind({
+      parentId, nodeId, sessionId, role = null, taskId = null, strictLineage = null,
+      acceptanceSpec = null, workdir = null, runner = null, baseline = null, timeoutMs = 120000,
+    } = {}) {
       requireStores()
       if (typeof parentId !== 'string' || parentId === '') throw managedError('OMC/NATIVE-MANAGED-INPUT', 'bind needs parentId')
       if (typeof nodeId !== 'string' || nodeId === '') throw managedError('OMC/NATIVE-MANAGED-INPUT', 'bind needs nodeId')
@@ -71,16 +80,44 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
       if (existing && existing.nodeId && existing.nodeId !== nodeId) {
         throw managedError('OMC/NATIVE-MANAGED-CONFLICT', `session ${sessionId} is already bound to node ${existing.nodeId}`)
       }
+      // Only the host-observed binding may supply lineage. A bare
+      // child_session_id argument is never promoted to `host`: it stays
+      // `unknown` and the claim records that honestly.
+      const trusted = typeof native.trustedLineageFor === 'function'
+        ? native.trustedLineageFor(sessionId)
+        : (typeof native.lineageFor === 'function' ? native.lineageFor(sessionId) : null)
+      if (trusted && trusted.parentId && trusted.parentId !== parentId) {
+        throw managedError(
+          'OMC/NATIVE-MANAGED-CROSS-ROOT',
+          `session ${sessionId} belongs to root shard ${trusted.parentId}, not ${parentId}; a child of another root cannot claim this graph`,
+        )
+      }
+      const lineage = trusted?.lineage ?? {
+        source: 'unknown',
+        parentSessionId: null,
+        rootSessionId: null,
+        note: 'only the child_session_id argument was supplied; no host session header proved this lineage',
+      }
 
       const node = nodeOf(parentId, nodeId)
       if (!node) throw managedError('OMC/GRAPH-NODE-UNKNOWN', `node ${nodeId} is not in this parent's graph`)
 
       // The node must carry the task id the bridge will book under, so it is
       // resolved before the claim instead of after it.
-      const resolvedTaskId = taskId ?? existing?.taskId ?? nativeTaskIdFor(sessionId)
+      const resolvedTaskId = taskId ?? existing?.taskId ?? trusted?.taskId ?? nativeTaskIdFor(sessionId)
+      const resolvedRole = trusted?.role ?? role ?? null
       let claim = null
       if (node.state === 'pending' || node.state === 'ready') {
-        claim = graph.claim(parentId, nodeId, { taskId: resolvedTaskId, childId: sessionId })
+        claim = graph.claim(parentId, nodeId, {
+          taskId: resolvedTaskId,
+          childId: sessionId,
+          rootTaskId: trusted?.rootTaskId ?? null,
+          ticketId: node.ticketId ?? null,
+          workstream: node.workstream ?? null,
+          lineage,
+          workspace: workdir,
+          ...(strictLineage === null ? {} : { strictLineage: strictLineage === true }),
+        })
       } else if (node.state === 'running') {
         // Already claimed: accept it only when this session (or nobody) owns it.
         const owner = node.childId ?? node.taskId ?? null
@@ -97,17 +134,92 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
         parentId,
         taskId: resolvedTaskId,
         nodeId,
-        ...(role ? { role } : {}),
+        ...(resolvedRole ? { role: resolvedRole } : {}),
         source: 'managed',
+        lineage,
+        ...(trusted ? {
+          parentTaskId: trusted.parentTaskId ?? null,
+          rootTaskId: trusted.rootTaskId ?? null,
+          rootSessionId: trusted.rootSessionId ?? null,
+          depth: trusted.depth ?? null,
+        } : {}),
       })
+
+      // 0.6 lifecycle: opening the attempt intent BEFORE the child's first turn
+      // lets the baseline be provably frozen before launch. It also gives the
+      // native bridge a stable attempt id for running/terminal transitions.
+      let execution = executionStore.read(resolvedTaskId)
+      if (!execution) {
+        execution = executionStore.open({
+          taskId: resolvedTaskId,
+          parentId,
+          backend: 'native',
+          reason: 'native bind',
+          intent: { backend: 'native', sessionId, nodeId, role: resolvedRole },
+        })
+      }
+      const spec = acceptanceSpec ?? node.acceptanceSpec ?? null
+      const markLaunching = () => {
+        try {
+          executionStore.launching(resolvedTaskId, execution.currentAttemptId, {
+            intent: { backend: 'native', sessionId, nodeId },
+            by: 'native bind',
+          })
+        } catch { /* lifecycle bookkeeping must not fail the bind */ }
+      }
+      let acceptanceReady = null
+      if (spec && acceptance && runner && typeof acceptance.freeze === 'function' && !baseline) {
+        acceptanceReady = (async () => {
+          const frozen = await acceptance.freeze({
+            spec,
+            workdir,
+            runner,
+            taskId: resolvedTaskId,
+            nodeId,
+            attemptId: execution.currentAttemptId,
+          })
+          graph.setBaseline(parentId, nodeId, {
+            baseline: frozen,
+            spec,
+            claimId: claim?.claimId ?? node.claimId ?? null,
+            attemptId: execution.currentAttemptId,
+          })
+          return frozen
+        })()
+        // Launching is recorded only after the baseline is frozen; the native
+        // child is started by the host, so this is the closest honest boundary.
+        acceptanceReady.then(markLaunching, () => markLaunching())
+      } else if (baseline) {
+        graph.setBaseline(parentId, nodeId, {
+          baseline,
+          spec: spec ?? undefined,
+          claimId: claim?.claimId ?? node.claimId ?? null,
+          attemptId: execution.currentAttemptId,
+        })
+        markLaunching()
+      } else {
+        markLaunching()
+      }
       return {
         managed: true,
         nodeId,
         taskId: binding.taskId,
         sessionId,
+        lineage,
+        trusted: trusted?.trusted === true,
+        claimId: claim?.claimId ?? claim?.node?.claimId ?? null,
+        attemptId: execution.currentAttemptId ?? null,
+        acceptance: spec ? {
+          state: 'pending',
+          mode: 'verify',
+          baseline: baseline ? 'supplied' : (acceptanceReady ? 'freezing' : 'missing'),
+        } : null,
+        ...(acceptanceReady ? { acceptanceReady } : {}),
         binding,
         graph: graph.status(parentId),
-        note: 'execution settles from the native turn/end events; acceptance still needs evidence',
+        note: spec
+          ? 'execution settles from the native turn/end events; acceptance needs a trusted verdict (verify), never a caller string'
+          : 'execution settles from the native turn/end events; this node declares no acceptance',
       }
     },
 
@@ -117,7 +229,10 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
      * @param {{parentId: string, nodeId: string, evidence?: string[],
      *          changedFiles?: string[], attemptId?: string}} input
      */
-    settle({ parentId, nodeId, evidence = null, changedFiles = null, attemptId = null } = {}) {
+    async settle({
+      parentId, nodeId, evidence = null, changedFiles = null, attemptId = null,
+      workdir = null, runner = null, timeoutMs = 120000, verdict = null, spec = null, treeCheck = true,
+    } = {}) {
       requireStores()
       const node = nodeOf(parentId, nodeId)
       if (!node) throw managedError('OMC/GRAPH-NODE-UNKNOWN', `node ${nodeId} is not in this parent's graph`)
@@ -138,7 +253,41 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
       }
 
       if (view.execution === 'completed') {
-        if (!Array.isArray(evidence) || evidence.length === 0) {
+        const hasAcceptance = (Array.isArray(node.acceptance) && node.acceptance.length > 0) || Boolean(node.acceptanceSpec)
+        if (!hasAcceptance) {
+          // Legacy behaviour: a node without acceptance has nothing to grade.
+          const completed = graph.complete(parentId, nodeId, {
+            status: 'completed',
+            evidence: Array.isArray(evidence) ? evidence : [],
+            ...(Array.isArray(changedFiles) ? { changedFiles } : {}),
+            taskId,
+            ...(node.claimId ? { claimId: node.claimId } : {}),
+          })
+          return {
+            managed: true,
+            nodeId,
+            execution: view.execution,
+            acceptance: 'none',
+            delivered: true,
+            graph: graph.status(parentId),
+            completed,
+          }
+        }
+        // Trusted acceptance (PR-02): the same judge path every other entry
+        // uses. Strings/self-reported evidence cannot pass.
+        let verification = null
+        try {
+          verification = await graph.verify(parentId, nodeId, {
+            spec: spec ?? node.acceptanceSpec ?? node.acceptance,
+            workdir,
+            baseline: node.acceptanceBaseline ?? undefined,
+            verdict,
+            attemptId: currentAttempt,
+            runner,
+            timeoutMs,
+            treeCheck,
+          })
+        } catch (error) {
           return {
             managed: true,
             nodeId,
@@ -146,22 +295,41 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
             acceptance: 'pending',
             delivered: false,
             graph: graph.status(parentId),
-            note: 'execution completed but no acceptance evidence was supplied; the node stays claimed and dependants stay locked',
+            reason: String(error?.message ?? error),
+            note: 'execution completed but no trusted acceptance verdict could be produced; the node stays claimed',
+          }
+        }
+        if (verification.state !== 'passed' || !verification.verdict) {
+          return {
+            managed: true,
+            nodeId,
+            execution: view.execution,
+            acceptance: verification.state === 'failed' ? 'failed' : 'pending',
+            delivered: false,
+            graph: graph.status(parentId),
+            verdict: verification.verdict ?? null,
+            reason: verification.reason ?? null,
+            note: 'acceptance did not pass; the node cannot be completed and dependants stay locked',
           }
         }
         const completed = graph.complete(parentId, nodeId, {
           status: 'completed',
-          evidence,
+          evidence: Array.isArray(evidence) ? evidence : [],
           ...(Array.isArray(changedFiles) ? { changedFiles } : {}),
           taskId,
+          verdict: verification.verdict,
+          workdir,
+          attemptId: currentAttempt,
+          treeCheck,
+          ...(node.claimId ? { claimId: node.claimId } : {}),
         })
-        const acceptance = executionStore.acceptance(taskId, { state: 'passed', evidence, attemptId: currentAttempt })
         return {
           managed: true,
           nodeId,
           execution: view.execution,
-          acceptance: acceptance.acceptance.state,
-          delivered: acceptance.delivered === true,
+          acceptance: 'passed',
+          delivered: true,
+          verdict: verification.verdict,
           graph: graph.status(parentId),
           completed,
         }
@@ -173,8 +341,10 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
       const released = graph.release(parentId, nodeId, {
         to: target,
         reason: view.stopReason ?? view.execution,
+        taskId,
+        ...(node.claimId ? { claimId: node.claimId } : {}),
       })
-      const acceptance = executionStore.acceptance(taskId, {
+      const acceptanceState = executionStore.acceptance(taskId, {
         state: view.execution === 'unknown' ? 'unknown' : 'failed',
         evidence: [view.stopReason ?? view.execution],
         attemptId: currentAttempt,
@@ -183,7 +353,7 @@ export function createNativeManaged({ graph, native, executionStore } = {}) {
         managed: true,
         nodeId,
         execution: view.execution,
-        acceptance: acceptance.acceptance.state,
+        acceptance: acceptanceState.acceptance.state,
         delivered: false,
         graph: graph.status(parentId),
         released,

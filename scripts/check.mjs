@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseFrontmatter, SKILLS } from '../src/skills.js'
+import { checkLicenses } from './license-check.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const failures = []
@@ -135,7 +136,7 @@ for (const name of modules) {
   const reason = loadInChild(join(root, 'src', `${name}.js`))
   if (reason) failures.push(`src/${name}.js failed to load: ${reason}`)
 }
-for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy', 'tasks', 'fleet', 'catalog', 'demo', 'state', 'file-lock', 'cli-result', 'graph', 'mailbox', 'project-policy', 'worktree', 'custom-roles', 'role-result', 'preset-snapshot', 'usage-ledger', 'execution-events', 'native-runtime', 'request-gate', 'native-managed', 'worker-registry', 'session-strategy', 'trial-collector', 'acceptance-runner', 'work-packet', 'artifact-store', 'context-view', 'retrieval-cache', 'budget', 'progress', 'managed-execution']) {
+for (const name of ['compatibility', 'execution', 'external-brief', 'migration', 'status', 'handoff', 'sessions', 'model-policy', 'tasks', 'fleet', 'catalog', 'demo', 'state', 'file-lock', 'cli-result', 'graph', 'mailbox', 'project-policy', 'worktree', 'custom-roles', 'role-result', 'preset-snapshot', 'usage-ledger', 'execution-events', 'native-runtime', 'request-gate', 'native-managed', 'worker-registry', 'session-strategy', 'trial-collector', 'acceptance-runner', 'work-packet', 'artifact-store', 'context-view', 'retrieval-cache', 'budget', 'progress', 'managed-execution', 'writer-lease']) {
   const reason = loadInChild(join(root, 'integration', `${name}.js`))
   if (reason) failures.push(`integration/${name}.js failed to load: ${reason}`)
 }
@@ -216,6 +217,14 @@ for (const { dir } of SKILLS) {
 }
 ok(SKILLS.length === 5, `0.4.0 ships five skills (found ${SKILLS.length})`)
 
+// ── licensing / vendored provenance ──────────────────────────────────────────
+// Offline: pinned upstream commit, real PATCHES.md paths, required attribution
+// and `files` coverage for the vendored documents. install-check is deliberately
+// not run here: it needs the real npm CLI and a scratch install, so it belongs
+// to the packaging/CI lane, not to every static/unit run.
+const license = checkLicenses({ root })
+for (const failure of license.failures) failures.push(`license-check: ${failure}`)
+
 // ── report ───────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`check failed (${failures.length}):`)
@@ -223,4 +232,4 @@ if (failures.length) {
   process.exit(1)
 }
 for (const note of notes) console.log(`note: ${note}`)
-console.log(`check ok: ${pkg.name}@${pkg.version} — manifest, patch, locales, icon, ${modules.length} modules, ${SKILLS.length} skills`)
+console.log(`check ok: ${pkg.name}@${pkg.version} — manifest, patch, locales, icon, ${modules.length} modules, ${SKILLS.length} skills, licence/provenance`)

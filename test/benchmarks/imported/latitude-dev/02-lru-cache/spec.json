@@ -1,0 +1,130 @@
+{
+  "taskId": "upstream-latitude-02-lru-cache",
+  "kind": "upstream-single-agent",
+  "split": "development",
+  "family": "latitude-lru-cache",
+  "goal": "Fix the LRU cache in src/lru.js so that reading a key refreshes its recency (upstream prompt: set a,b; get a; set c must evict b, and get a still returns 1) and the frozen upstream suite passes.",
+  "startState": {
+    "from": "start/",
+    "knownFailure": "node --test --test-reporter=tap exits 1 because the unmodified upstream start workspace fails the recency tests.",
+    "origin": "upstream-workspace"
+  },
+  "reference": "reference/src/lru.js",
+  "writeScope": [
+    "src/"
+  ],
+  "commands": [
+    {
+      "name": "upstream-suite",
+      "run": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "# pass 7",
+          "# fail 0"
+        ],
+        "stdoutNotContains": [
+          "not ok"
+        ]
+      }
+    }
+  ],
+  "acceptanceFiles": [
+    "lru.test.js",
+    "package.json"
+  ],
+  "forbidChanges": [
+    "lru.test.js",
+    "package.json"
+  ],
+  "rubric": [
+    "The frozen upstream suite (lru.test.js) passes unmodified: # pass 7, # fail 0.",
+    "Only files under src/ differ from the upstream start workspace.",
+    "The worker may add tests but may not weaken or edit the frozen upstream test file.",
+    "The fix addresses the reported bug instead of rewriting the module from scratch."
+  ],
+  "provenance": {
+    "dataset": "latitude-dev/coding-agent-benchmark",
+    "repoUrl": "https://github.com/latitude-dev/coding-agent-benchmark",
+    "baseCommit": "cd28f3965d4d9d2fc9a49faca573f16b5102b488",
+    "taskId": "02-lru-cache",
+    "upstreamTaskPath": "tasks/02-lru-cache",
+    "license": {
+      "spdx": "MIT",
+      "path": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/LICENSE",
+      "url": "https://github.com/latitude-dev/coding-agent-benchmark/blob/cd28f3965d4d9d2fc9a49faca573f16b5102b488/LICENSE"
+    },
+    "importedAt": "2026-11-04T05:10:07Z",
+    "verifiedOn": {
+      "at": "2026-11-04T05:10:07Z",
+      "node": "24.21.0",
+      "python": "3.12.14"
+    },
+    "runtime": {
+      "node": ">=24",
+      "note": "upstream package.json engines.node is >=24; the repo harness uses Node type stripping"
+    },
+    "upstreamDigests": {
+      "tasks/02-lru-cache/prompt.md": {
+        "sha256": "6cae09b34415e6da232a5672f34fecd90c718310cb3b8a240bebf21da6737a72",
+        "gitBlobSha1": "ee266153eeac9c6eb176d68f52205c44899b6609",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/prompt.md"
+      },
+      "tasks/02-lru-cache/solution/src/lru.js": {
+        "sha256": "89e61cdcfe0ae61ea3ec5be86699f0d7565841a40f30a927882fcc7fdbadbd52",
+        "gitBlobSha1": "ce2eed8705a82ad55da5f61fa769ccdc16ce5ffc",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/solution/src/lru.js"
+      },
+      "tasks/02-lru-cache/workspace/lru.test.js": {
+        "sha256": "8913a62c6af642116cce4a0439db24cbc878eb8fa11842eefa2611421c4944b1",
+        "gitBlobSha1": "07ead836c7613c0b24fa763fa92f8e1be271aa81",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/workspace/lru.test.js"
+      },
+      "tasks/02-lru-cache/workspace/package.json": {
+        "sha256": "c167db8b2dbfbf0c66a0d36d016a25771ec7cb7bc0b061df9b84fda61c120c54",
+        "gitBlobSha1": "c397289544adf91d332fb8afa8c845f6600b2abf",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/workspace/package.json"
+      },
+      "tasks/02-lru-cache/workspace/src/lru.js": {
+        "sha256": "edf9240ca327f9e5bffdb99945b410d68bb216bc2cc5a63778f76d0ea294b3ed",
+        "gitBlobSha1": "9c86914227c82a6018dc01701c885e7b9aecb81f",
+        "localPath": "test/benchmarks/upstream/latitude-dev--coding-agent-benchmark/tasks/02-lru-cache/workspace/src/lru.js"
+      }
+    },
+    "fixtureDigests": {
+      "acceptance/lru.test.js": "8913a62c6af642116cce4a0439db24cbc878eb8fa11842eefa2611421c4944b1",
+      "reference/src/lru.js": "89e61cdcfe0ae61ea3ec5be86699f0d7565841a40f30a927882fcc7fdbadbd52",
+      "start/lru.test.js": "8913a62c6af642116cce4a0439db24cbc878eb8fa11842eefa2611421c4944b1",
+      "start/package.json": "c167db8b2dbfbf0c66a0d36d016a25771ec7cb7bc0b061df9b84fda61c120c54",
+      "start/src/lru.js": "edf9240ca327f9e5bffdb99945b410d68bb216bc2cc5a63778f76d0ea294b3ed"
+    },
+    "grading": {
+      "method": "node-test-pristine-restore",
+      "argv": [
+        "node",
+        "--test",
+        "--test-reporter=tap"
+      ],
+      "sha256": "8913a62c6af642116cce4a0439db24cbc878eb8fa11842eefa2611421c4944b1",
+      "frozenFile": "acceptance/lru.test.js",
+      "workdirFile": "lru.test.js",
+      "note": "upstream restores pristine test files before scoring; OMC materialises start/ then restores acceptance/<test> over it and digests it before/after the run",
+      "officialScore": "functional-pass-fail"
+    },
+    "startState": {
+      "origin": "upstream-workspace",
+      "upstreamPath": "tasks/02-lru-cache/workspace"
+    },
+    "reference": {
+      "origin": "upstream-solution",
+      "upstreamPath": "tasks/02-lru-cache/solution/src/lru.js",
+      "sha256": "89e61cdcfe0ae61ea3ec5be86699f0d7565841a40f30a927882fcc7fdbadbd52"
+    },
+    "status": "verified",
+    "quarantined": []
+  }
+}

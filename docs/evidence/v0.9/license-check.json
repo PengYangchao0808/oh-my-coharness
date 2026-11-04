@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-license-check",
+  "ok": true,
+  "offline": true,
+  "root": "E:/Calculations/Plugins/Oh-My-CoHarness",
+  "checks": [
+    {
+      "id": "upstream-json",
+      "status": "pass",
+      "detail": "vendor/omd/UPSTREAM.json parses"
+    },
+    {
+      "id": "upstream-pin",
+      "status": "pass",
+      "detail": "pinned oh-my-dsh-slim@0.8.6 at 537d4c7f5dc316c449de4ccfff8ab15d15901fa6"
+    },
+    {
+      "id": "upstream-path",
+      "status": "pass",
+      "detail": "vendor/omd exists"
+    },
+    {
+      "id": "patches-exists",
+      "status": "pass",
+      "detail": "vendor/omd/PATCHES.md exists"
+    },
+    {
+      "id": "patches-pin",
+      "status": "pass",
+      "detail": "PATCHES.md names the pinned commit 537d4c7f5dc316c449de4ccfff8ab15d15901fa6"
+    },
+    {
+      "id": "patches-paths",
+      "status": "pass",
+      "detail": "PATCHES.md names 22 existing repository paths",
+      "evidence": [
+        {
+          "ref": "client/client.js",
+          "resolved": "vendor/omd/npm-package/client/client.js",
+          "directory": false
+        },
+        {
+          "ref": "package.json",
+          "resolved": "package.json",
+          "directory": false
+        },
+        {
+          "ref": "preset/roles.js",
+          "resolved": "vendor/omd/npm-package/preset/roles.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/role-wording.js",
+          "resolved": "vendor/omd/npm-package/preset/role-wording.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/preset.js",
+          "resolved": "vendor/omd/npm-package/preset/preset.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/subagent-result.js",
+          "resolved": "vendor/omd/npm-package/preset/subagent-result.js",
+          "directory": false
+        },
+        {
+          "ref": "test/result.test.mjs",
+          "resolved": "vendor/omd/test/result.test.mjs",
+          "directory": false
+        },
+        {
+          "ref": "lib/config-settings.js",
+          "resolved": "vendor/omd/npm-package/lib/config-settings.js",
+          "directory": false
+        },
+        {
+          "ref": "docs/USABILITY-ACCEPTANCE.zh-CN.md",
+          "resolved": "docs/USABILITY-ACCEPTANCE.zh-CN.md",
+          "directory": false
+        },
+        {
+          "ref": "UPSTREAM.json",
+          "resolved": "vendor/omd/UPSTREAM.json",
+          "directory": false
+        },
+        {
+          "ref": "npm-package/",
+          "resolved": "vendor/omd/npm-package",
+          "directory": true
+        },
+        {
+          "ref": "preset/config.js",
+          "resolved": "vendor/omd/npm-package/preset/config.js",
+          "directory": false
+        },
+        {
+          "ref": "lib/index.js",
+          "resolved": "vendor/omd/npm-package/lib/index.js",
+          "directory": false
+        },
+        {
+          "ref": "lib/profile-registry.js",
+          "resolved": "vendor/omd/npm-package/lib/profile-registry.js",
+          "directory": false
+        },
+        {
+          "ref": "lib/profile-transport.js",
+          "resolved": "vendor/omd/npm-package/lib/profile-transport.js",
+          "directory": false
+        },
+        {
+          "ref": "lib/host-version.js",
+          "resolved": "vendor/omd/npm-package/lib/host-version.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/council-mode.js",
+          "resolved": "vendor/omd/npm-package/preset/council-mode.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/role-composition.js",
+          "resolved": "vendor/omd/npm-package/preset/role-composition.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/subagent-roles.js",
+          "resolved": "vendor/omd/npm-package/preset/subagent-roles.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/role-mcp.js",
+          "resolved": "vendor/omd/npm-package/preset/role-mcp.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/sandbox-strip.js",
+          "resolved": "vendor/omd/npm-package/preset/sandbox-strip.js",
+          "directory": false
+        },
+        {
+          "ref": "preset/early-close-context.js",
+          "resolved": "vendor/omd/npm-package/preset/early-close-context.js",
+          "directory": false
+        }
+      ]
+    },
+    {
+      "id": "omd-license",
+      "status": "pass",
+      "detail": "vendor/omd/LICENSE carries the MIT grant and the OMD copyright"
+    },
+    {
+      "id": "notices",
+      "status": "pass",
+      "detail": "THIRD_PARTY_NOTICES.md carries OMD and OMO attribution and the MIT grant"
+    },
+    {
+      "id": "root-license",
+      "status": "pass",
+      "detail": "root LICENSE is MIT and keeps the vendored-code attribution"
+    },
+    {
+      "id": "package-files",
+      "status": "pass",
+      "detail": "package.json files cover the vendored licence/provenance documents"
+    }
+  ],
+  "failures": [],
+  "notes": [
+    "bare name(s) not treated as repository paths: oh-my-coharness.json",
+    "offline check: no network access; a branch or HEAD is never accepted as the upstream pin",
+    "static import reachability is not analysed; Cordis registers plugins dynamically through the host loader"
+  ]
+}

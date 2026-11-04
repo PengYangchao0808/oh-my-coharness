@@ -280,7 +280,11 @@ export function createDecisionLog({ dir, lockTimeoutMs = 10_000 } = {}) {
       if (parsed.kind === 'revision') {
         if (!parsed.id) continue
         const list = revisions.get(parsed.id) ?? []
-        list.push({ at: parsed.at, outcome: parsed.outcome ?? null })
+        list.push({
+          at: parsed.at,
+          outcome: parsed.outcome ?? null,
+          ...(parsed.actualAction !== undefined ? { actualAction: parsed.actualAction } : {}),
+        })
         revisions.set(parsed.id, list)
       }
     }
@@ -291,6 +295,7 @@ export function createDecisionLog({ dir, lockTimeoutMs = 10_000 } = {}) {
       entry.outcome = last.outcome
       entry.outcomeAt = last.at
       entry.revisionCount = list.length
+      if (last.actualAction !== undefined) entry.actualAction = last.actualAction
     }
     return decisions
   }
@@ -334,6 +339,9 @@ export function createDecisionLog({ dir, lockTimeoutMs = 10_000 } = {}) {
       if (!target) throw err('OMC/STRATEGY-DECISION-UNKNOWN', 'a decision id is required')
       const known = replay(pid).some((entry) => entry.id === target)
       if (!known) throw err('OMC/STRATEGY-DECISION-UNKNOWN', `no decision ${target} for parent ${pid}`)
+      const actualAction = outcome && typeof outcome === 'object' && STRATEGY_ACTIONS.includes(outcome.action)
+        ? outcome.action
+        : undefined
       return append(pid, {
         schemaVersion: SESSION_STRATEGY_VERSION,
         kind: 'revision',
@@ -341,6 +349,7 @@ export function createDecisionLog({ dir, lockTimeoutMs = 10_000 } = {}) {
         parentId: pid,
         at: nowIso(),
         outcome: outcome ?? null,
+        ...(actualAction ? { actualAction } : {}),
       })
     },
   }
