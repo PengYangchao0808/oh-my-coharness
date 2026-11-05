@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-0x-remaining-acceptance-blocks",
+  "recordedAt": "2026-11-05",
+  "commit": "7e0c613d4f970ca101a9e0a2cc7a22c79a4cc193",
+  "completedEvidence": {
+    "localSuites": "56/56 passed (docs/evidence/alpha.2/last-test-run.json)",
+    "implementationCi": "https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131",
+    "documentationCi": "https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41961047209",
+    "pilot": "docs/evidence/v0.8/pilot-final-summary.json"
+  },
+  "blocks": [
+    {
+      "id": "desktop-click-acceptance",
+      "status": "blocked",
+      "reason": "The available tools provide no browser/Desktop click, screenshot or GUI automation surface. No mouse-driven evidence or screenshots were produced.",
+      "notEvidence": "Headless host probes, synthetic adapters and unit tests are not Desktop click acceptance.",
+      "unblockWhen": "A human or an authorized GUI automation runner records the checklist in docs/plans/desktop-acceptance-checklist.zh-CN.md with versioned actions, expected/actual results and screenshots."
+    },
+    {
+      "id": "external-mixed-live-workflow",
+      "status": "blocked",
+      "reason": "The user explicitly selected '不再调用模型' when asked to authorize the additional live workflow acceptance. No External Codex Oracle -> Native Fixer -> Verify run was made.",
+      "notEvidence": "The 25-trial Native benchmark and pr05-workflow.test.mjs synthetic mixed chain do not replace this live acceptance.",
+      "unblockWhen": "The user separately authorizes a new bounded real-model run with a receipt, usage record, isolated worktree and independent acceptance."
+    },
+    {
+      "id": "managed-council-live-workflow",
+      "status": "blocked",
+      "reason": "The same user decision to stop model calls prevented a live managed Council Seats -> Native Synthesizer -> Decision run.",
+      "notEvidence": "pr05-workflow.test.mjs proves the managed graph/ledger/acceptance mechanics only; it is not a live Council model result.",
+      "unblockWhen": "The user separately authorizes a bounded live Council run, with each seat/session/route and the native synthesizer recorded in the graph and usage ledger."
+    }
+  ],
+  "freezeDecision": {
+    "status": "not-frozen",
+    "reason": "The 0.X closeout checklist still has partial 0.7 and 0.9 items. No internal 0.9 tag was created and no npm release was made.",
+    "completedInstead": "CI, real npm pack/install, zero-model host probes, the 25-trial exploratory pilot, Agent Contract v1 draft, licence/registration/packaging checks and GitHub synchronization are complete."
+  }
+}
