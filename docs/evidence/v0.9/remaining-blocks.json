@@ -3,6 +3,7 @@
   "kind": "omc-0x-remaining-acceptance-blocks",
   "recordedAt": "2026-11-05",
   "commit": "7e0c613d4f970ca101a9e0a2cc7a22c79a4cc193",
+  "followupRunbook": "docs/plans/remaining-live-acceptance.zh-CN.md",
   "completedEvidence": {
     "localSuites": "56/56 passed (docs/evidence/alpha.2/last-test-run.json)",
     "implementationCi": "https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131",
