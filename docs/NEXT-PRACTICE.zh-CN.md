@@ -4,12 +4,12 @@
 
 > **2026-11-03 路线修订**：0.X 重定位为 Internal Foundation（内部验证，不发布 npm）。R08 归入 **0.8 内部 Benchmark 验证**，R09 归入 **0.9 内部架构冻结验收**，**R10（有限候选/灰度/自动回退）移出 0.X，归 2.X**。最新状态以 [OMC-0X-CLOSEOUT.md](OMC-0X-CLOSEOUT.md) 与 [next-practice.backlog.json](plans/next-practice.backlog.json) 为准；本文 R02–R10 的原始方案作为技术细节保留，版本归属以上述两份文件为准。
 >
-> **进度（2026-11-03，practice.5）：R00–R04、R06–R07 已完成，R05 缺 Desktop 验收，R08–R10 未完成。**
-> - R00：[分层基线](evidence/alpha.2/practice-baseline.json)（由 `scripts/practice-baseline.mjs` 生成，须先跑 `scripts/run-tests.mjs`）；实现/测试/宿主探针/真实模型/Desktop/费用覆盖分开统计，任何 claimed pass 的产物缺失即降级为 `unverified`。
-> - R01：[`integration/native-runtime.js`](../integration/native-runtime.js) + [11 项组合回归](../test/integration/native-runtime.test.mjs) + [无模型宿主探针](evidence/alpha.2/practice-r01-native-runtime.json)：真实宿主中主控/child/嵌套 child 关联到同一父任务，重放不重复计费，`turn/end` 只结算执行状态。
-> - 仍未完成：真实计费模型链路、Desktop 点击、取消(aborted)的宿主级证据、R02 的逐请求闸门与跨进程预留。alpha.2 发布闸门**未**通过。
->
-> 当前包版本：`0.5.0-alpha.2-practice.1`（实践增量，不是 alpha.2 发布版本）。本文其余部分仍是对 R02–R10 的原始方案。
+> **进度（2026-11-04）：R00–R04、R06–R08 已完成，R05/R09 为部分完成，R10 移出 0.X。**
+> - 全量回归 **56/56 套件通过**：[测试记录](evidence/alpha.2/last-test-run.json)；[最终 CI](https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131)（Ubuntu Node20/22、Windows Node22、真实 pack/install）全绿。
+> - R01：[原生事件桥](evidence/alpha.2/practice-r01-native-runtime.json) 在真实宿主中 12/12 verdict 通过，含 bind→child turn→统一 Runner 验收；`modelCalls=0`。
+> - R08：[真实 25-Trial Pilot](evidence/v0.8/pilot-final-summary.json) 已完成：**24 passed / 1 real model failure**，E1 12/12、E2 8/9、E3 4/4。所有费用 unknown；E1 baseline 重建、E3 后验复核与 recovery 限制均保留，不做性能领先声明。
+> - R05/R09 仍未闭环：Desktop 点击无自动化证据；External Mixed 与 managed Council 的真实模型验收因用户决定停止模型调用而未执行；内部 0.9 Tag 未创建。
+> - 当前包版本：`0.5.0-alpha.2-practice.5`（内部实践版本，未发布 npm）。最新状态以 [OMC-0X-CLOSEOUT](OMC-0X-CLOSEOUT.md) 和 [next-practice.backlog.json](plans/next-practice.backlog.json) 为准，旧 R02–R10 文本保留为技术方案。
 > **R02–R10 的可开工执行方案**见 [R02–R10 执行方案](plans/r02-r10.execution-plan.zh-CN.md)：逐项落点、步骤、证据文件、验证命令与依赖闸门。
 
 配套：[可跟踪实践清单](plans/next-practice.backlog.json) · [alpha.2 设计](V0.5-ALPHA2-PLAN.zh-CN.md) · [验收规格](ACCEPTANCE-V0.5-ALPHA2.zh-CN.md) · [反馈与进化设计](FEEDBACK-EVOLUTION.zh-CN.md)。

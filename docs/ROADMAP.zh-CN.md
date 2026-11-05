@@ -356,7 +356,7 @@ projectId → ticketId → assignmentId → attemptId → sessionId
 | 0.6 稳定性与正确性 | [STABILIZATION.zh-CN.md](STABILIZATION.zh-CN.md)（PR-01～PR-04、§7 验收矩阵） |
 | 0.5–0.9 的剩余接线 | [NEXT-PRACTICE.zh-CN.md](NEXT-PRACTICE.zh-CN.md)（R00–R10）、[R02–R10 执行方案](plans/r02-r10.execution-plan.zh-CN.md) |
 | 0.X 的执行路由与角色 | [ARCHITECTURE.zh-CN.md](ARCHITECTURE.zh-CN.md)、[ROLE-ROUTING.zh-CN.md](ROLE-ROUTING.zh-CN.md) |
-| 1.X 的契约与能力矩阵 | [ADAPTER.zh-CN.md](ADAPTER.zh-CN.md)、[DSH-CONTRACT-LIMITS.zh-CN.md](DSH-CONTRACT-LIMITS.zh-CN.md)、`integration/worker-registry.js`、`integration/mailbox.js` |
+| 1.X 的契约与能力矩阵 | [AGENT-CONTRACT-V1.md](AGENT-CONTRACT-V1.md)、[ADAPTER.zh-CN.md](ADAPTER.zh-CN.md)、[DSH-CONTRACT-LIMITS.zh-CN.md](DSH-CONTRACT-LIMITS.zh-CN.md)、`integration/worker-registry.js`、`integration/mailbox.js` |
 | 2.X 的 L0/L1/L2 与授权账本 | [SUPERAGENT-LAYERING.zh-CN.md](SUPERAGENT-LAYERING.zh-CN.md)（三层结构、Mandate、统一验收出口、G-1 收益对照门） |
 | 2.X 的 RSI 与 Benchmark | [FEEDBACK-EVOLUTION.zh-CN.md](FEEDBACK-EVOLUTION.zh-CN.md)、`scripts/strategy-eval.mjs`、`test/benchmarks/` |
 | 2.X 的长期编排语义 | [DURABLE-ORCHESTRATION.zh-CN.md](DURABLE-ORCHESTRATION.zh-CN.md)（工作图、邮箱、持久结果） |

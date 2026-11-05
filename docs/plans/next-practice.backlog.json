@@ -10,7 +10,7 @@
   "status": "in-progress",
   "startedByThisPlan": true,
   "progress": {
-    "updatedAt": "2026-11-03",
+    "updatedAt": "2026-11-04",
     "completed": [
       "R00",
       "R01",
@@ -18,14 +18,27 @@
       "R03",
       "R04",
       "R06",
-      "R07"
+      "R07",
+      "R08"
     ],
     "inProgress": [],
     "partial": [
-      "R05"
+      "R05",
+      "R09"
     ],
-    "next": "0.6 P0 correctness (C01-C06), then R08 as 0.8 internal benchmark (needs a paid budget decision)",
-    "note": "R00-R04+R06+R07 done with tests and evidence; R05 code + schema + card done, Desktop evidence missing; R08 needs an approved budget, R09 needs Desktop/install acceptance, R10 is out of 0.X (2.X). npm first public release moved to 1.X Coharness Core GA."
+    "next": "R09 residual: Desktop click evidence and External Mixed/managed Council live acceptance (blocked by the user's decision to stop model calls); keep CI green",
+    "note": "R00-R04+R06-R08 done with tests and evidence. 56/56 suites and final CI pass, including real npm pack/install. The 25-trial exploratory pilot completed 24/25 with all costs unknown and recovery limits recorded. R05 still lacks Desktop click evidence; External Mixed and managed Council live acceptance was not run because the user stopped model calls. R09/0.9 remains partial and no internal 0.9 tag exists. R10 is out of 0.X (2.X); npm first public release stays at 1.X Coharness Core GA."
+  },
+  "prStatus": {
+    "PR-01": { "status": "done", "evidence": ["test/integration/identity.test.mjs"] },
+    "PR-02": { "status": "done", "evidence": ["test/integration/pr02-acceptance.test.mjs"] },
+    "PR-03": { "status": "done", "evidence": ["test/integration/pr03-writer-policy.test.mjs", "test/integration/writer-lease.test.mjs"] },
+    "PR-04": { "status": "done", "evidence": ["test/integration/pr04-routing.test.mjs"] },
+    "PR-05": { "status": "code-done-live-partial", "evidence": ["test/integration/pr05-workflow.test.mjs"], "remaining": ["External Mixed and managed Council live acceptance blocked by no further model calls"] },
+    "PR-06": { "status": "done", "evidence": ["test/benchmarks/MANIFEST.json", "test/integration/manifest-provenance.test.mjs"] },
+    "PR-07": { "status": "done", "evidence": ["docs/evidence/v0.8/pilot-final-summary.json"] },
+    "PR-08": { "status": "partial", "remaining": ["Desktop click evidence", "External Mixed and managed Council live acceptance"] },
+    "PR-09": { "status": "partial", "evidence": ["https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131", "docs/AGENT-CONTRACT-V1.md"], "remaining": ["0.X is not frozen and no 0.9 tag was created"] }
   },
   "tasks": [
     {
@@ -393,8 +406,23 @@
       "id": "R08",
       "title": "真实三策略对照与缓存/费用核对（0.8 内部 Benchmark 验证）",
       "priority": "P1",
-      "status": "planned",
+      "status": "done",
+      "completedAt": "2026-11-04",
+      "deliveryScope": "exploratory-25-trial-pilot-only",
       "releaseScope": "0.8-internal-benchmark",
+      "evidence": [
+        "docs/evidence/v0.8/pilot-final-summary.json",
+        "docs/evidence/v0.8/e1-report.json",
+        "docs/evidence/v0.8/e2-report.json",
+        "docs/evidence/v0.8/e3-report.json",
+        "docs/evidence/v0.9/cache-affinity.json",
+        "docs/evidence/alpha.2/last-test-run.json"
+      ],
+      "remaining": [
+        "This was one exploratory 25-trial run per frozen condition, not the larger 72/30-task statistical programme",
+        "All subscription costs are unknown; no performance-lead or promotion claim is made",
+        "E1 acceptance baselines were reconstructed from the frozen base commit; E3 acceptance was re-run zero-model after the path fix"
+      ],
       "dependsOn": [
         "R05",
         "R06",
@@ -435,8 +463,20 @@
       "id": "R09",
       "title": "内部架构冻结验收（0.9 Foundation Freeze，非 npm 发布）",
       "priority": "P1",
-      "status": "planned",
+      "status": "partial",
       "releaseScope": "0.9-foundation-freeze",
+      "evidence": [
+        "https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131",
+        "docs/evidence/v0.9/pr09-verification.json",
+        "docs/evidence/v0.9/final-ci.json",
+        "docs/evidence/v0.9/install-check.json",
+        "docs/AGENT-CONTRACT-V1.md"
+      ],
+      "remaining": [
+        "Desktop click evidence is not available",
+        "External Mixed and managed Council live acceptance was not run because the user stopped model calls",
+        "0.X is not frozen and no internal 0.9 tag was created"
+      ],
       "dependsOn": [
         "R08"
       ],

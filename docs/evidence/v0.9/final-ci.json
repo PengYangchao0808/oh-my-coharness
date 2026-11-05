@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "omc-final-ci-evidence",
+  "recordedAt": "2026-11-04",
+  "run": {
+    "id": 41871037131,
+    "headSha": "1eea0524b78fb5d307ca021532d626434539e8fc",
+    "url": "https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131",
+    "conclusion": "success"
+  },
+  "jobs": [
+    { "name": "Static + contracts (ubuntu-latest, Node 20.x)", "conclusion": "success" },
+    { "name": "Static + contracts (ubuntu-latest, Node 22.x)", "conclusion": "success" },
+    { "name": "Static + contracts (windows-latest, Node 22.x)", "conclusion": "success" },
+    { "name": "Package + install tarball (Ubuntu, Node 20.x)", "conclusion": "success", "evidence": "real npm pack, isolated install and consumer resolution" },
+    { "name": "DSH runtime smoke (placeholder)", "conclusion": "skipped", "note": "manual-dispatch placeholder only; not counted as a DSH runtime pass" }
+  ],
+  "localSuites": {
+    "passed": 56,
+    "failed": 0,
+    "evidence": "docs/evidence/alpha.2/last-test-run.json"
+  },
+  "boundary": "CI success does not supply Desktop click evidence or the External Mixed/managed Council live acceptance that the user chose not to run."
+}

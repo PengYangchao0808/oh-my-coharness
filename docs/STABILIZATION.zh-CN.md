@@ -263,20 +263,25 @@ Native 承担调度与写入，订阅 Harness 承担评审与前端方案：
 
 ---
 
-## 10. 本轮落地状态（2026-11-02）
+## 10. 本轮落地状态（2026-11-04）
 
 | 项 | 状态 | 证据 |
 |---|---|---|
-| PR #1 基线（Adapter 契约、计费保护、Codex resume） | 已在 `feat/merge-omd`，PR #1 待合并 | `138 tests` 通过 |
+| PR #1 基线（Adapter 契约、计费保护、Codex resume） | 已合并进当前主线 | 全量 56/56 套件通过 |
 | `dispatch.allowDirectFallback`（默认 false，Provider 缺失不再静默 Direct） | 已实现 | `test/integration/surface-strict.test.mjs` 7 例 |
-| 连接状态 `disabled→missing→installed→authenticated→verified→routable` | 已实现（`src/connection.js`） | `test/integration/connection.test.mjs` 18 例 |
-| 自动路由只认 `routable`；status 显示真实状态并抑制非 routable 推荐 | 已实现 | `model-policy.test.mjs` 12 例 |
+| 连接状态 `disabled→missing→installed→authenticated→verified→routable` | 已实现（`src/connection.js`） | `test/integration/connection.test.mjs` 20 例 |
 | 人工验收记录 `harnesses.<id>.verify` | 已实现（`auth: unknown` 的唯一升级路径） | `connection.test.mjs` |
 | 双轨模板 Safe Native / Hybrid Subscription | 已随包发布（`presets/`） | `scripts/pack-check.mjs` |
-| CI（静态/契约、打包安装、DSH runtime 占位） | 已加入（`.github/workflows/ci.yml`） | 待首次 push 后跑通 |
-| 本机 profile 收口（仅 codex/opencode 启用，routing 关闭） | 已写入，**重启 DSH 后生效** | `~/.dsh/profiles/desktop/cordis.patch.yml` |
-| PR-02 死代码审计与发布包清理 | 未开始 | 审计结果见下 |
-| PR-04 真实验收矩阵（§7） | 未开始 | — |
+| 自动路由只认 `routable` 且计费授权 | 已实现并接入 dispatch auto | `pr04-routing.test.mjs` 8 例；signed-out/unknown billing 不自动消费 |
+| 可信 lineage、跨分片 Root/Child/Attempt | 已实现 | `identity.test.mjs` 20 例；宿主原生探针 12/12 verdict |
+| 统一 Runner 验收与 intent/launching/unknown 恢复 | 已实现 | `pr02-acceptance.test.mjs`；真实 watchdog 恢复证据 `docs/evidence/v0.8/` |
+| 项目级跨进程 Writer Lease 与最终权限/预算 | 已实现 | `pr03-writer-policy.test.mjs`、`writer-lease.test.mjs` |
+| CI（Ubuntu Node20/22 + Windows Node22、打包安装、DSH runtime 占位） | **实跑全绿** | [run 41871037131](https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131)；真实 npm pack/install 通过 |
+| 真实 Benchmark 25-Trial | 已完成 exploratory Pilot | **24/25**，[汇总](evidence/v0.8/pilot-final-summary.json)；费用 unknown |
+| External Mixed、managed Council 真实模型验收 | **blocked：用户决定停止模型调用** | 不以 Benchmark 结果替代；`pr05-workflow.test.mjs` 仅自动化证据 |
+| Desktop 点击验收 | **未执行/无自动化证据** | `docs/plans/desktop-acceptance-checklist.zh-CN.md` 保留 |
+| 0.9 内部冻结与 Tag | **未冻结、未创建** | 见 [OMC-0X-CLOSEOUT §8](OMC-0X-CLOSEOUT.md) |
+
 
 可达性审计（本轮已完成，供 PR-02 使用）：
 

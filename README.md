@@ -1,22 +1,21 @@
 # Oh My CoHarness
 
-> **v0.5.0-alpha.2-practice.5** — 从“多 Harness 接入”进入“任务交接 + 原生会话复用 + 策略路由”，本轮再往前一步：**原生子 Agent 的请求与用量进入同一套任务记录，预算到额会真正阻止下一次发送**。
+> **v0.5.0-alpha.2-practice.5（0.X 内部基线）** — DSH Native 多模型协作内核：可信任务身份、统一 Runner 验收、崩溃恢复、项目级 Writer Lease、真实会话策略与 Benchmark Host Executor。
 > 一个插件、一个默认 Preset：角色可以跑在 DSH 原生子 Agent 上，也可以交给你已经装好的外部 AI 编程 CLI。
-> `practice.5` 表示这是一次**实践增量**，不是 alpha.2 的发布版本：R00–R04、R06–R07 已完成，R05 代码/设置卡/监控已完成但缺 Desktop 点击证据，R08–R10 与 alpha.2 发布闸门尚未执行。
+> **当前状态（2026-11-04）**：0.6 与 0.8 完成，0.7/0.9 部分完成，**0.X 尚未冻结**。R00–R04、R06–R08 已完成；R05/R09 部分完成；R10 归 2.X。
 >
 > **路线（2026-11-03 修订）：0.X = Internal Foundation（内部技术验证，不发布 npm）。** 首次 npm 公开发布移到 **1.X Coharness Core GA**。`package.json` 已设 `private: true` 防误发；`npm pack` 与隔离安装测试保留。0.X 收官实施与验收入口见 [OMC-0X-CLOSEOUT.md](docs/OMC-0X-CLOSEOUT.md)。
 
-**本轮（2026-11-03，R02–R04）：**
-- `integration/request-gate.js`：**跨进程**逐请求预算闸门。锁内核对"已结算 + 在途 + 未知"，在 `agent/request`（`llm.stream` 之前，重试也计入）拒绝发送，`agent/pre-step` 提前拒绝该步；未知结果**保留名额**，释放需要带理由的审计调用。两个独立进程争最后一格时只有一个成功（真双进程测试）。
-- `integration/native-managed.js`：把已有的原生 child 绑定到工作图节点（`coharness native_action:bind`），用持久执行记录结算（`settle`）；**执行完成不等于验收通过**，没有证据节点不解锁后继。
-- `integration/worker-registry.js` + `integration/session-strategy.js`：逻辑负责人与物理 child/generation 分离，续接/排队/压缩/重开有规则与决策日志（`coharness session_action:decide`）；没有合法压缩接口时记 `restart`，不伪造 compact。
-- `/coharness status` 末尾新增运行脚注：桥是否安装、闸门是否强制执行、当前预算视图、managed/unmanaged 覆盖。
-- **外部按次入账与边界拦截（R02）**：外部 CLI 每次 dispatch 记一条尝试（四桶/未知/仅 CLI 报告费用），到额时在**启动 CLI 之前**拒绝下一次派发，并声明这只是 dispatch 之间的控制。
-- **设置卡（R05）**：`efficiency` 已进入 host schema，卡里可编辑模式、请求上限、单任务上限、费用上限与强制执行开关；保存的用户层**覆盖**部署行配置，类型不对的值直接丢弃（不会被强转成"拦截"）。
+**本轮（2026-11-04，0.X）：**
+- **正确性**：Root/Child/Attempt 可信 lineage、跨分片 Graph、统一 Runner verdict、`intent→launching→running→ended/unknown`、跨进程 Writer Lease，以及 Provider 权限/超时/预算的最终约束。
+- **协作**：`routable + billing` 自动路由、worker/session 决策、managed WorkPacket、Native/Mixed/Council 的统一 Graph/Ledger/Acceptance；旧 prompt-only Council 明确标为 unmanaged。
+- **真实 Benchmark**：9 道冻结题 + 1 个共同前置，E1/E2/E3 共 25 个唯一 Trial 已执行，**24 passed / 1 real model failure**。单角色、多角色、双模型和三种会话策略均有真实执行语义与恢复记录；费用全部 unknown，不做性能领先声明。
+- **验证**：离线 **56/56 套件**通过；[最终 CI](https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131) 在 Ubuntu Node20/22 与 Windows Node22 全绿，真实 npm pack/install 通过；零模型宿主、原生 closure、efficiency、cache identity 探针通过。
+- **未闭环**：Desktop 点击无自动化证据；External Mixed 与 managed Council 的真实模型验收因停止模型调用而未执行；内部 0.9 Tag 未创建。
 
-**证据：** [R02 预算闸门](docs/evidence/alpha.2/practice-r02-budget.json) · [R03 原生闭环](docs/evidence/alpha.2/practice-r03-native-managed.json) · [R04 会话选择](docs/evidence/alpha.2/practice-r04-selection.json) · [分层基线](docs/evidence/alpha.2/practice-baseline.json)。
+**证据：** [25-Trial 汇总](docs/evidence/v0.8/pilot-final-summary.json) · [全量测试](docs/evidence/alpha.2/last-test-run.json) · [原生宿主闭环](docs/evidence/alpha.2/practice-r01-native-runtime.json) · [0.9 验证](docs/evidence/v0.9/pr09-verification.json) · [Agent Contract v1 草案](docs/AGENT-CONTRACT-V1.md)。
 
-**下一版本方案：** [0.5.0-alpha.2 效率与协作闭环](docs/V0.5-ALPHA2-PLAN.zh-CN.md)；逐项执行方案见 [R02–R10 执行方案](docs/plans/r02-r10.execution-plan.zh-CN.md)。最新现状以 [剩余审计](docs/REMAINING-AUDIT.zh-CN.md) 为准。
+**后续开发入口：** [0.X 收官实施与验收](docs/OMC-0X-CLOSEOUT.md) · [下一步实践方案](docs/NEXT-PRACTICE.zh-CN.md) · [可跟踪清单](docs/plans/next-practice.backlog.json)。历史审计文档只作证据，不作为最新状态。
 
 **2026-11-02 Unreleased：OMO-SLIM 核心链路可用化。** 外部角色现可指定 Lane 与最小交接，提供 `coharness` 的 `tasks/result/cancel` action，并修复新开策略、会话轮数和工作目录识别。Codex 原生会话两轮记忆测试、DSH 0.2.1-rc.5 原生/外部角色装载已实测通过。完整功能复刻仍在推进：[差异与开发顺序](docs/OMO-SLIM-PARITY.zh-CN.md) · [本批验收与用法](docs/USABILITY-ACCEPTANCE.zh-CN.md)。
 
@@ -388,7 +387,7 @@ ANTHROPIC_AUTH_TOKEN=<你的 GLM Coding Plan key>
 
 ---
 
-## 能力与限制（v0.5.0-alpha.2-practice.1）
+## 能力与限制（当前 0.X 内部基线）
 
 | 已有 | 暂不提供 |
 |---|---|
@@ -464,6 +463,7 @@ node scripts/pack-check.mjs
 | 文档 | 内容 |
 |---|---|
 | [`docs/OMC-0X-CLOSEOUT.md`](docs/OMC-0X-CLOSEOUT.md) | **0.X 收官实施与验收入口**：0.6–0.9 目标、PR-01～PR-09、五项冻结验收、npm 首发门槛 |
+| [`docs/AGENT-CONTRACT-V1.md`](docs/AGENT-CONTRACT-V1.md) | 1.X Agent Contract 草案：身份、原语、输入输出、能力矩阵与验收边界 |
 | [`docs/ROADMAP.zh-CN.md`](docs/ROADMAP.zh-CN.md) | 0.X → 1.X → 2.X 产品路线：三个时代、里程碑、完成门槛与三层 Benchmark |
 | [`docs/SUPERAGENT-LAYERING.zh-CN.md`](docs/SUPERAGENT-LAYERING.zh-CN.md) | 分层维护体系设计：L0/L1/L2、Mandate 授权、统一验收出口、分期与收益对照门 |
 | [`docs/DURABLE-ORCHESTRATION.zh-CN.md`](docs/DURABLE-ORCHESTRATION.zh-CN.md) | profile 分区、跨进程锁、持久结果、工作图、消息邮箱、CLI 分类 |

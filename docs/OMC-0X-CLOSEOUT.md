@@ -3,6 +3,8 @@
 > 状态：**路线决策 + 收官验收标准**。本文是 0.X 剩余工作的唯一实施与验收入口。
 > 固定于 2026-11-03，基线版本 `0.5.0-alpha.2-practice.5`。本文中的版本号（0.6–0.9）均为**内部排期**，不代表已发布；npm 发布转移到 1.X。
 > 上位路线见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)；本文替代其中"0.9 = 1.0 发布候选"的旧表述。
+>
+> **执行状态（2026-11-04）**：0.6 与 0.8 已完成；0.7 与 0.9 为部分完成，**0.X 尚未冻结**。离线回归 56/56 套件通过，[最终 CI](https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131) 全绿，真实 Pilot 为 **25 executed / 24 passed / 1 real model failure**（[汇总](evidence/v0.8/pilot-final-summary.json)）。External Mixed、managed Council 的真实模型验收因用户决定停止模型调用而未执行；Desktop 点击没有自动化证据。
 
 ---
 
@@ -220,6 +222,20 @@
 | **PR-08** | Integration Acceptance | 0.8–0.9 | Desktop、真实 CLI、安装、迁移、崩溃与回归验证 |
 | **PR-09** | Foundation Freeze | 0.9 | 文档收敛、死代码审计、接口版本化、内部 0.9 Tag |
 
+**实际落地（2026-11-04）**：
+
+| PR | 状态 | 证据 / 剩余 |
+|---|---|---|
+| PR-01 | done | `identity.test.mjs` 20 例；宿主 lineage 与跨分片归属 |
+| PR-02 | done | `pr02-acceptance.test.mjs` 8 例；统一 Runner verdict、unknown 恢复 |
+| PR-03 | done | `pr03-writer-policy.test.mjs` 16 例 + Writer Lease 真双进程竞争 |
+| PR-04 | done | `pr04-routing.test.mjs` 8 例；routable+billing、worker/session 决策 |
+| PR-05 | 代码 done / 真实验收 partial | `pr05-workflow.test.mjs` 6 例；真实 External Mixed/Council 未执行 |
+| PR-06 | done | 9 题 + 1 前置，双向验收、38 个上游文件哈希与许可证 |
+| PR-07 | done | 真实 Host Executor、25 个唯一 Trial、恢复与三组报告 |
+| PR-08 | partial | CI/安装/零模型宿主通过；Desktop、External Mixed/Council 未执行 |
+| PR-09 | partial | CI/打包/许可证/注册面/契约草案完成；0.X 未冻结、未建 0.9 Tag |
+
 **可并行的部分**：PR-06 的任务准备、PR-04 的路由设计、PR-08 的验收脚本准备，可以在后端正确性修复期间并行开展。
 
 **必须单集成人协调的部分**：PR-02/03 修改核心执行路径时，应由一个集成人协调 `src/index.js`、`provider.js` 和 Graph 等共享文件，避免开发过程中制造新的写入冲突。
@@ -245,11 +261,11 @@
 
 用五项硬验收代替漫长且不断增长的功能清单：
 
-- [ ] **0.6**：跨进程、恢复、权限、验收的 P0 正确性问题全部关闭
-- [ ] **0.7**：Native、Mixed、Council 三类真实工作流通过验收
-- [ ] **0.8**：真实 Benchmark Executor 接通，并形成可复现的实验报告
-- [ ] **0.9**：CI、Desktop、安装迁移与核心协议冻结完成
-- [ ] **1.X 准备**：明确 Agent Contract v1 的输入输出与 Adapter 能力边界
+- [x] **0.6**：跨进程、恢复、权限、验收的 P0 正确性问题全部关闭（[identity](../test/integration/identity.test.mjs)、[acceptance](../test/integration/pr02-acceptance.test.mjs)、[writer/policy](../test/integration/pr03-writer-policy.test.mjs)、[真实宿主原生闭环](evidence/alpha.2/practice-r01-native-runtime.json)）
+- [ ] **0.7**：Native、Mixed、Council 三类真实工作流通过验收 —— Native 单/多角色与不同模型已在真实 Pilot 验证；**External Mixed 与 managed Council 因用户决定不再调用模型而 blocked**（[三链自动化闭环](../test/integration/pr05-workflow.test.mjs)，[真实多角色冒烟](evidence/v0.8/smoke-e1-multirole-kimi-review.json)）
+- [x] **0.8**：真实 Benchmark Executor 接通，并形成可复现的实验报告（[25-Trial 汇总](evidence/v0.8/pilot-final-summary.json)：24/25；含 watchdog/基础设施恢复，费用全 unknown，E1 baseline 重建、E3 后验复核限制保留）
+- [ ] **0.9**：CI、Desktop、安装迁移与核心协议冻结完成 —— [CI 全绿](https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131)、真实 npm pack/install、许可证/注册面/跨平台检查已完成；**Desktop 点击与 Mixed/Council 验收未闭环，内部 0.9 Tag 未创建**
+- [x] **1.X 准备**：明确 Agent Contract v1 的输入输出与 Adapter 能力边界（[AGENT-CONTRACT-V1](AGENT-CONTRACT-V1.md)，仅为 1.X 草案，不宣称已实现跨 Harness 协议）
 
 > 勾选仅用于规划。真正完成仍需仓库中的代码、测试和运行证据。
 

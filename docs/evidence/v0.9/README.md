@@ -1,5 +1,7 @@
 # PR-09 independent freeze verification — evidence (v0.9)
 
+> **Final update (2026-11-04)**：GitHub Actions [run 41871037131](https://github.com/PengYangchao0808/oh-my-coharness/actions/runs/41871037131) 已全绿（Ubuntu Node20/22、Windows Node22、真实 npm pack/install），机器可读记录见 [final-ci.json](final-ci.json)。本机无 npm 的阻塞已由 CI 的真实安装证据解除。零模型宿主、原生 closure、efficiency 与 cache identity 探针也通过。Desktop 点击与 External Mixed/managed Council 的真实模型验收未执行，0.X 未冻结。下文保留初始本机验证记录，不再代表“CI 未运行”的当前状态。
+
 Scope: the independent verification tools for the 0.X freeze. This directory
 contains only machine-readable/text output produced by the commands below, plus
 this note. It is written by `scripts/run-tests.mjs` in CI as well
